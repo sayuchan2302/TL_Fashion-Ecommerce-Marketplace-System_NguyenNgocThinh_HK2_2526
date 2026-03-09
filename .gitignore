@@ -1,0 +1,5 @@
+.agent/skills/
+
+backend/.env
+
+frontend/.env
