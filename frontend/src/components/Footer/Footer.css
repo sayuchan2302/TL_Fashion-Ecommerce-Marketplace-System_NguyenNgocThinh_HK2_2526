@@ -1,0 +1,135 @@
+.footer {
+  background-color: var(--co-black);
+  color: var(--co-gray-300);
+  padding-top: var(--space-12);
+}
+
+.footer-container {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+  gap: var(--space-8);
+  margin-bottom: var(--space-12);
+}
+
+.footer-title {
+  color: var(--co-white);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+  letter-spacing: 0.5px;
+}
+
+.footer-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-bottom: var(--space-6);
+}
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+}
+
+.contact-item strong {
+  color: var(--co-white);
+  font-size: 1rem;
+}
+
+.social-links {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.social-btn {
+  color: var(--co-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--co-gray-600);
+  transition: all 0.3s ease;
+}
+
+.social-btn:hover {
+  background-color: var(--co-white);
+  color: var(--co-black);
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: 0.875rem;
+}
+
+.footer-links a:hover {
+  color: var(--co-white);
+  padding-left: 4px; /* subtle interaction */
+}
+
+.address-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.address-icon {
+  flex-shrink: 0;
+  color: var(--co-white);
+}
+
+.address-item strong {
+  color: var(--co-white);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--co-gray-800);
+  padding: var(--space-4) 0;
+  background-color: var(--co-gray-900);
+}
+
+.bottom-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.payment-methods img {
+  height: 38px;
+}
+
+@media (max-width: 1024px) {
+  .footer-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .footer-container {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+  
+  .bottom-content {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-4);
+  }
+}

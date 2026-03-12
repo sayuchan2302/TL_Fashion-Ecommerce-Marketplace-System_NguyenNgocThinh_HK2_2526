@@ -1,0 +1,5 @@
+.main-content {
+  min-height: calc(100vh - var(--header-height) - var(--topbar-height));
+  background-color: var(--bg-primary);
+  padding: var(--space-8) 0;
+}
