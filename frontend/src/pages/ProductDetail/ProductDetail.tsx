@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import ProductGallery from '../../components/ProductGallery/ProductGallery';
@@ -6,6 +6,7 @@ import ProductInfo from '../../components/ProductInfo/ProductInfo';
 import ProductActions from '../../components/ProductActions/ProductActions';
 import ProductDescription from '../../components/ProductDescription/ProductDescription';
 import ProductSection from '../../components/ProductSection/ProductSection';
+import ProductDetailSkeleton from '../../components/ProductDetailSkeleton/ProductDetailSkeleton';
 import './ProductDetail.css';
 
 const mockProduct = {
@@ -72,6 +73,28 @@ const ProductDetail = () => {
   // Selected variant state lifted up here so ProductActions can use it
   const [selectedColor, setSelectedColor] = useState(product.colors[0]?.name ?? '');
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? '');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate API fetch delay
+  useEffect(() => {
+    // Scroll to top when PDP mounts or ID changes
+    window.scrollTo(0, 0);
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="pdp-page">
+        <div className="container pdp-container">
+          <ProductDetailSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pdp-page">

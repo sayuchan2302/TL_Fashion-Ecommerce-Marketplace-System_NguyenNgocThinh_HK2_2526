@@ -1,0 +1,50 @@
+.product-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.product-image-container-skeleton {
+  position: relative;
+  width: 100%;
+  padding-top: 133%; /* Match the aspect ratio of the real image (approx 3:4) */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.product-image-container-skeleton .image-skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.product-info-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.product-colors-skeleton {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.title-skeleton {
+  margin-bottom: 4px;
+}
+
+.product-prices-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.orig-price-skeleton {
+  margin-top: 2px;
+}

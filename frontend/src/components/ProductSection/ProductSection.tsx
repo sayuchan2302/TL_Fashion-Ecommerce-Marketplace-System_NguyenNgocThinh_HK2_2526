@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './ProductSection.css';
 import ProductCard from '../ProductCard/ProductCard';
+import ProductCardSkeleton from '../ProductCardSkeleton/ProductCardSkeleton';
 
 interface ProductData {
   id: number;
@@ -22,6 +23,15 @@ interface ProductSectionProps {
 
 const ProductSection = ({ title, products, viewAllLink = "#" }: ProductSectionProps) => {
   const sliderRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate API fetch delay
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const scrollLeft = () => {
     if (sliderRef.current) {
@@ -48,11 +58,17 @@ const ProductSection = ({ title, products, viewAllLink = "#" }: ProductSectionPr
         </button>
         
         <div className="product-grid slider-view" ref={sliderRef}>
-          {products.map((product) => (
-            <div key={product.id} className="slider-item">
-              <ProductCard {...product} />
-            </div>
-          ))}
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, index) => (
+                <div key={`skeleton-${index}`} className="slider-item">
+                  <ProductCardSkeleton />
+                </div>
+              ))
+            : products.map((product) => (
+                <div key={product.id} className="slider-item">
+                  <ProductCard {...product} />
+                </div>
+              ))}
         </div>
 
         <button className="slider-nav next-btn" onClick={scrollRight} aria-label="Next">

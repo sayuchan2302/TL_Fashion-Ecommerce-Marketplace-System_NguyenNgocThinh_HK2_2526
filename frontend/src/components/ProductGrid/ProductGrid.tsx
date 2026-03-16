@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import './ProductGrid.css';
 import ProductCard from '../ProductCard/ProductCard';
+import ProductCardSkeleton from '../ProductCardSkeleton/ProductCardSkeleton';
 
 // Temporary mock data mapping
 const mockProducts = [
@@ -98,6 +100,16 @@ const mockProducts = [
 ];
 
 const ProductGrid = () => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate network request
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="product-grid-container">
       {/* Toolbar: Sort & Views */}
@@ -119,9 +131,13 @@ const ProductGrid = () => {
 
       {/* Grid */}
       <div className="plp-grid">
-        {mockProducts.map((product) => (
-          <ProductCard key={product.id} {...product} />
-        ))}
+        {isLoading
+          ? Array.from({ length: 8 }).map((_, index) => (
+              <ProductCardSkeleton key={index} />
+            ))
+          : mockProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
       </div>
 
       {/* Pagination */}
