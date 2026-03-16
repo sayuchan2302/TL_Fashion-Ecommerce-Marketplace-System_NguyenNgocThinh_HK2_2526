@@ -162,9 +162,10 @@ const Checkout = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      setIsSuccessModalOpen(true);
+      const orderId = Math.floor(Math.random() * 1000000);
       // Clear all items after successful order
       items.forEach(item => removeFromCart(item.cartId));
+      navigate(`/order-success?id=${orderId}`);
     }, 1500);
   };
 

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart } from 'lucide-react';
+import { Search, ShoppingCart, Heart } from 'lucide-react';
 import AuthModal from '../AuthModal/AuthModal';
 import { useCartAnimation } from '../../context/CartAnimationContext';
 import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 import './Header.css';
 
 const Header = () => {
@@ -11,7 +12,9 @@ const Header = () => {
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const navigate = useNavigate();
   const { totalItems } = useCart();
+  const { totalItems: wishlistCount } = useWishlist();
   const { cartIconRef } = useCartAnimation();
+  const [searchValue, setSearchValue] = useState('');
 
   // Pulse animation state
   const [isBouncing, setIsBouncing] = useState(false);
@@ -56,46 +59,46 @@ const Header = () => {
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">ÁO</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Áo thun</a></li>
-                      <li><a href="#">Áo polo</a></li>
-                      <li><a href="#">Áo sơ mi</a></li>
-                      <li><a href="#">Áo hoodie</a></li>
-                      <li><a href="#">Áo len</a></li>
+                      <li><Link to="/category/men-ao-thun">Áo thun</Link></li>
+                      <li><Link to="/category/men-ao-polo">Áo polo</Link></li>
+                      <li><Link to="/category/men-ao-so-mi">Áo sơ mi</Link></li>
+                      <li><Link to="/category/men-ao-hoodie">Áo hoodie</Link></li>
+                      <li><Link to="/category/men-ao-len">Áo len</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">QUẦN</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Quần jeans</a></li>
-                      <li><a href="#">Quần tây</a></li>
-                      <li><a href="#">Quần kaki</a></li>
-                      <li><a href="#">Quần short</a></li>
-                      <li><a href="#">Quần jogger</a></li>
+                      <li><Link to="/category/men-quan-jeans">Quần jeans</Link></li>
+                      <li><Link to="/category/men-quan-tay">Quần tây</Link></li>
+                      <li><Link to="/category/men-quan-kaki">Quần kaki</Link></li>
+                      <li><Link to="/category/men-quan-short">Quần short</Link></li>
+                      <li><Link to="/category/men-quan-jogger">Quần jogger</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">ĐỒ THỂ THAO</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Áo thể thao</a></li>
-                      <li><a href="#">Quần thể thao</a></li>
-                      <li><a href="#">Set thể thao</a></li>
+                      <li><Link to="/category/men-ao-the-thao">Áo thể thao</Link></li>
+                      <li><Link to="/category/men-quan-the-thao">Quần thể thao</Link></li>
+                      <li><Link to="/category/men-set-the-thao">Set thể thao</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">ĐỒ MẶC NHÀ</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Áo mặc nhà</a></li>
-                      <li><a href="#">Quần mặc nhà</a></li>
-                      <li><a href="#">Bộ mặc nhà</a></li>
+                      <li><Link to="/category/men-ao-mac-nha">Áo mặc nhà</Link></li>
+                      <li><Link to="/category/men-quan-mac-nha">Quần mặc nhà</Link></li>
+                      <li><Link to="/category/men-bo-mac-nha">Bộ mặc nhà</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">PHỤ KIỆN</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Nón / mũ</a></li>
-                      <li><a href="#">Thắt lưng</a></li>
-                      <li><a href="#">Ví</a></li>
-                      <li><a href="#">Tất</a></li>
+                      <li><Link to="/category/men-non-mu">Nón / mũ</Link></li>
+                      <li><Link to="/category/men-that-lung">Thắt lưng</Link></li>
+                      <li><Link to="/category/men-vi">Ví</Link></li>
+                      <li><Link to="/category/men-tat">Tất</Link></li>
                     </ul>
                   </div>
                 </div>
@@ -109,54 +112,54 @@ const Header = () => {
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">ÁO</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Áo thun</a></li>
-                      <li><a href="#">Áo kiểu</a></li>
-                      <li><a href="#">Áo sơ mi</a></li>
-                      <li><a href="#">Áo croptop</a></li>
-                      <li><a href="#">Áo khoác</a></li>
+                      <li><Link to="/category/women-ao-thun">Áo thun</Link></li>
+                      <li><Link to="/category/women-ao-kieu">Áo kiểu</Link></li>
+                      <li><Link to="/category/women-ao-so-mi">Áo sơ mi</Link></li>
+                      <li><Link to="/category/women-ao-croptop">Áo croptop</Link></li>
+                      <li><Link to="/category/women-ao-khoac">Áo khoác</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">VÁY / ĐẦM</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Váy liền</a></li>
-                      <li><a href="#">Váy dự tiệc</a></li>
-                      <li><a href="#">Váy công sở</a></li>
-                      <li><a href="#">Váy maxi</a></li>
+                      <li><Link to="/category/women-vay-lien">Váy liền</Link></li>
+                      <li><Link to="/category/women-vay-du-tiec">Váy dự tiệc</Link></li>
+                      <li><Link to="/category/women-vay-cong-so">Váy công sở</Link></li>
+                      <li><Link to="/category/women-vay-maxi">Váy maxi</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">QUẦN</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Quần jeans</a></li>
-                      <li><a href="#">Quần short</a></li>
-                      <li><a href="#">Quần tây</a></li>
-                      <li><a href="#">Quần legging</a></li>
+                      <li><Link to="/category/women-quan-jeans">Quần jeans</Link></li>
+                      <li><Link to="/category/women-quan-short">Quần short</Link></li>
+                      <li><Link to="/category/women-quan-tay">Quần tây</Link></li>
+                      <li><Link to="/category/women-quan-legging">Quần legging</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">ĐỒ THỂ THAO</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Áo thể thao</a></li>
-                      <li><a href="#">Quần thể thao</a></li>
-                      <li><a href="#">Set thể thao</a></li>
+                      <li><Link to="/category/women-ao-the-thao">Áo thể thao</Link></li>
+                      <li><Link to="/category/women-quan-the-thao">Quần thể thao</Link></li>
+                      <li><Link to="/category/women-set-the-thao">Set thể thao</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">ĐỒ MẶC NHÀ</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Áo mặc nhà</a></li>
-                      <li><a href="#">Quần mặc nhà</a></li>
-                      <li><a href="#">Bộ mặc nhà</a></li>
+                      <li><Link to="/category/women-ao-mac-nha">Áo mặc nhà</Link></li>
+                      <li><Link to="/category/women-quan-mac-nha">Quần mặc nhà</Link></li>
+                      <li><Link to="/category/women-bo-mac-nha">Bộ mặc nhà</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">PHỤ KIỆN</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Túi xách</a></li>
-                      <li><a href="#">Nón / mũ</a></li>
-                      <li><a href="#">Khăn</a></li>
-                      <li><a href="#">Thắt lưng</a></li>
+                      <li><Link to="/category/women-tui-xach">Túi xách</Link></li>
+                      <li><Link to="/category/women-non-mu">Nón / mũ</Link></li>
+                      <li><Link to="/category/women-khan">Khăn</Link></li>
+                      <li><Link to="/category/women-that-lung">Thắt lưng</Link></li>
                     </ul>
                   </div>
                 </div>
@@ -169,27 +172,27 @@ const Header = () => {
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">Túi & ví</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Túi xách</a></li>
-                      <li><a href="#">Túi đeo chéo</a></li>
-                      <li><a href="#">Balo</a></li>
-                      <li><a href="#">Ví</a></li>
+                      <li><Link to="/category/tui-xach">Túi xách</Link></li>
+                      <li><Link to="/category/tui-deo-cheo">Túi đeo chéo</Link></li>
+                      <li><Link to="/category/balo">Balo</Link></li>
+                      <li><Link to="/category/vi">Ví</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">Phụ kiện thời trang</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Nón / mũ</a></li>
-                      <li><a href="#">Thắt lưng</a></li>
-                      <li><a href="#">Khăn</a></li>
-                      <li><a href="#">Tất</a></li>
+                      <li><Link to="/category/non-mu">Nón / mũ</Link></li>
+                      <li><Link to="/category/that-lung">Thắt lưng</Link></li>
+                      <li><Link to="/category/khan">Khăn</Link></li>
+                      <li><Link to="/category/tat">Tất</Link></li>
                     </ul>
                   </div>
                   <div className="mega-menu-col">
                     <h3 className="mega-menu-title">Phụ kiện khác (tuỳ shop)</h3>
                     <ul className="mega-menu-list">
-                      <li><a href="#">Kính mát</a></li>
-                      <li><a href="#">Đồng hồ</a></li>
-                      <li><a href="#">Trang sức</a></li>
+                      <li><Link to="/category/kinh-mat">Kính mát</Link></li>
+                      <li><Link to="/category/dong-ho">Đồng hồ</Link></li>
+                      <li><Link to="/category/trang-suc">Trang sức</Link></li>
                     </ul>
                   </div>
                 </div>
@@ -205,15 +208,19 @@ const Header = () => {
 
         {/* Actions */}
         <div className="header-actions">
-          <div className="search-box">
+          <form className="search-box" onSubmit={(e) => { e.preventDefault(); if (searchValue.trim()) navigate(`/search?q=${encodeURIComponent(searchValue.trim())}`); }}>
             <Search size={18} className="search-icon" />
-            <input type="text" placeholder="Tìm kiếm sản phẩm..." className="search-input" />
-          </div>
+            <input type="text" placeholder="Tìm kiếm sản phẩm..." className="search-input" value={searchValue} onChange={e => setSearchValue(e.target.value)} />
+          </form>
           <div className="auth-links">
             <a href="#" className="auth-link" onClick={(e) => { e.preventDefault(); openAuthModal('login'); }}>Đăng nhập</a>
             <span className="auth-divider">/</span>
             <a href="#" className="auth-link" onClick={(e) => { e.preventDefault(); openAuthModal('register'); }}>Đăng ký</a>
           </div>
+          <button className="icon-btn wishlist-btn" aria-label="Yêu thích" onClick={() => navigate('/wishlist')}>
+            <Heart size={22} />
+            {wishlistCount > 0 && <span className="cart-badge">{wishlistCount}</span>}
+          </button>
           <button 
             ref={cartIconRef}
             className={`icon-btn cart-btn ${isBouncing ? 'cart-bounce' : ''}`} 

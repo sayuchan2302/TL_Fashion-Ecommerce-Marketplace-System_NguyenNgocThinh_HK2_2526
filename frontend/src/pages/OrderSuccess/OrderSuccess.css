@@ -1,0 +1,142 @@
+.order-success-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 60px 20px;
+  background: #f5f5f7;
+}
+
+.order-success-card {
+  background: white;
+  border-radius: 16px;
+  padding: 48px 40px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+
+.success-check-wrapper {
+  margin-bottom: 24px;
+}
+
+.success-check-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.os-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--co-black);
+  margin: 0 0 8px;
+}
+
+.os-subtitle {
+  font-size: 15px;
+  color: #888;
+  margin: 0 0 32px;
+}
+
+.os-order-info {
+  background: #f8f9fb;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.os-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.os-info-row:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+
+.os-label {
+  font-size: 14px;
+  color: #888;
+}
+
+.os-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--co-black);
+}
+
+.os-order-id {
+  color: var(--co-blue);
+  font-size: 16px;
+}
+
+.os-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.os-note {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 32px;
+}
+
+.os-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.os-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.os-btn-primary {
+  background: var(--co-black);
+  color: white;
+}
+
+.os-btn-primary:hover {
+  opacity: 0.85;
+}
+
+.os-btn-outline {
+  background: white;
+  color: var(--co-black);
+  border: 1px solid #ddd;
+}
+
+.os-btn-outline:hover {
+  border-color: var(--co-black);
+}

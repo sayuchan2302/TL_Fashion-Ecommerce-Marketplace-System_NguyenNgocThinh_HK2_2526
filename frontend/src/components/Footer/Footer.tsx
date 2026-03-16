@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import './Footer.css';
 import { Facebook, Instagram, Youtube, MapPin, Phone, Mail } from 'lucide-react';
 
@@ -28,21 +29,18 @@ const Footer = () => {
         <div className="footer-column">
           <h3 className="footer-title">CHÍNH SÁCH</h3>
           <ul className="footer-links">
-            <li><a href="#">Chính sách đổi trả 60 ngày</a></li>
-            <li><a href="#">Chính sách khuyến mãi</a></li>
-            <li><a href="#">Chính sách bảo mật</a></li>
-            <li><a href="#">Chính sách giao hàng</a></li>
+            <li><Link to="/policy/doi-tra">Chính sách đổi trả 60 ngày</Link></li>
+            <li><Link to="/policy/khuyen-mai">Chính sách khuyến mãi</Link></li>
+            <li><Link to="/policy/bao-mat">Chính sách bảo mật</Link></li>
+            <li><Link to="/policy/giao-hang">Chính sách giao hàng</Link></li>
           </ul>
         </div>
 
         <div className="footer-column">
           <h3 className="footer-title">VỀ COOLMATE</h3>
           <ul className="footer-links">
-            <li><a href="#">Câu chuyện Coolmate</a></li>
-            <li><a href="#">Showroom</a></li>
-            <li><a href="#">Tin tức</a></li>
-            <li><a href="#">Tuyển dụng</a></li>
-            <li><a href="#">Liên hệ</a></li>
+            <li><Link to="/about">Câu chuyện Coolmate</Link></li>
+            <li><Link to="/contact">Liên hệ</Link></li>
           </ul>
         </div>
 
