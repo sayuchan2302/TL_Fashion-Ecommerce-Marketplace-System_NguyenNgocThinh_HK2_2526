@@ -85,7 +85,7 @@ const PaymentResult = () => {
           <div className="pr-actions">
             {status === 'success' ? (
               <>
-                <Link to="/order-tracking" className="pr-btn primary">Theo dõi đơn</Link>
+                <Link to={orderCode ? `/order-tracking?code=${orderCode}` : '/order-tracking'} className="pr-btn primary">Theo dõi đơn</Link>
                 <Link to="/" className="pr-btn ghost">Về trang chủ</Link>
               </>
             ) : status === 'failed' ? (
@@ -95,7 +95,7 @@ const PaymentResult = () => {
               </>
             ) : (
               <>
-                <Link to="/order-tracking" className="pr-btn primary">Kiểm tra trạng thái</Link>
+                <Link to={orderCode ? `/order-tracking?code=${orderCode}` : '/order-tracking'} className="pr-btn primary">Kiểm tra trạng thái</Link>
                 <Link to="/" className="pr-btn ghost">Trang chủ</Link>
               </>
             )}

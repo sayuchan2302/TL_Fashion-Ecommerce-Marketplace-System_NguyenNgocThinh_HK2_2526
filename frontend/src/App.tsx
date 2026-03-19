@@ -38,6 +38,7 @@ import Returns from './pages/Returns/Returns';
 import FAQ from './pages/FAQ/FAQ';
 import PaymentResult from './pages/PaymentResult/PaymentResult';
 import SizeGuide from './pages/SizeGuide/SizeGuide';
+import Stores from './pages/Stores/Stores';
 
 const MainLayout = () => {
   const location = useLocation();
@@ -81,6 +82,7 @@ function App() {
                         <Route path="/payment-result" element={<PaymentResult />} />
                         <Route path="/faq" element={<FAQ />} />
                         <Route path="/size-guide" element={<SizeGuide />} />
+                        <Route path="/stores" element={<Stores />} />
                         <Route path="/policy/:type" element={<Policy />} />
                         <Route path="/about" element={<About />} />
                         <Route path="/contact" element={<Contact />} />

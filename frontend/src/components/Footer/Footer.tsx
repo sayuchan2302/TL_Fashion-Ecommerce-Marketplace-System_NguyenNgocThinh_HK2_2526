@@ -43,6 +43,7 @@ const Footer = () => {
           <h3 className="footer-title">VỀ COOLMATE</h3>
           <ul className="footer-links">
             <li><Link to="/about">Câu chuyện Coolmate</Link></li>
+            <li><Link to="/stores">Cửa hàng</Link></li>
             <li><Link to="/contact">Liên hệ</Link></li>
             <li><Link to="/size-guide">Bảng size</Link></li>
             <li><Link to="/faq">FAQ</Link></li>

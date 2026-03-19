@@ -8,7 +8,7 @@ const TopBar = () => {
       <div className="topbar-content container">
         <div className="topbar-left">
           <Link to="/about">Về COOLMATE</Link>
-          <Link to="/contact">Cửa hàng</Link>
+          <Link to="/stores">Cửa hàng</Link>
           <a href="https://blog.coolmate.me" target="_blank" rel="noreferrer">Blog</a>
         </div>
         
