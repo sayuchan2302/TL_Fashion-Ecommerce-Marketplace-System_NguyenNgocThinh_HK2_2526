@@ -184,7 +184,7 @@
   border: 1px solid #d1d5db;
   border-radius: 4px;
   position: relative;
-  transition: all 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
   background-color: transparent;
   flex-shrink: 0;
 }
@@ -276,7 +276,7 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
-  transition: all 0.2s;
+  transition: color 0.2s, background-color 0.2s;
   display: flex;
   align-items: center;
   flex-shrink: 0;

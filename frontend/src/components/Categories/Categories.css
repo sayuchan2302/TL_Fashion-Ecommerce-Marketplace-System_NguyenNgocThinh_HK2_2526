@@ -16,7 +16,7 @@
   font-weight: 700;
   color: var(--text-primary);
   background-color: var(--co-gray-200);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
 }
 
 .tab-btn:hover {
@@ -32,7 +32,7 @@
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: var(--space-4);
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   justify-content: center;
   animation: fadeInUpGrid 0.4s ease forwards;
 }

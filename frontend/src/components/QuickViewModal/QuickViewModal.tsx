@@ -72,7 +72,13 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
 
   return (
     <div className="qv-overlay" onClick={onClose}>
-      <div className="qv-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="qv-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Xem nhanh ${product.name}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close Button */}
         <button className="qv-close-btn" onClick={onClose} aria-label="Đóng">
           <X size={24} />
@@ -82,7 +88,13 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
           {/* Left: Image */}
           <div className="qv-image-col">
             <div className="qv-image-wrapper">
-              <img src={product.image} alt={product.name} className="qv-image" />
+              <img
+                src={product.image}
+                alt={product.name}
+                className="qv-image"
+                width={672}
+                height={990}
+              />
               {discount > 0 && (
                 <span className="qv-badge">-{discount}%</span>
               )}
@@ -143,11 +155,19 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
             <div className="qv-section">
               <label className="qv-label">Số lượng</label>
               <div className="qv-quantity">
-                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                  aria-label="Giảm số lượng"
+                >
                   <Minus size={16} />
                 </button>
                 <span className="qv-qty-value">{quantity}</span>
-                <button onClick={() => setQuantity(q => Math.min(10, q + 1))} disabled={quantity >= 10}>
+                <button
+                  onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                  disabled={quantity >= 10}
+                  aria-label="Tăng số lượng"
+                >
                   <Plus size={16} />
                 </button>
               </div>
@@ -170,6 +190,7 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
                 className={`qv-wishlist-btn ${isWished ? 'wished' : ''}`}
                 onClick={handleToggleWishlist}
                 title={isWished ? 'Bỏ yêu thích' : 'Yêu thích'}
+                aria-label={isWished ? 'Bỏ yêu thích' : 'Yêu thích'}
               >
                 <Heart size={22} fill={isWished ? 'currentColor' : 'none'} />
               </button>

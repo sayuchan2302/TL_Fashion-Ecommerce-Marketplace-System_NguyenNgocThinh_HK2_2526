@@ -13,6 +13,12 @@ const FilterSidebar = () => {
     color: true
   });
 
+  const sectionIds = {
+    price: 'filter-price',
+    size: 'filter-size',
+    color: 'filter-color'
+  } as const;
+
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections(prev => ({
       ...prev,
@@ -39,21 +45,24 @@ const FilterSidebar = () => {
     <div className="filter-sidebar">
       <div className="filter-header">
         <h3 className="filter-title">Bộ Lọc</h3>
-        <button className="clear-filter-btn" onClick={resetFilters}>Xóa tất cả</button>
+        <button type="button" className="clear-filter-btn" onClick={resetFilters}>Xóa tất cả</button>
       </div>
 
       {/* Filter by Price */}
       <div className="filter-section">
-        <div 
-          className="filter-section-header" 
+        <button
+          type="button"
+          className="filter-section-header"
           onClick={() => toggleSection('price')}
+          aria-expanded={openSections.price}
+          aria-controls={`${sectionIds.price}-content`}
         >
           <h4 className="filter-section-title">Khoảng Giá</h4>
           {openSections.price ? <Minus size={16} /> : <Plus size={16} />}
-        </div>
+        </button>
         
         {openSections.price && (
-          <div className="filter-section-content">
+          <div className="filter-section-content" id={`${sectionIds.price}-content`}>
             {priceRanges.map(range => (
               <label key={range.id} className="filter-checkbox-label">
                 <input 
@@ -71,16 +80,19 @@ const FilterSidebar = () => {
 
       {/* Filter by Size */}
       <div className="filter-section">
-        <div 
-          className="filter-section-header" 
+        <button
+          type="button"
+          className="filter-section-header"
           onClick={() => toggleSection('size')}
+          aria-expanded={openSections.size}
+          aria-controls={`${sectionIds.size}-content`}
         >
           <h4 className="filter-section-title">Kích Cỡ</h4>
           {openSections.size ? <Minus size={16} /> : <Plus size={16} />}
-        </div>
+        </button>
         
         {openSections.size && (
-          <div className="filter-section-content">
+          <div className="filter-section-content" id={`${sectionIds.size}-content`}>
             <div className="size-grid">
               {['S', 'M', 'L', 'XL', '2XL', '3XL'].map(size => (
                 <button 
@@ -98,16 +110,19 @@ const FilterSidebar = () => {
 
       {/* Filter by Color */}
       <div className="filter-section">
-        <div 
-          className="filter-section-header" 
+        <button
+          type="button"
+          className="filter-section-header"
           onClick={() => toggleSection('color')}
+          aria-expanded={openSections.color}
+          aria-controls={`${sectionIds.color}-content`}
         >
           <h4 className="filter-section-title">Màu Sắc</h4>
           {openSections.color ? <Minus size={16} /> : <Plus size={16} />}
-        </div>
+        </button>
         
         {openSections.color && (
-          <div className="filter-section-content">
+          <div className="filter-section-content" id={`${sectionIds.color}-content`}>
             <div className="color-grid">
               {colorOptions.map(color => (
                 <button 

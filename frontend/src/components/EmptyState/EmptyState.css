@@ -56,7 +56,7 @@
   font-weight: 700;
   border-radius: 10px;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s, filter 0.2s;
 }
 
 .empty-state-btn:hover {

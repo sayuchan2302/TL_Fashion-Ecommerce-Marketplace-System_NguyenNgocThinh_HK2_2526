@@ -322,7 +322,7 @@
   font-weight: 500;
   color: #374151;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
 }
 
 .wl-option-btn:hover {

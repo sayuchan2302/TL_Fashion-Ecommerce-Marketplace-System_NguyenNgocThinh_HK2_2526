@@ -111,7 +111,7 @@
   font-weight: 700;
   border-radius: var(--radius-full);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .collection-btn:hover {

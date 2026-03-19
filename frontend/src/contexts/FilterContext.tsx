@@ -15,6 +15,7 @@ interface FilterContextType {
   updateColor: (color: string, checked: boolean) => void;
   updateSortBy: (sort: string) => void;
   resetFilters: () => void;
+  setFiltersState: (next: FilterState) => void;
 }
 
 const FilterContext = createContext<FilterContextType | undefined>(undefined);
@@ -26,6 +27,15 @@ export const FilterProvider = ({ children }: { children: ReactNode }) => {
     colors: [],
     sortBy: 'newest',
   });
+
+  const setFiltersState = (next: FilterState) => {
+    setFilters({
+      priceRanges: Array.from(new Set(next.priceRanges)),
+      sizes: Array.from(new Set(next.sizes)),
+      colors: Array.from(new Set(next.colors)),
+      sortBy: next.sortBy || 'newest',
+    });
+  };
 
   const updatePriceRange = (range: string, checked: boolean) => {
     setFilters(prev => ({
@@ -79,6 +89,7 @@ export const FilterProvider = ({ children }: { children: ReactNode }) => {
         updateColor,
         updateSortBy,
         resetFilters,
+        setFiltersState,
       }}
     >
       {children}

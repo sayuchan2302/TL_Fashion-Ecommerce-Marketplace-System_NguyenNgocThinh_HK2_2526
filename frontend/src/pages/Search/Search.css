@@ -141,7 +141,7 @@
   font-size: 14px;
   color: var(--co-black);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s;
 }
 
 .search-keyword-chip:hover {

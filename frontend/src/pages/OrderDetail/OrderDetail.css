@@ -76,7 +76,7 @@
 
 /* Actions */
 .od-actions-card { display: flex; flex-direction: column; gap: 10px; }
-.od-action-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; width: 100%; }
+.od-action-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s; border: none; width: 100%; }
 .od-btn-primary { background: var(--co-black); color: white; }
 .od-btn-primary:hover { opacity: 0.85; }
 .od-btn-outline { background: white; color: var(--co-black); border: 1px solid #ddd; }

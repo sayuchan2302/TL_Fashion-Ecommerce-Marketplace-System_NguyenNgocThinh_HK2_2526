@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { ChevronRight, SlidersHorizontal, X } from 'lucide-react';
 import FilterSidebar from '../../components/FilterSidebar/FilterSidebar';
 import ProductGrid from '../../components/ProductGrid/ProductGrid';
@@ -15,7 +15,8 @@ const PRICE_LABEL: Record<string, string> = {
 const ProductListing = () => {
   const { id } = useParams<{ id: string }>();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const { filters, updatePriceRange, updateSize, updateColor, resetFilters } = useFilter();
+  const { filters, updatePriceRange, updateSize, updateColor, resetFilters, setFiltersState } = useFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Mapper for category names in breadcrumbs/titles
   const categoryNames: Record<string, string> = {
@@ -27,6 +28,42 @@ const ProductListing = () => {
   };
 
   const currentCategoryName = id && categoryNames[id] ? categoryNames[id] : 'Tất Cả Sản Phẩm';
+
+  // Sync filters <-> URL query params for deep linking
+  useEffect(() => {
+    const parseList = (value: string | null) => value ? value.split(',').filter(Boolean) : [];
+    const urlState = {
+      priceRanges: parseList(searchParams.get('price')),
+      sizes: parseList(searchParams.get('size')),
+      colors: parseList(searchParams.get('color')),
+      sortBy: searchParams.get('sort') || 'newest',
+    };
+
+    const equalSets = (a: string[], b: string[]) => a.length === b.length && a.every(item => b.includes(item));
+
+    if (
+      !equalSets(filters.priceRanges, urlState.priceRanges) ||
+      !equalSets(filters.sizes, urlState.sizes) ||
+      !equalSets(filters.colors, urlState.colors) ||
+      filters.sortBy !== urlState.sortBy
+    ) {
+      setFiltersState(urlState);
+    }
+  }, [filters.colors, filters.priceRanges, filters.sizes, filters.sortBy, searchParams, setFiltersState]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filters.priceRanges.length) params.set('price', filters.priceRanges.join(','));
+    if (filters.sizes.length) params.set('size', filters.sizes.join(','));
+    if (filters.colors.length) params.set('color', filters.colors.join(','));
+    if (filters.sortBy && filters.sortBy !== 'newest') params.set('sort', filters.sortBy);
+
+    const next = params.toString();
+    const current = searchParams.toString();
+    if (next !== current) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [filters, searchParams, setSearchParams]);
 
   // Build active chips list
   const activeChips = [

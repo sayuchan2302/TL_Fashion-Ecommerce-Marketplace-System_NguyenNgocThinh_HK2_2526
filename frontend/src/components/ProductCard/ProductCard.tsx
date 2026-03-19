@@ -96,7 +96,14 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
         </button>
 
         <Link to={`/product/${id}`}>
-          <img src={image} alt={name} className="product-image" loading="lazy" />
+          <img
+            src={image}
+            alt={name}
+            className="product-image"
+            loading="lazy"
+            width={672}
+            height={990}
+          />
           {badge && <span className={`product-badge ${badge === 'SALE' ? 'badge-sale' : ''}`}>{badge}</span>}
           {!badge && discount > 0 && (
             <span className="product-badge badge-sale">-{discount}%</span>

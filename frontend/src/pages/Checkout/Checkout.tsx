@@ -209,7 +209,7 @@ const Checkout = () => {
                   <div className="form-group col-span-2">
                     <label className="input-label">Họ Tên</label>
                     <div className="input-with-prefix">
-                      <select className="prefix-select">
+                      <select className="prefix-select" name="salutation" autoComplete="honorific-prefix">
                         <option value="anh">Anh</option>
                         <option value="chi">Chị</option>
                       </select>
@@ -219,6 +219,8 @@ const Checkout = () => {
                         placeholder="Họ Tên đệm và Tên"
                         value={formValues.name}
                         onChange={e => handleFieldChange('name', e.target.value)}
+                        name="fullName"
+                        autoComplete="name"
                       />
                     </div>
                     {formErrors.name && <span className="field-error">{formErrors.name}</span>}
@@ -232,6 +234,9 @@ const Checkout = () => {
                       placeholder="Số điện thoại"
                       value={formValues.phone}
                       onChange={e => handleFieldChange('phone', e.target.value)}
+                      name="phone"
+                      autoComplete="tel"
+                      inputMode="tel"
                     />
                     {formErrors.phone && <span className="field-error">{formErrors.phone}</span>}
                   </div>
@@ -244,6 +249,9 @@ const Checkout = () => {
                       placeholder="Email (Không bắt buộc)"
                       value={formValues.email}
                       onChange={e => handleFieldChange('email', e.target.value)}
+                      name="email"
+                      autoComplete="email"
+                      spellCheck={false}
                     />
                   </div>
 
@@ -254,6 +262,8 @@ const Checkout = () => {
                       className={`checkout-input ${formErrors.address ? 'input-error' : ''}`}
                       value={formValues.address}
                       onChange={e => handleFieldChange('address', e.target.value)}
+                      name="streetAddress"
+                      autoComplete="street-address"
                     />
                     {formErrors.address && <span className="field-error">{formErrors.address}</span>}
                   </div>
@@ -263,6 +273,8 @@ const Checkout = () => {
                       <select
                         className={`checkout-input checkout-select ${formErrors.city ? 'input-error' : ''}`}
                         value={selectedProvinceCode}
+                        name="province"
+                        autoComplete="address-level1"
                         onChange={e => {
                           const code = e.target.value;
                           setSelectedProvinceCode(code);
@@ -291,6 +303,8 @@ const Checkout = () => {
                         className={`checkout-input checkout-select ${formErrors.district ? 'input-error' : ''}`}
                         value={selectedDistrictCode}
                         disabled={!selectedProvinceCode}
+                        name="district"
+                        autoComplete="address-level2"
                         onChange={e => {
                           const code = e.target.value;
                           setSelectedDistrictCode(code);
@@ -317,6 +331,8 @@ const Checkout = () => {
                         className={`checkout-input checkout-select ${formErrors.ward ? 'input-error' : ''}`}
                         value={selectedWardCode}
                         disabled={!selectedDistrictCode}
+                        name="ward"
+                        autoComplete="address-level3"
                         onChange={e => {
                           const code = e.target.value;
                           setSelectedWardCode(code);
@@ -334,11 +350,13 @@ const Checkout = () => {
                     {formErrors.ward && <span className="field-error">{formErrors.ward}</span>}
                   </div>
 
-                  <div className="form-group col-span-2">
-                    <label className="input-label">Ghi chú</label>
-                    <input type="text" className="checkout-input" placeholder="Nhập ghi chú"
-                      value={formValues.note} onChange={e => handleFieldChange('note', e.target.value)} />
-                  </div>
+                    <div className="form-group col-span-2">
+                      <label className="input-label">Ghi chú</label>
+                      <input type="text" className="checkout-input" placeholder="Nhập ghi chú"
+                        value={formValues.note} onChange={e => handleFieldChange('note', e.target.value)}
+                        name="note"
+                        autoComplete="off" />
+                    </div>
                 </div>
 
 
@@ -354,7 +372,14 @@ const Checkout = () => {
                     <span className="radio-circle"></span>
                     <div className="payment-info payment-col">
                       <div className="payment-row">
-                        <img src="https://mcdn.coolmate.me/image/October2024/mceclip2_42.png" alt="COD" className="payment-icon" />
+                        <img
+                          src="https://mcdn.coolmate.me/image/October2024/mceclip2_42.png"
+                          alt="COD"
+                          className="payment-icon"
+                          width={50}
+                          height={50}
+                          loading="lazy"
+                        />
                         <div>
                           <span className="payment-name-text">Thanh toán khi nhận hàng</span>
                         </div>
@@ -367,7 +392,14 @@ const Checkout = () => {
                     <span className="radio-circle"></span>
                     <div className="payment-info payment-col">
                       <div className="payment-row">
-                        <img src="https://mcdn.coolmate.me/image/October2024/mceclip3_6.png" alt="ZaloPay" className="payment-icon" />
+                        <img
+                          src="https://mcdn.coolmate.me/image/October2024/mceclip3_6.png"
+                          alt="ZaloPay"
+                          className="payment-icon"
+                          width={50}
+                          height={50}
+                          loading="lazy"
+                        />
                         <div>
                           <span className="payment-name-text">Thanh toán qua Zalopay</span>
                           <span className="payment-sub-text">Hỗ trợ mọi hình thức thanh toán</span>
@@ -381,7 +413,14 @@ const Checkout = () => {
                     <span className="radio-circle"></span>
                     <div className="payment-info payment-col">
                       <div className="payment-row">
-                        <img src="https://mcdn.coolmate.me/image/October2024/mceclip1_171.png" alt="MoMo" className="payment-icon" />
+                        <img
+                          src="https://mcdn.coolmate.me/image/October2024/mceclip1_171.png"
+                          alt="MoMo"
+                          className="payment-icon"
+                          width={50}
+                          height={50}
+                          loading="lazy"
+                        />
                         <div>
                           <span className="payment-name-text">Ví điện tử MoMo</span>
                         </div>
@@ -394,7 +433,14 @@ const Checkout = () => {
                     <span className="radio-circle"></span>
                     <div className="payment-info payment-col">
                       <div className="payment-row">
-                        <img src="https://mcdn.coolmate.me/image/October2024/mceclip0_81.png" alt="VNPay" className="payment-icon" />
+                        <img
+                          src="https://mcdn.coolmate.me/image/October2024/mceclip0_81.png"
+                          alt="VNPay"
+                          className="payment-icon"
+                          width={50}
+                          height={50}
+                          loading="lazy"
+                        />
                         <div>
                           <span className="payment-name-text">VNPAY / TháiQR</span>
                           <span className="vnpay-promo-badge">Mã "VNPAYCOOL" giảm 10% (tối đa 150k)</span>

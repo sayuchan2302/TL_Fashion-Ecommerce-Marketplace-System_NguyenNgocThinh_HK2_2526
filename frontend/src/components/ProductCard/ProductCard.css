@@ -113,7 +113,7 @@
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -237,7 +237,7 @@
   color: #999;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   z-index: 2;
   opacity: 0;
   transform: translateY(-5px);
@@ -295,7 +295,7 @@
   align-items: center;
   gap: 6px;
   opacity: 0;
-  transition: all 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
   z-index: 3;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   white-space: nowrap;

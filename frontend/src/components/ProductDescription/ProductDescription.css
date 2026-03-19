@@ -226,7 +226,7 @@
   border-radius: 20px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .view-more-reviews-btn:hover {

@@ -56,6 +56,9 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              name="email"
+              autoComplete="email"
+              spellCheck={false}
             />
             {errors.email && <div className="auth-error">{errors.email}</div>}
           </div>
@@ -68,6 +71,8 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              name="password"
+              autoComplete="current-password"
             />
             {errors.password && <div className="auth-error">{errors.password}</div>}
           </div>

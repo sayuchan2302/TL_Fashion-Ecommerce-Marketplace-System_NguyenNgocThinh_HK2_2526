@@ -28,7 +28,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<TabId>('orders');
+  const [activeTab, setActiveTab] = useState<TabId>('account');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [height, setHeight] = useState('163');
