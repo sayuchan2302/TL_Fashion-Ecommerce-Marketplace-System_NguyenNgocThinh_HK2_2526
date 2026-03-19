@@ -8,8 +8,8 @@ const TopBar = () => {
       <div className="topbar-content container">
         <div className="topbar-left">
           <Link to="/about">Về COOLMATE</Link>
-          <Link to="/faq">FAQ</Link>
-          <Link to="/contact">Liên hệ</Link>
+          <Link to="/contact">Cửa hàng</Link>
+          <a href="https://blog.coolmate.me" target="_blank" rel="noreferrer">Blog</a>
         </div>
         
         <div className="topbar-right">
@@ -17,9 +17,9 @@ const TopBar = () => {
             <Star size={14} fill="currentColor" />
             <span>Coolclub</span>
           </a>
-          <a href="#">Cửa hàng</a>
-          <a href="#">Blog</a>
-          <a href="#">CSKH</a>
+          <Link to="/size-guide">Size Guide</Link>
+          <Link to="/faq">FAQ</Link>
+          <Link to="/contact">CSKH</Link>
           <button className="lang-btn">
             <img src="https://upload.wikimedia.org/wikipedia/commons/2/21/Flag_of_Vietnam.svg" alt="VN Flag" className="flag-icon" />
             <span>VN</span>
