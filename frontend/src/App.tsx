@@ -42,13 +42,14 @@ import AdminProducts from './pages/Admin/AdminProducts';
 const MainLayout = () => {
   const location = useLocation();
   const isCheckout = location.pathname === '/checkout';
+  const isAdmin = location.pathname.startsWith('/admin');
 
   return (
     <>
       <TopBar />
       <Header />
       <Outlet />
-      {!isCheckout && <Footer />}
+      {!isCheckout && !isAdmin && <Footer />}
     </>
   );
 };
