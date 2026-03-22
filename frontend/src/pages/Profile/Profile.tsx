@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   User,
   ShoppingBag,
@@ -14,20 +14,31 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Trash2
+  Trash2,
+  Bell,
+  Package,
+  Tag,
+  Star,
+  Info,
+  Trash,
+  CheckCheck
 } from 'lucide-react';
 import AddressModal, { type AddressData } from './AddressModal';
 import EmptyState from '../../components/EmptyState/EmptyState';
 import ReviewModal from '../../components/ReviewModal/ReviewModal';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import Skeleton from '../../components/Skeleton/Skeleton';
 import { CLIENT_TEXT } from '../../utils/texts';
+import { CLIENT_TOAST_MESSAGES } from '../../utils/clientMessages';
+import { notificationService } from '../../services/notificationService';
 import './Profile.css';
 
 const t = CLIENT_TEXT.profile;
 const tCommon = CLIENT_TEXT.common;
 
-type TabId = 'account' | 'orders' | 'vouchers' | 'addresses' | 'reviews';
+type TabId = 'account' | 'orders' | 'vouchers' | 'addresses' | 'reviews' | 'notifications';
 
 interface PendingProduct {
   productId: string;
@@ -57,9 +68,34 @@ const PENDING_REVIEWS: PendingProduct[] = [
 const Profile = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { logout } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const [isLoading, setIsLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<TabId>('account');
+
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab);
+    // Update URL query param
+    if (tab === 'account') {
+      searchParams.delete('tab');
+    } else {
+      searchParams.set('tab', tab);
+    }
+    setSearchParams(searchParams);
+  };
+
+  // Sync activeTab with URL query param
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabId | null;
+    if (tabParam && ['account', 'orders', 'vouchers', 'addresses', 'reviews', 'notifications'].includes(tabParam)) {
+      if (tabParam !== activeTab) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setActiveTab(tabParam);
+      }
+    }
+  }, [searchParams, activeTab]);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [height, setHeight] = useState('163');
@@ -104,6 +140,7 @@ const Profile = () => {
     { id: 'vouchers', label: t.tabs.vouchers, icon: Ticket },
     { id: 'addresses', label: t.tabs.addresses, icon: MapPin },
     { id: 'reviews', label: t.tabs.reviews, icon: MessageSquare },
+    { id: 'notifications', label: 'Thông báo', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
   ];
 
   useEffect(() => {
@@ -112,7 +149,8 @@ const Profile = () => {
   }, []);
 
   const handleLogout = () => {
-    addToast(t.logoutSuccess, "info");
+    logout();
+    addToast(CLIENT_TOAST_MESSAGES.auth.logoutSuccess, "info");
     navigate('/');
   };
 
@@ -419,8 +457,6 @@ const Profile = () => {
                   icon={<MapPin size={80} strokeWidth={1} />}
                   title="Sổ địa chỉ trống"
                   description="Bạn chưa có địa chỉ nào được lưu. Thêm địa chỉ để quá trình đặt hàng nhanh chóng hơn."
-                  actionText="+ Thêm địa chỉ mới"
-                  actionLink="#" // This is a bit of a placeholder since it's a modal, but for UI demo it works.
                 />
               ) : (
                 <div className="address-list">
@@ -545,8 +581,77 @@ const Profile = () => {
             )}
           </div>
         );
-      default:
-        return null;
+      case 'notifications':
+      return (
+        <div className="tab-pane">
+          <div className="profile-content-header">
+            <h2 className="profile-content-title">Thông báo</h2>
+            {unreadCount > 0 && (
+              <button 
+                className="mark-all-read-btn"
+                onClick={() => {
+                  markAllAsRead();
+                  addToast(CLIENT_TOAST_MESSAGES.notifications.markedAllRead, 'success');
+                }}
+              >
+                <CheckCheck size={16} />
+                Đánh dấu tất cả đã đọc
+              </button>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="notifications-empty">
+              <Bell size={64} strokeWidth={1} />
+              <p>Không có thông báo nào</p>
+            </div>
+          ) : (
+            <div className="notifications-list">
+              {notifications.map((notif) => (
+                <div 
+                  key={notif.id} 
+                  className={`notification-card ${!notif.read ? 'unread' : ''}`}
+                  onClick={() => {
+                    if (!notif.read) {
+                      markAsRead(notif.id);
+                    }
+                    if (notif.link) {
+                      navigate(notif.link);
+                    }
+                  }}
+                >
+                  <div className={`notification-icon notification-icon-${notif.type}`}>
+                    {notif.type === 'order' && <Package size={20} />}
+                    {notif.type === 'promotion' && <Tag size={20} />}
+                    {notif.type === 'review' && <Star size={20} />}
+                    {notif.type === 'system' && <Info size={20} />}
+                  </div>
+                  <div className="notification-content">
+                    <p className="notification-title">{notif.title}</p>
+                    <p className="notification-message">{notif.message}</p>
+                    <span className="notification-time">
+                      {notificationService.formatTimeAgo(notif.createdAt)}
+                    </span>
+                  </div>
+                  <button 
+                    className="notification-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteNotification(notif.id);
+                      addToast(CLIENT_TOAST_MESSAGES.notifications.deleted, 'info');
+                    }}
+                  >
+                    <Trash size={16} />
+                  </button>
+                  {!notif.read && <span className="notification-dot" />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    default:
+      return null;
     }
   };
 
@@ -576,14 +681,16 @@ const Profile = () => {
             <ul className="profile-nav-list">
               {tabs.map(tab => {
                 const Icon = tab.icon;
+                const hasBadge = tab.badge && tab.badge > 0;
                 return (
                   <li key={tab.id} className="profile-nav-item">
                     <button
                       className={`profile-nav-btn ${activeTab === tab.id ? 'active' : ''}`}
-                      onClick={() => setActiveTab(tab.id as TabId)}
+                      onClick={() => handleTabChange(tab.id as TabId)}
                     >
                       <Icon className="profile-nav-icon" />
                       {tab.label}
+                      {hasBadge && <span className="notif-tab-badge">{tab.badge}</span>}
                     </button>
                   </li>
                 );

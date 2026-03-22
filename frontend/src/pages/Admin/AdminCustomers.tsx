@@ -659,6 +659,33 @@ const AdminCustomers = () => {
         </div>
       }
     >
+      {/* ── Stat Cards ─────────────────────────────────────── */}
+      <div className="admin-stats grid-4">
+        <div className="admin-stat-card">
+          <div className="admin-stat-label">Tổng khách hàng</div>
+          <div className="admin-stat-value">{tabCounts.all}</div>
+          <div className="admin-stat-sub">Tất cả tài khoản</div>
+        </div>
+        <div className="admin-stat-card info"
+          onClick={() => changeTab('new')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Khách mới</div>
+          <div className="admin-stat-value">{tabCounts.new}</div>
+          <div className="admin-stat-sub">Trong 30 ngày qua</div>
+        </div>
+        <div className="admin-stat-card success"
+          onClick={() => changeTab('vip')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Khách VIP</div>
+          <div className="admin-stat-value">{tabCounts.vip}</div>
+          <div className="admin-stat-sub">Gold &amp; Diamond</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.banned > 0 ? 'danger' : ''}`}
+          onClick={() => changeTab('banned')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Bị khóa</div>
+          <div className="admin-stat-value">{tabCounts.banned}</div>
+          <div className="admin-stat-sub">Cần xem lại</div>
+        </div>
+      </div>
+
       <div className="admin-tabs">
         {tabs.map((tab) => (
           <button key={tab.key} className={`admin-tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => changeTab(tab.key)}>

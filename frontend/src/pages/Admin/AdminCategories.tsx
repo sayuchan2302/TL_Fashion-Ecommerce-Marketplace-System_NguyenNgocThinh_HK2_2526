@@ -392,6 +392,33 @@ const AdminCategories = () => {
         </>
       )}
     >
+      {/* ── Stat Cards ─────────────────────────────────────── */}
+      <div className="admin-stats grid-4">
+        <div className="admin-stat-card">
+          <div className="admin-stat-label">Tổng danh mục</div>
+          <div className="admin-stat-value">{tabCounts.all}</div>
+          <div className="admin-stat-sub">Đang quản lý</div>
+        </div>
+        <div className="admin-stat-card success"
+          onClick={() => changeFilter('visible')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Đang hiện</div>
+          <div className="admin-stat-value">{tabCounts.visible}</div>
+          <div className="admin-stat-sub">Danh mục hiển thị</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.hidden > 0 ? 'warning' : ''}`}
+          onClick={() => changeFilter('hidden')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Đã ẩn</div>
+          <div className="admin-stat-value">{tabCounts.hidden}</div>
+          <div className="admin-stat-sub">Danh mục bị ẩn</div>
+        </div>
+        <div className="admin-stat-card info"
+          onClick={() => changeFilter('menu')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Trên Menu</div>
+          <div className="admin-stat-value">{tabCounts.menu}</div>
+          <div className="admin-stat-sub">Hiện trong nav</div>
+        </div>
+      </div>
+
       <div className="admin-tabs">
         <button className={`admin-tab ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => changeFilter('all')}>
           <span>{t.tabs.all}</span>

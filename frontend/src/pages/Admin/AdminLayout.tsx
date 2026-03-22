@@ -21,6 +21,7 @@ const navItems = [
   { label: ADMIN_TEXT.layout.nav.categories, to: '/admin/categories' },
   { label: ADMIN_TEXT.layout.nav.customers, to: '/admin/customers' },
   { label: ADMIN_TEXT.layout.nav.promotions, to: '/admin/promotions' },
+  { label: ADMIN_TEXT.reviews.title, to: '/admin/reviews' },
   { label: ADMIN_TEXT.layout.nav.content, to: '/admin/content' },
   { label: ADMIN_TEXT.layout.nav.settings, to: '/admin/settings' },
 ];
@@ -54,6 +55,7 @@ const AdminLayout = ({ title, actions, children, hideTopbarTitle = false }: Admi
     if (path.startsWith('/admin/categories')) return [t.nav.categories, t.breadcrumbs.categoryList];
     if (path.startsWith('/admin/customers') || path.startsWith('/admin/customer')) return [t.nav.customers, t.breadcrumbs.customerList];
     if (path.startsWith('/admin/promotions')) return [t.nav.promotions, t.breadcrumbs.promoList];
+    if (path.startsWith('/admin/reviews')) return [ADMIN_TEXT.reviews.title, t.breadcrumbs.reviewList];
     return [t.nav.dashboard];
   };
 

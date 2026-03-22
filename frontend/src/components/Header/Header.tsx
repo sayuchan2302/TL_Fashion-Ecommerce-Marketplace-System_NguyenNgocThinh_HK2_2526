@@ -12,6 +12,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { searchService } from '../../services/searchService';
 import { CLIENT_TEXT } from '../../utils/texts';
+import { CLIENT_TOAST_MESSAGES } from '../../utils/clientMessages';
 import './Header.css';
 
 const Header = () => {
@@ -281,16 +282,19 @@ const handleSearchSubmit = (query: string) => {
                 </button>
                 <div className={`account-dropdown ${isAccountMenuOpen ? 'show' : ''}`}>
                   <button className="account-item" onClick={() => { navigate('/profile'); setIsAccountMenuOpen(false); }}>
-                    Tài khoản của tôi
+                    {CLIENT_TEXT.profile.tabs.account}
                   </button>
                   <button className="account-item" onClick={() => { navigate('/profile?tab=orders'); setIsAccountMenuOpen(false); }}>
-                    Đơn hàng
+                    {CLIENT_TEXT.profile.tabs.orders}
                   </button>
                   <button className="account-item" onClick={() => { navigate('/profile?tab=vouchers'); setIsAccountMenuOpen(false); }}>
-                    Ví Voucher
+                    {CLIENT_TEXT.profile.tabs.vouchers}
                   </button>
                   <button className="account-item" onClick={() => { navigate('/profile?tab=addresses'); setIsAccountMenuOpen(false); }}>
-                    Sổ địa chỉ
+                    {CLIENT_TEXT.profile.tabs.addresses}
+                  </button>
+                  <button className="account-item" onClick={() => { navigate('/profile?tab=reviews'); setIsAccountMenuOpen(false); }}>
+                    {CLIENT_TEXT.profile.tabs.reviews}
                   </button>
                   {user?.role === 'admin' && (
                     <button className="account-item admin-link" onClick={() => { navigate('/admin'); setIsAccountMenuOpen(false); }}>
@@ -298,7 +302,7 @@ const handleSearchSubmit = (query: string) => {
                     </button>
                   )}
                   <div className="account-dropdown-divider"></div>
-                  <button className="account-item logout" onClick={() => { logout(); addToast('Đã đăng xuất', 'info'); setIsAccountMenuOpen(false); navigate('/'); }}>
+                  <button className="account-item logout" onClick={() => { logout(); addToast(CLIENT_TOAST_MESSAGES.auth.logoutSuccess, 'info'); setIsAccountMenuOpen(false); navigate('/'); }}>
                     Đăng xuất
                   </button>
                 </div>
@@ -307,7 +311,7 @@ const handleSearchSubmit = (query: string) => {
           </div>
           <button ref={wishlistIconRef} className="icon-btn wishlist-btn" aria-label="Yêu thích" onClick={() => navigate('/wishlist')}>
             <Heart size={22} />
-            {wishlistCount > 0 && <span className="cart-badge">{wishlistCount}</span>}
+            {wishlistCount > 0 && <span className="icon-badge">{wishlistCount > 99 ? '99+' : wishlistCount}</span>}
           </button>
           {isAuthenticated && (
             <button 
@@ -316,7 +320,7 @@ const handleSearchSubmit = (query: string) => {
               onClick={() => setIsNotificationOpen(true)}
             >
               <Bell size={22} />
-              {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+              {unreadCount > 0 && <span className="icon-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </button>
           )}
           <NotificationDropdown 
@@ -330,7 +334,7 @@ const handleSearchSubmit = (query: string) => {
             onClick={() => navigate('/cart')}
           >
             <ShoppingCart size={22} />
-            {totalItems > 0 && <span className="cart-badge">{totalItems > 99 ? '99+' : totalItems}</span>}
+            {totalItems > 0 && <span className="icon-badge">{totalItems > 99 ? '99+' : totalItems}</span>}
           </button>
         </div>
         {/* Mobile Menu Button */}
@@ -424,7 +428,7 @@ const handleSearchSubmit = (query: string) => {
               {user?.role === 'admin' && (
                 <Link to="/admin" className="mobile-auth-btn mobile-auth-admin" onClick={closeMobileMenu}>Quản lý Admin</Link>
               )}
-              <button className="mobile-auth-btn mobile-auth-register" onClick={() => { logout(); addToast('Đã đăng xuất', 'info'); closeMobileMenu(); }}>Đăng xuất</button>
+              <button className="mobile-auth-btn mobile-auth-register" onClick={() => { logout(); addToast(CLIENT_TOAST_MESSAGES.auth.logoutSuccess, 'info'); closeMobileMenu(); }}>Đăng xuất</button>
             </>
           )}
         </div>
@@ -432,7 +436,7 @@ const handleSearchSubmit = (query: string) => {
         {/* Mobile Quick Links */}
         <div className="mobile-quick-links">
           <Link to="/wishlist" onClick={closeMobileMenu}><Heart size={18} /> Yêu thích {wishlistCount > 0 && `(${wishlistCount})`}</Link>
-          <Link to={isAuthenticated ? '/account/orders' : '/login'} onClick={closeMobileMenu}><Search size={18} /> Tài khoản</Link>
+          <Link to={isAuthenticated ? '/profile?tab=orders' : '/login'} onClick={closeMobileMenu}><Search size={18} /> Đơn hàng</Link>
           <Link to="/order-tracking" onClick={closeMobileMenu}><Search size={18} /> Theo dõi đơn</Link>
           <Link to="/returns" onClick={closeMobileMenu}><Search size={18} /> Đổi / Trả hàng</Link>
         </div>

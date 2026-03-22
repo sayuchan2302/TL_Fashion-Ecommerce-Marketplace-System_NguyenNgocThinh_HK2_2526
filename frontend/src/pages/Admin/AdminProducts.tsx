@@ -306,6 +306,33 @@ const AdminProducts = () => {
         </>
       )}
     >
+      {/* ── Stat Cards ─────────────────────────────────────── */}
+      <div className="admin-stats grid-4">
+        <div className="admin-stat-card">
+          <div className="admin-stat-label">Tổng sản phẩm</div>
+          <div className="admin-stat-value">{tabCounts.all}</div>
+          <div className="admin-stat-sub">Đang quản lý</div>
+        </div>
+        <div className="admin-stat-card success"
+          onClick={() => changeTab('active')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Đang bán</div>
+          <div className="admin-stat-value">{tabCounts.active}</div>
+          <div className="admin-stat-sub">Sản phẩm tốt</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts['stock-alert'] > 0 ? 'warning' : ''}`}
+          onClick={() => changeTab('stock-alert')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Cảnh báo kho</div>
+          <div className="admin-stat-value">{tabCounts['stock-alert']}</div>
+          <div className="admin-stat-sub">Tồn kho &lt; 10</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.out > 0 ? 'danger' : ''}`}
+          onClick={() => changeTab('out')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Hết hàng</div>
+          <div className="admin-stat-value">{tabCounts.out}</div>
+          <div className="admin-stat-sub">Cần nhập thêm</div>
+        </div>
+      </div>
+
       <div className="admin-tabs">
         {tabs.map(tab => (
           <button

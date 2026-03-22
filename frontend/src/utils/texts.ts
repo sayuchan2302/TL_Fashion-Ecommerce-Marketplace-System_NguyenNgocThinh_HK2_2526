@@ -156,6 +156,7 @@ export const CLIENT_TEXT = {
       vouchers: 'Ví voucher',
       addresses: 'Sổ địa chỉ',
       reviews: 'Đánh giá & phản hồi',
+      notifications: 'Thông báo',
     },
     account: {
       title: 'Thông tin tài khoản',

@@ -51,4 +51,15 @@ export const ADMIN_TOAST_MESSAGES = {
     bulkPaused: (count: number) => `Đã tạm dừng ${count} chiến dịch.`,
     bulkDeleted: (count: number) => `Đã xóa ${count} chiến dịch đã chọn.`,
   },
+  reviews: {
+    resetView: 'Đã đặt lại view đánh giá về mặc định.',
+    approveSuccess: 'Đã duyệt đánh giá.',
+    hideSuccess: 'Đã ẩn đánh giá.',
+    replySuccess: 'Đã gửi phản hồi.',
+    deleteSuccess: 'Đã xóa đánh giá.',
+    bulkApproved: (count: number) => `Đã duyệt ${count} đánh giá.`,
+    bulkHidden: (count: number) => `Đã ẩn ${count} đánh giá.`,
+    noEligibleBulkApprove: 'Không có đánh giá hợp lệ để duyệt.',
+    noEligibleBulkHide: 'Không có đánh giá hợp lệ để ẩn.',
+  },
 } as const;

@@ -19,4 +19,7 @@ export const ADMIN_ACTION_TITLES = {
   copyTracking: 'Sao chép mã vận đơn',
   printInvoice: 'In hóa đơn',
   approveOrder: 'Duyệt đơn',
+  approve: 'Duyệt',
+  hide: 'Ẩn',
+  reply: 'Phản hồi',
 } as const;

@@ -440,6 +440,33 @@ const AdminPromotions = () => {
         </>
       }
     >
+      {/* ── Stat Cards ─────────────────────────────────────── */}
+      <div className="admin-stats grid-4">
+        <div className="admin-stat-card">
+          <div className="admin-stat-label">Tổng chiến dịch</div>
+          <div className="admin-stat-value">{tabCounts.all}</div>
+          <div className="admin-stat-sub">Tỉ lệ dùng: {stats.usageRate}%</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.running > 0 ? 'success' : ''}`}
+          onClick={() => changeStatusFilter('running')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Đang chạy</div>
+          <div className="admin-stat-value">{tabCounts.running}</div>
+          <div className="admin-stat-sub">Chiến dịch active</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.paused > 0 ? 'warning' : ''}`}
+          onClick={() => changeStatusFilter('paused')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Tạm dừng</div>
+          <div className="admin-stat-value">{tabCounts.paused}</div>
+          <div className="admin-stat-sub">Chưa kích hoạt</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.expired > 0 ? 'danger' : ''}`}
+          onClick={() => changeStatusFilter('expired')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Đã hết hạn</div>
+          <div className="admin-stat-value">{tabCounts.expired}</div>
+          <div className="admin-stat-sub">Cần gia hạn hoặc xóa</div>
+        </div>
+      </div>
+
       <div className="admin-tabs">
         <button className={`admin-tab ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => changeStatusFilter('all')}>
           <span>{t.tabs.all}</span>

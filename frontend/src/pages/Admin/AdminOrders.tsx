@@ -243,6 +243,33 @@ const AdminOrders = () => {
         </>
       }
     >
+      {/* ── Stat Cards ─────────────────────────────────────── */}
+      <div className="admin-stats grid-4">
+        <div className="admin-stat-card">
+          <div className="admin-stat-label">Tổng đơn hàng</div>
+          <div className="admin-stat-value">{tabCounts.all}</div>
+          <div className="admin-stat-sub">Tất cả trạng thái</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.pending > 0 ? 'warning' : ''}`}
+          onClick={() => changeTab('pending')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Chờ xác nhận</div>
+          <div className="admin-stat-value">{tabCounts.pending}</div>
+          <div className="admin-stat-sub">Cần duyệt ngay</div>
+        </div>
+        <div className="admin-stat-card info"
+          onClick={() => changeTab('shipping')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Đang giao</div>
+          <div className="admin-stat-value">{tabCounts.shipping}</div>
+          <div className="admin-stat-sub">Đơn đang vận chuyển</div>
+        </div>
+        <div className={`admin-stat-card ${tabCounts.urgent > 0 ? 'danger' : ''}`}
+          onClick={() => changeTab('urgent')} style={{ cursor: 'pointer' }}>
+          <div className="admin-stat-label">Khẩn &gt; 30 phút</div>
+          <div className="admin-stat-value">{tabCounts.urgent}</div>
+          <div className="admin-stat-sub">Cần xử lý ưu tiên</div>
+        </div>
+      </div>
+
       <div className="admin-tabs">
         {tabs.map(tab => (
           <button
