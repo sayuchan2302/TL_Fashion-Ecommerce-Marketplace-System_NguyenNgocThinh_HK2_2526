@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { X, Star, Camera } from 'lucide-react';
 import { reviewService, type ReviewSubmission } from '../../services/reviewService';
 import { useToast } from '../../contexts/ToastContext';
+import { CLIENT_TOAST_MESSAGES } from '../../utils/clientMessages';
+import { CLIENT_DICTIONARY } from '../../utils/clientDictionary';
 import './ReviewModal.css';
 
 interface ProductInfo {
@@ -25,6 +27,7 @@ interface ReviewModalProps {
 }
 
 const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalProps) => {
+  const t = CLIENT_DICTIONARY.reviews.form;
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rating, setRating] = useState(existingReview?.rating || 0);
@@ -38,11 +41,11 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      addToast('Vui lòng chọn số sao đánh giá', 'error');
+      addToast(CLIENT_TOAST_MESSAGES.review.errorSelectStars, 'error');
       return;
     }
     if (!content.trim()) {
-      addToast('Vui lòng nhập nội dung đánh giá', 'error');
+      addToast(CLIENT_TOAST_MESSAGES.review.errorEmptyContent, 'error');
       return;
     }
 
@@ -61,10 +64,7 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
       };
 
       reviewService.submitReview(submission);
-      addToast(
-        existingReview ? 'Cập nhật đánh giá thành công!' : 'Gửi đánh giá thành công!',
-        'success'
-      );
+      addToast(CLIENT_TOAST_MESSAGES.review.pendingModeration, 'success');
       setIsSubmitting(false);
       onClose();
     }, 800);
@@ -124,7 +124,7 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
 
         <div className="review-modal-header">
           <h3 className="review-modal-title">
-            {existingReview ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá'}
+            {existingReview ? t.editTitle : t.writeTitle}
           </h3>
         </div>
 
@@ -139,9 +139,9 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
         </div>
 
         <div className="review-modal-rating">
-          <label className="review-modal-label">Đánh giá của bạn</label>
+          <label className="review-modal-label">{t.yourRating}</label>
           <div className="review-stars-input">
-            {[1, 2, 3, 4, 5].map((star) => (
+             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 type="button"
@@ -155,22 +155,17 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
             ))}
           </div>
           <p className="review-rating-text">
-            {(hoverRating || rating) === 5 && 'Tuyệt vời!'}
-            {(hoverRating || rating) === 4 && 'Rất tốt'}
-            {(hoverRating || rating) === 3 && 'Bình thường'}
-            {(hoverRating || rating) === 2 && 'Không hài lòng'}
-            {(hoverRating || rating) === 1 && 'Rất kém'}
-            {(hoverRating || rating) === 0 && 'Chọn số sao'}
+            {t.ratingText[(hoverRating || rating) as keyof typeof t.ratingText]}
           </p>
         </div>
 
         <div className="review-modal-form">
           <div className="review-form-group">
-            <label className="review-modal-label">Tiêu đề (tùy chọn)</label>
+            <label className="review-modal-label">{t.titleLabel}</label>
             <input
               type="text"
               className="review-input"
-              placeholder="VD: Sản phẩm rất tốt, giao hàng nhanh..."
+               placeholder={t.titlePlaceholder}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={100}
@@ -178,10 +173,10 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
           </div>
 
           <div className="review-form-group">
-            <label className="review-modal-label">Nội dung đánh giá <span className="required">*</span></label>
+            <label className="review-modal-label">{t.contentLabel} <span className="required">{t.contentRequired}</span></label>
             <textarea
               className="review-textarea"
-              placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+               placeholder={t.contentPlaceholder}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={5}
@@ -191,7 +186,7 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
           </div>
 
           <div className="review-form-group">
-            <label className="review-modal-label">Thêm hình ảnh (tùy chọn)</label>
+            <label className="review-modal-label">{t.imageLabel}</label>
             <div className="review-images-upload">
               {images.map((img, index) => (
                 <div key={index} className="review-image-preview">
@@ -212,7 +207,7 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Camera size={24} />
-                  <span>Thêm ảnh</span>
+                  <span>{t.addImage}</span>
                 </button>
               )}
               <input
@@ -229,7 +224,7 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
 
         <div className="review-modal-actions">
           <button type="button" className="review-btn-cancel" onClick={onClose}>
-            Hủy
+            {t.cancel}
           </button>
           <button
             type="button"
@@ -237,7 +232,7 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Đang gửi...' : existingReview ? 'Cập nhật' : 'Gửi đánh giá'}
+            {isSubmitting ? t.submitting : existingReview ? t.update : t.submit}
           </button>
         </div>
       </div>

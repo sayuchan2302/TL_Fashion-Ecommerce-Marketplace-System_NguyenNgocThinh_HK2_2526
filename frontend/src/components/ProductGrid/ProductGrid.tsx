@@ -2,21 +2,33 @@ import { useState, useEffect, useMemo } from 'react';
 import './ProductGrid.css';
 import ProductCard from '../ProductCard/ProductCard';
 import ProductCardSkeleton from '../ProductCardSkeleton/ProductCardSkeleton';
-import { useFilter } from '../../contexts/FilterContext';
 import { productService } from '../../services/productService';
 import { CLIENT_TEXT } from '../../utils/texts';
+import { CLIENT_DICTIONARY } from '../../utils/clientDictionary';
 import type { Product } from '../../types';
+import { useClientViewState } from '../../hooks/useClientViewState';
 
 const t = CLIENT_TEXT.filter;
 const tListing = CLIENT_TEXT.productListing;
 
-interface ProductGridProps {
-  customResults?: Product[];
+type SortKey = 'newest' | 'bestseller' | 'price-asc' | 'price-desc' | 'discount';
+
+interface ProductGridViewState {
+  priceRanges: string[];
+  colors: string[];
+  sortKey: SortKey;
+  setSort: (value: SortKey) => void;
 }
 
-const ProductGrid = ({ customResults }: ProductGridProps) => {
+interface ProductGridProps {
+  customResults?: Product[];
+  viewState?: ProductGridViewState;
+}
+
+const ProductGrid = ({ customResults, viewState }: ProductGridProps) => {
   const [isLoading, setIsLoading] = useState(true);
-  const { filters, updateSortBy } = useFilter();
+  const internalView = useClientViewState({ path: '/search', validSortKeys: ['newest', 'bestseller', 'price-asc', 'price-desc', 'discount'] });
+  const view = viewState ?? internalView;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -29,9 +41,9 @@ const ProductGrid = ({ customResults }: ProductGridProps) => {
     let results = customResults || productService.list();
 
     if (!customResults) {
-      if (filters.priceRanges.length > 0) {
-        results = results.filter(product => {
-          return filters.priceRanges.some(range => {
+      if (view.priceRanges.length > 0) {
+        results = results.filter((product) => {
+          return view.priceRanges.some((range) => {
             if (range === 'under-200k') return product.price < 200000;
             if (range === 'from-200k-500k') return product.price >= 200000 && product.price <= 500000;
             if (range === 'over-500k') return product.price > 500000;
@@ -40,26 +52,14 @@ const ProductGrid = ({ customResults }: ProductGridProps) => {
         });
       }
 
-      if (filters.colors.length > 0) {
-        const colorMap: Record<string, string> = {
-          'Đen': '#000000',
-          'Trắng': '#ffffff',
-          'Xám': '#9ca3af',
-          'Xanh Navy': '#1e3a8a',
-          'Đỏ': '#ef4444',
-          'Be': '#f5f5dc'
-        };
-        results = results.filter(product => {
-          return product.colors && product.colors.some(colorHex =>
-            filters.colors.some(selectedColor =>
-              (colorMap[selectedColor] || '').toLowerCase() === colorHex.toLowerCase()
-            )
-          );
+      if (view.colors.length > 0) {
+        results = results.filter((product) => {
+          return product.colors && product.colors.some((colorHex) => view.colors.some((selectedColor) => selectedColor.toLowerCase() === colorHex.toLowerCase()));
         });
       }
     }
 
-    switch (filters.sortBy) {
+    switch (view.sortKey) {
       case 'price-asc':
         results = [...results].sort((a, b) => a.price - b.price);
         break;
@@ -73,19 +73,30 @@ const ProductGrid = ({ customResults }: ProductGridProps) => {
           return discountB - discountA;
         });
         break;
+      case 'newest':
+      case 'bestseller':
+      default:
+        break;
     }
 
     return results;
-  }, [filters, customResults]);
+  }, [view.priceRanges, view.colors, view.sortKey, customResults]);
 
-  const totalProducts = customResults ? filteredProducts.length : productService.list().length;
+  const totalProducts = customResults
+    ? filteredProducts.length
+    : productService.getTotalCount({
+        priceRanges: view.priceRanges,
+        colors: view.colors,
+        sortBy: view.sortKey,
+      });
+  const dictionary = CLIENT_DICTIONARY.listing;
 
   return (
     <div className="product-grid-container">
       <div className="plp-toolbar">
         <div className="toolbar-left">
           <span className="results-count">
-            {tListing.showing} 1 - {filteredProducts.length} {tListing.of} {totalProducts} {tListing.products}
+            {dictionary.resultsLabel.replace('{start}', '1').replace('{end}', String(filteredProducts.length)).replace('{total}', String(totalProducts))}
           </span>
         </div>
         <div className="toolbar-right">
@@ -93,8 +104,8 @@ const ProductGrid = ({ customResults }: ProductGridProps) => {
           <select
             id="sort-select"
             className="sort-select"
-            value={filters.sortBy}
-            onChange={(e) => updateSortBy(e.target.value)}
+            value={view.sortKey}
+            onChange={(e) => view.setSort(e.target.value)}
           >
             <option value="newest">{t.sort.newest}</option>
             <option value="bestseller">{t.sort.bestseller}</option>
@@ -116,7 +127,7 @@ const ProductGrid = ({ customResults }: ProductGridProps) => {
             ))
           : (
               <div className="no-products">
-                <p>{tListing.noProducts}</p>
+                <p>{dictionary.empty}</p>
               </div>
             )}
       </div>

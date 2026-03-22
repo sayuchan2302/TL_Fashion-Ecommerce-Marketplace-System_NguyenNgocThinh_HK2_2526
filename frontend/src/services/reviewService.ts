@@ -1,3 +1,5 @@
+import { adminReviewService, type Review as AdminReview, type ReviewStatus } from '../pages/Admin/adminReviewService';
+
 export interface Review {
   id: string;
   productId: string;
@@ -15,6 +17,8 @@ export interface Review {
     content: string;
     createdAt: string;
   };
+  status: ReviewStatus;
+  version: number;
 }
 
 export interface ReviewSubmission {
@@ -28,53 +32,35 @@ export interface ReviewSubmission {
   images?: string[];
 }
 
-const KEY = 'coolmate_reviews_v1';
-
-const seedReviews: Review[] = [
-  {
-    id: 'rev_001',
-    productId: '101',
-    productName: 'Áo Polo Nam Cotton Khử Mùi',
-    productImage: 'https://images.unsplash.com/photo-1625910513413-5fc4e5e40687?w=120&h=120&fit=crop',
-    orderId: 'DH123456',
-    rating: 5,
-    title: 'Sản phẩm tuyệt vời!',
-    content: 'Chất lượng vải rất tốt, mặc thoáng mát, không bị phai màu sau nhiều lần giặt. Giao hàng nhanh, đóng gói cẩn thận.',
-    createdAt: '2026-03-15T10:30:00Z',
-    helpful: 24,
-    shopReply: {
-      content: 'Cảm ơn bạn đã tin tưởng và đánh giá tích cực! Coolmate luôn cố gắng mang đến sản phẩm tốt nhất cho khách hàng.',
-      createdAt: '2026-03-15T14:00:00Z',
-    },
-  },
-];
-
-const load = (): Review[] => {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return seedReviews;
-    const data: Review[] = JSON.parse(raw);
-    return data.length ? data : seedReviews;
-  } catch {
-    return seedReviews;
-  }
-};
-
-const save = (reviews: Review[]) => {
-  localStorage.setItem(KEY, JSON.stringify(reviews));
-};
+const mapAdminToClient = (item: AdminReview): Review => ({
+  id: item.id,
+  productId: item.productId,
+  productName: item.productName,
+  productImage: item.productImage,
+  orderId: item.orderId || '',
+  rating: item.rating,
+  title: undefined,
+  content: item.content,
+  images: undefined,
+  createdAt: item.date,
+  updatedAt: item.date,
+  helpful: 0,
+  shopReply: item.reply ? { content: item.reply, createdAt: item.date } : undefined,
+  status: item.status,
+  version: item.version,
+});
 
 export const reviewService = {
   getReviews(): Review[] {
-    return load();
+    return adminReviewService.getAll().map(mapAdminToClient);
   },
 
   getReviewsByOrder(orderId: string): Review[] {
-    return load().filter(r => r.orderId === orderId);
+    return this.getReviews().filter((r) => r.orderId === orderId && r.status === 'approved');
   },
 
   getReviewsByProduct(productId: string): Review[] {
-    return load().filter(r => r.productId === productId);
+    return this.getReviews().filter((r) => r.productId === productId && r.status === 'approved');
   },
 
   getAverageRating(productId: string): number {
@@ -85,66 +71,26 @@ export const reviewService = {
   },
 
   submitReview(submission: ReviewSubmission): Review {
-    const newReview: Review = {
+    const newReview: AdminReview = {
       id: `rev_${Date.now()}`,
       productId: submission.productId,
       productName: submission.productName || 'Sản phẩm',
       productImage: submission.productImage || '',
       orderId: submission.orderId,
       rating: submission.rating,
-      title: submission.title,
       content: submission.content,
-      images: submission.images,
-      createdAt: new Date().toISOString(),
-      helpful: 0,
+      date: new Date().toISOString(),
+      status: 'pending',
+      reply: '',
+      version: 1,
     };
-    
-    const data = load();
-    const existingIndex = data.findIndex(
-      r => r.productId === submission.productId && r.orderId === submission.orderId
-    );
-    
-    if (existingIndex >= 0) {
-      data[existingIndex] = { ...data[existingIndex], ...newReview, updatedAt: new Date().toISOString() };
-    } else {
-      data.push(newReview);
-    }
-    
-    save(data);
-    return newReview;
-  },
 
-  updateReview(reviewId: string, updates: Partial<Review>): Review | null {
-    const data = load();
-    const index = data.findIndex(r => r.id === reviewId);
-    if (index === -1) return null;
-    
-    data[index] = { ...data[index], ...updates, updatedAt: new Date().toISOString() };
-    save(data);
-    return data[index];
-  },
+    adminReviewService.addReview(newReview);
 
-  deleteReview(reviewId: string): boolean {
-    const data = load();
-    const index = data.findIndex(r => r.id === reviewId);
-    if (index === -1) return false;
-    
-    data.splice(index, 1);
-    save(data);
-    return true;
-  },
-
-  markHelpful(reviewId: string): boolean {
-    const data = load();
-    const review = data.find(r => r.id === reviewId);
-    if (!review) return false;
-    
-    review.helpful += 1;
-    save(data);
-    return true;
+    return mapAdminToClient(newReview);
   },
 
   hasReviewed(productId: string, orderId: string): boolean {
-    return load().some(r => r.productId === productId && r.orderId === orderId);
+    return this.getReviews().some((r) => r.productId === productId && r.orderId === orderId);
   },
 };

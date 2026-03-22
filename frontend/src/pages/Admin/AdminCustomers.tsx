@@ -10,10 +10,8 @@ import { useAdminListState } from './useAdminListState';
 import { ADMIN_VIEW_KEYS } from './adminListView';
 import { useAdminViewState } from './useAdminViewState';
 import { useAdminToast } from './useAdminToast';
-import { ADMIN_ACTION_TITLES, ADMIN_COMMON_LABELS } from './adminUiLabels';
 import { customerOrderStatusLabel, customerOrderStatusTone } from './adminStatusMaps';
-import { ADMIN_TOAST_MESSAGES } from './adminMessages';
-import { ADMIN_TEXT } from './adminText';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 
 type LoyaltyTier = 'Bronze' | 'Silver' | 'Gold' | 'Diamond';
 type AccountStatus = 'active' | 'banned';
@@ -202,10 +200,10 @@ const initialCustomers: Customer[] = [
 ];
 
 const tabs = [
-  { key: 'all', label: ADMIN_TEXT.customers.tabs.all },
-  { key: 'new', label: ADMIN_TEXT.customers.tabs.new },
-  { key: 'vip', label: ADMIN_TEXT.customers.tabs.vip },
-  { key: 'banned', label: ADMIN_TEXT.customers.tabs.banned },
+  { key: 'all', label: ADMIN_DICTIONARY.customers.tabs.all },
+  { key: 'new', label: ADMIN_DICTIONARY.customers.tabs.new },
+  { key: 'vip', label: ADMIN_DICTIONARY.customers.tabs.vip },
+  { key: 'banned', label: ADMIN_DICTIONARY.customers.tabs.banned },
 ];
 
 const validCustomerTabs = new Set(tabs.map((tab) => tab.key));
@@ -257,8 +255,8 @@ const isNewCustomer = (createdAt: string) => {
 const isVipCustomer = (c: Customer) => c.tier === 'Gold' || c.tier === 'Diamond' || c.totalSpent >= 5000000;
 
 const AdminCustomers = () => {
-  const t = ADMIN_TEXT.customers;
-  const c = ADMIN_TEXT.common;
+  const t = ADMIN_DICTIONARY.customers;
+  const c = ADMIN_DICTIONARY.common;
   const tf = t.filters;
   
   const tierOptions = useMemo(() => [
@@ -425,9 +423,9 @@ const AdminCustomers = () => {
   const shareCurrentView = async () => {
     try {
       await view.shareCurrentView();
-      pushToast(ADMIN_TOAST_MESSAGES.viewCopied);
+      pushToast(ADMIN_DICTIONARY.actions.shareView);
     } catch {
-      pushToast(ADMIN_TOAST_MESSAGES.copyFailed);
+      pushToast(ADMIN_DICTIONARY.messages.copyFailed);
     }
   };
 
@@ -437,7 +435,7 @@ const AdminCustomers = () => {
     setPendingLockAction(null);
     setDeleteConfirm(null);
     view.resetCurrentView();
-    pushToast(ADMIN_TOAST_MESSAGES.customers.resetView);
+    pushToast(ADMIN_DICTIONARY.messages.customers.resetView);
   };
 
   const toggleSelectAll = (checked: boolean) => setSelected(checked ? new Set(filtered.map((c) => c.id)) : new Set());
@@ -474,13 +472,13 @@ const AdminCustomers = () => {
     }
 
     setCustomers((prev) => prev.map((c) => (c.id === customerId ? { ...c, status: 'active' } : c)));
-    pushToast(ADMIN_TOAST_MESSAGES.customers.unlockedAccount(user.name));
+    pushToast(ADMIN_DICTIONARY.messages.customers.unlockedAccount(user.name));
   };
 
   const saveAdminNote = () => {
     if (!activeCustomer) return;
     setCustomers((prev) => prev.map((c) => (c.id === activeCustomer.id ? { ...c, note: draftNote.trim() } : c)));
-    pushToast(ADMIN_TOAST_MESSAGES.customers.noteSaved);
+    pushToast(ADMIN_DICTIONARY.messages.customers.noteSaved);
   };
 
   const selectedIds = Array.from(selected);
@@ -495,14 +493,14 @@ const AdminCustomers = () => {
 
   const handleBulkSendVoucher = () => {
     if (!selectedIds.length) return;
-    pushToast(ADMIN_TOAST_MESSAGES.customers.vouchersSent(selectedIds.length));
+    pushToast(ADMIN_DICTIONARY.messages.customers.vouchersSent(selectedIds.length));
   };
 
   const handleBulkBan = () => {
     if (!selectedIds.length) return;
     const targetIds = new Set(customers.filter((c) => selected.has(c.id) && c.status !== 'banned').map((c) => c.id));
     if (targetIds.size === 0) {
-      pushToast(ADMIN_TOAST_MESSAGES.customers.alreadyBanned);
+      pushToast(ADMIN_DICTIONARY.messages.customers.alreadyBanned);
       return;
     }
     const names = customers.filter((c) => targetIds.has(c.id)).map((c) => c.name);
@@ -517,16 +515,16 @@ const AdminCustomers = () => {
   const confirmLockCustomers = (reason: string) => {
     if (!pendingLockAction) return;
     if (!reason.trim()) {
-      pushToast(ADMIN_TOAST_MESSAGES.customers.lockReasonRequired);
+      pushToast(ADMIN_DICTIONARY.messages.customers.lockReasonRequired);
       return;
     }
     const targetIds = new Set(pendingLockAction.ids);
     setCustomers((prev) => prev.map((c) => (targetIds.has(c.id) ? { ...c, status: 'banned' } : c)));
     if (pendingLockAction.isBulk) {
-      pushToast(ADMIN_TOAST_MESSAGES.customers.bulkLocked(targetIds.size));
+      pushToast(ADMIN_DICTIONARY.messages.customers.bulkLocked(targetIds.size));
       setSelected(new Set());
     } else {
-      pushToast(ADMIN_TOAST_MESSAGES.customers.lockedAccount(pendingLockAction.names[0] || 'khách hàng'));
+      pushToast(ADMIN_DICTIONARY.messages.customers.lockedAccount(pendingLockAction.names[0] || 'khách hàng'));
     }
     setPendingLockAction(null);
   };
@@ -550,16 +548,16 @@ const AdminCustomers = () => {
       return next;
     });
     setDeleteConfirm(null);
-    pushToast(ADMIN_TOAST_MESSAGES.customers.deleted(idsToDelete.size));
+    pushToast(ADMIN_DICTIONARY.messages.customers.deleted(idsToDelete.size));
   };
 
   const handleBulkSendEmail = () => {
     if (!selectedIds.length) return;
-    pushToast(ADMIN_TOAST_MESSAGES.customers.emailsSent(selectedIds.length));
+    pushToast(ADMIN_DICTIONARY.messages.customers.emailsSent(selectedIds.length));
   };
 
   const handleExport = () => {
-    pushToast(ADMIN_TOAST_MESSAGES.customers.exportRequested(filtered.length));
+    pushToast(ADMIN_DICTIONARY.messages.customers.exportRequested(filtered.length));
   };
 
   return (
@@ -572,10 +570,10 @@ const AdminCustomers = () => {
             <input placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} value={search} onChange={(e) => handleSearchChange(e.target.value)} />
           </div>
 
-          <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_COMMON_LABELS.shareView}</button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_COMMON_LABELS.resetView}</button>
+         <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_DICTIONARY.actions.shareView}</button>
+         <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_DICTIONARY.actions.resetView}</button>
 
-          <button className="admin-icon-btn subtle" onClick={handleExport} title={ADMIN_ACTION_TITLES.exportCustomerData} aria-label={ADMIN_ACTION_TITLES.exportCustomerData}>
+          <button className="admin-icon-btn subtle" onClick={handleExport} title={ADMIN_DICTIONARY.actionTitles.exportCustomerData} aria-label={ADMIN_DICTIONARY.actionTitles.exportCustomerData}>
             <Download size={16} />
           </button>
 
@@ -714,7 +712,7 @@ const AdminCustomers = () => {
               type={search.trim() ? 'search-empty' : 'empty'}
               title={search.trim() ? t.empty.searchTitle : t.empty.defaultTitle}
                 description={search.trim() ? t.empty.searchDescription : t.empty.defaultDescription}
-                actionLabel={ADMIN_COMMON_LABELS.resetFilters}
+                actionLabel={ADMIN_DICTIONARY.actions.resetFilters}
                 onAction={resetCurrentView}
               />
           ) : (
@@ -743,7 +741,15 @@ const AdminCustomers = () => {
                 onClick={() => openDrawer(customer, 'activity')}
                 style={{ cursor: 'pointer' }}
               >
-                <div role="cell"><input type="checkbox" aria-label={`Chọn ${customer.name}`} checked={selected.has(customer.id)} onChange={(e) => toggleOne(customer.id, e.target.checked)} /></div>
+                <div role="cell">
+                  <input
+                    type="checkbox"
+                    aria-label={`Chọn ${customer.name}`}
+                    checked={selected.has(customer.id)}
+                    onChange={(e) => toggleOne(customer.id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
                 <div role="cell" className="customer-info-cell">
                   {customer.avatar ? <img src={customer.avatar} alt={customer.name} className="customer-avatar" /> : <div className="customer-avatar initials">{getInitials(customer.name)}</div>}
                   <div className="customer-text">
@@ -758,9 +764,9 @@ const AdminCustomers = () => {
                 <div role="cell" className="customer-status-cell"><span className={`admin-pill ${customer.status === 'active' ? 'success' : 'error'}`}>{customer.status === 'active' ? t.drawer.status.active : t.drawer.status.banned}</span></div>
                 <div role="cell" className="admin-muted customer-last-order">{formatDate(customer.lastOrder)}</div>
                 <div role="cell" className="admin-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="admin-icon-btn subtle" title={ADMIN_ACTION_TITLES.viewDetail} aria-label={ADMIN_ACTION_TITLES.viewDetail} onClick={() => openDrawer(customer, 'activity')}><Eye size={16} /></button>
-                  <button className="admin-icon-btn subtle" title={customer.status === 'active' ? ADMIN_ACTION_TITLES.lockAccount : ADMIN_ACTION_TITLES.unlockAccount} aria-label={customer.status === 'active' ? ADMIN_ACTION_TITLES.lockAccount : ADMIN_ACTION_TITLES.unlockAccount} onClick={() => toggleBanStatus(customer.id)}><Ban size={16} /></button>
-                  <button className="admin-icon-btn subtle danger-icon" title={ADMIN_ACTION_TITLES.delete} aria-label={ADMIN_ACTION_TITLES.delete} onClick={() => requestDeleteCustomer(customer)}><Trash2 size={16} /></button>
+                   <button className="admin-icon-btn subtle" title={ADMIN_DICTIONARY.actionTitles.viewDetail} aria-label={ADMIN_DICTIONARY.actionTitles.viewDetail} onClick={() => openDrawer(customer, 'activity')}><Eye size={16} /></button>
+                   <button className="admin-icon-btn subtle" title={customer.status === 'active' ? ADMIN_DICTIONARY.actionTitles.lockAccount : ADMIN_DICTIONARY.actionTitles.unlockAccount} aria-label={customer.status === 'active' ? ADMIN_DICTIONARY.actionTitles.lockAccount : ADMIN_DICTIONARY.actionTitles.unlockAccount} onClick={() => toggleBanStatus(customer.id)}><Ban size={16} /></button>
+                   <button className="admin-icon-btn subtle danger-icon" title={ADMIN_DICTIONARY.actionTitles.delete} aria-label={ADMIN_DICTIONARY.actionTitles.delete} onClick={() => requestDeleteCustomer(customer)}><Trash2 size={16} /></button>
                 </div>
               </motion.div>
             ))}
@@ -809,7 +815,7 @@ const AdminCustomers = () => {
                   <p className="drawer-eyebrow">{t.drawer.title}</p>
                   <h3>{activeCustomer.name}</h3>
                 </div>
-                <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_ACTION_TITLES.close}><X size={16} /></button>
+                <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_DICTIONARY.actionTitles.close}><X size={16} /></button>
               </div>
 
               <div className="drawer-body customer-drawer-body">

@@ -1,6 +1,5 @@
-import type { Product } from '../types';
-
-const PRODUCT_KEY = 'coolmate_products_v1';
+import type { Product, ProductVariant, ProductStatusType } from '../types';
+import { listAdminProducts, type AdminProductRecord } from '../pages/Admin/adminProductService';
 
 export interface ProductFilter {
   query?: string;
@@ -25,160 +24,49 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   { id: 'accessories', name: 'Phụ Kiện', slug: 'accessories' },
 ];
 
-const seedProducts: Product[] = [
-  {
-    id: 101,
-    name: "Áo Polo Nam Cotton Khử Mùi",
-    price: 359000,
-    originalPrice: 450000,
-    image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=672&h=990&q=80",
-    badge: "NEW",
-    colors: ["#000000", "#ffffff", "#1e3a8a"]
-  },
-  {
-    id: 102,
-    name: "Quần Jeans Nam Dáng Straight Tôn Dáng",
-    price: 599000,
-    image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#1e3a8a", "#6b7280"]
-  },
-  {
-    id: 103,
-    name: "Áo Sơ Mi Nam Vải Modal Thoáng Mát",
-    price: 459000,
-    originalPrice: 550000,
-    image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=672&h=990&q=80",
-    badge: "BEST SELLER"
-  },
-  {
-    id: 104,
-    name: "Áo Thun Nam Excool Co Giãn 4 Chiều",
-    price: 129000,
-    image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#000000", "#f3f4f6"]
-  },
-  {
-    id: 105,
-    name: "Quần Shorts Nam Thể Thao Co Giãn",
-    price: 249000,
-    originalPrice: 299000,
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#000000", "#111827", "#4b5563"]
-  },
-  {
-    id: 106,
-    name: "Áo Khoác Gió Nam Chống Nước Nhẹ",
-    price: 499000,
-    originalPrice: 599000,
-    image: "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#000000", "#1e3a8a"]
-  },
-  {
-    id: 107,
-    name: "Tất Cổ Thấp Khử Mùi Hôi (Pack 3)",
-    price: 99000,
-    originalPrice: 150000,
-    image: "https://images.unsplash.com/photo-1524503033411-c4c2b460ccb6?auto=format&fit=crop&w=672&h=990&q=80",
-    badge: "SALE"
-  },
-  {
-    id: 108,
-    name: "Bộ Đồ Mặc Nhà Nam Cotton Thoáng",
-    price: 399000,
-    image: "https://images.unsplash.com/photo-1475180098004-ca77a66827be?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#000000", "#4b5563"]
-  },
-  {
-    id: 201,
-    name: "Váy Liền Nữ Cổ Khuy Thanh Lịch",
-    price: 499000,
-    originalPrice: 650000,
-    image: "https://images.unsplash.com/photo-1524504543470-0f085452bb3f?auto=format&fit=crop&w=672&h=990&q=80",
-    badge: "HOT",
-    colors: ["#ffffff", "#000000", "#fbcfe8"]
-  },
-  {
-    id: 202,
-    name: "Áo Kiểu Nữ Croptop Năng Động",
-    price: 259000,
-    image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#ffffff", "#000000", "#fbcfe8"]
-  },
-  {
-    id: 203,
-    name: "Quần Ống Suông Nữ Hack Dáng",
-    price: 389000,
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#374151", "#f3f4f6"]
-  },
-  {
-    id: 204,
-    name: "Áo Nỉ Hoodie Nữ Form Rộng",
-    price: 399000,
-    originalPrice: 450000,
-    image: "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#d1d5db", "#000000"]
-  },
-  {
-    id: 205,
-    name: "Áo Khoác Blazer Nữ Tính",
-    price: 699000,
-    originalPrice: 899000,
-    image: "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#000000", "#fcd34d"]
-  },
-  {
-    id: 206,
-    name: "Chân Váy Chữ A Tôn Dáng",
-    price: 299000,
-    image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#000000", "#ffffff"]
-  },
-  {
-    id: 207,
-    name: "Quần Shorts Nữ Đi Biển Xinh Xắn",
-    price: 199000,
-    originalPrice: 250000,
-    image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=672&h=990&q=80",
-    colors: ["#6b7280", "#000000"]
-  },
-  {
-    id: 208,
-    name: "Áo Dây Cami Lụa Mát Mẻ",
-    price: 159000,
-    image: "https://images.unsplash.com/photo-1475180098004-ca77a66827be?auto=format&fit=crop&w=672&h=990&q=80",
-    badge: "NEW",
-    colors: ["#ffffff", "#fbcfe8"]
-  },
-];
-
-const colorHexMatch = (colorName: string, productColorHex: string): boolean => {
-  const colorMap: Record<string, string> = {
-    'Đen': '#000000',
-    'Trắng': '#ffffff',
-    'Xám': '#9ca3af',
-    'Xanh Navy': '#1e3a8a',
-    'Đỏ': '#ef4444',
-    'Be': '#f5f5dc'
-  };
-  return (colorMap[colorName] || '').toLowerCase() === productColorHex.toLowerCase();
+const mapStatusType = (statusType: string): ProductStatusType => {
+  if (statusType === 'low') return 'low';
+  if (statusType === 'out') return 'out';
+  return 'active';
 };
+
+const mapAdminProductToClient = (record: AdminProductRecord, index: number): Product => {
+  const variants: ProductVariant[] = record.variantMatrix.map((row) => ({
+    id: row.id,
+    size: row.size,
+    color: row.color,
+    sku: row.sku,
+    price: Number(row.price) || record.price,
+    stock: Number.parseInt((row.stock || '').replace(/\D/g, ''), 10) || 0,
+  }));
+
+  return {
+    id: Number(record.sku.replace(/\D/g, '')) || index + 1,
+    sku: record.sku,
+    name: record.name,
+    category: record.category,
+    price: record.price,
+    originalPrice: record.price,
+    image: record.thumb,
+    badge: record.statusType === 'low' ? 'LOW' : undefined,
+    colors: Array.from(new Set(record.variantMatrix.map((v) => v.color))).map((color) => color),
+    stock: record.stock,
+    status: record.status,
+    statusType: mapStatusType(record.statusType),
+    variants,
+  };
+};
+
+const listFromAdmin = (): Product[] => listAdminProducts().map(mapAdminProductToClient);
 
 export const productService = {
   list(): Product[] {
-    try {
-      const raw = localStorage.getItem(PRODUCT_KEY);
-      if (!raw) return seedProducts;
-      const data: Product[] = JSON.parse(raw);
-      return data.length ? data : seedProducts;
-    } catch {
-      return seedProducts;
-    }
+    return listFromAdmin();
   },
 
   getById(id: number | string): Product | null {
     const products = this.list();
-    return products.find(p => p.id === Number(id)) || null;
+    return products.find((p) => p.sku === id || p.id === Number(id)) || null;
   },
 
   filter(filter: ProductFilter): Product[] {
@@ -202,14 +90,7 @@ export const productService = {
     }
 
     if (filter.categoryId !== undefined) {
-      const catMap: Record<string, number[]> = {
-        'men': [101, 102, 103, 104, 105, 106, 107, 108],
-        'women': [201, 202, 203, 204, 205, 206, 207, 208],
-      };
-      const categoryIds = catMap[filter.categoryId];
-      if (categoryIds) {
-        results = results.filter(p => categoryIds.includes(p.id));
-      }
+      results = results.filter((p) => (p.category || '').toLowerCase().includes(filter.categoryId!.toLowerCase()));
     }
 
     if (filter.priceRanges?.length) {
@@ -243,13 +124,14 @@ export const productService = {
       case 'price-desc':
         results.sort((a, b) => b.price - a.price);
         break;
-      case 'discount':
+      case 'discount': {
         results.sort((a, b) => {
           const discountA = a.originalPrice ? ((a.originalPrice - a.price) / a.originalPrice) * 100 : 0;
           const discountB = b.originalPrice ? ((b.originalPrice - b.price) / b.originalPrice) * 100 : 0;
           return discountB - discountA;
         });
         break;
+      }
       case 'newest':
       default:
         break;
@@ -260,7 +142,7 @@ export const productService = {
 
   getRelated(productId: number, limit = 4): Product[] {
     const products = this.list();
-    return products.filter(p => p.id !== productId).slice(0, limit);
+    return products.filter((p) => p.id !== productId).slice(0, limit);
   },
 
   getByCategory(categoryId: string): Product[] {
@@ -276,7 +158,7 @@ export const productService = {
   },
 
   getCategoryName(categoryId: string): string {
-    const category = PRODUCT_CATEGORIES.find(c => c.id === categoryId || c.slug === categoryId);
+    const category = PRODUCT_CATEGORIES.find((c) => c.id === categoryId || c.slug === categoryId);
     return category?.name || 'Tất Cả Sản Phẩm';
   },
 

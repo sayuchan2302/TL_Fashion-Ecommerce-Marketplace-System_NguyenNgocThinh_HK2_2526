@@ -5,8 +5,7 @@ import { motion } from 'framer-motion';
 import AdminLayout from './AdminLayout';
 import { AdminStateBlock } from './AdminStateBlocks';
 import { adminOrdersData } from './adminOrdersData';
-import { ADMIN_ACTION_TITLES } from './adminUiLabels';
-import { ADMIN_TEXT } from './adminText';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 import { useMemo } from 'react';
 
 const revenueData = [1.2, 1.5, 1.1, 1.8, 2.2, 2.0, 2.4]; // billions
@@ -38,13 +37,13 @@ const priorityTone = (priority: string) => {
 };
 
 const getPriorityLabel = (priority: string) => {
-  if (priority === 'high') return ADMIN_TEXT.dashboard.recentOrders.priority.high;
-  if (priority === 'medium') return ADMIN_TEXT.dashboard.recentOrders.priority.medium;
-  return ADMIN_TEXT.dashboard.recentOrders.priority.low;
+  if (priority === 'high') return ADMIN_DICTIONARY.dashboard.recentOrders.priority.high;
+  if (priority === 'medium') return ADMIN_DICTIONARY.dashboard.recentOrders.priority.medium;
+  return ADMIN_DICTIONARY.dashboard.recentOrders.priority.low;
 };
 
 const Admin = () => {
-  const { dashboard: t } = ADMIN_TEXT;
+  const { dashboard: t } = ADMIN_DICTIONARY;
   const parseOrderMoney = (value: string) => Number(value.replace(/\D/g, '')) || 0;
   const refDay = new Date(Math.max(...adminOrdersData.map((o) => new Date(o.date).getTime())));
   const refDayKey = refDay.toLocaleDateString('vi-VN');
@@ -250,7 +249,7 @@ const Admin = () => {
               <div role="cell">{order.total}</div>
               <div role="cell" className="admin-actions compact">
                 <button className={`admin-ghost-btn small ${order.priority === 'high' ? 'primary-cta' : ''}`}>{t.recentOrders.confirm}</button>
-                <Link to={`/admin/orders/${order.code}`} className="admin-icon-btn" aria-label={ADMIN_ACTION_TITLES.viewDetail}>
+                <Link to={`/admin/orders/${order.code}`} className="admin-icon-btn" aria-label={ADMIN_DICTIONARY.actionTitles.viewDetail}>
                   <ChevronRight size={15} />
                 </Link>
               </div>

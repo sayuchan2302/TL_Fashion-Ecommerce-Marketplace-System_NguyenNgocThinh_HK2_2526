@@ -13,6 +13,8 @@ interface ProductActionsProps {
     price: number;
     originalPrice?: number;
     image: string;
+    status?: string;
+    stock?: number;
   };
   selectedColor: string;
   selectedSize: string;
@@ -26,30 +28,6 @@ const ProductActions = ({ product, selectedColor, selectedSize }: ProductActions
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const navigate = useNavigate();
   const isWished = isInWishlist(String(product.id));
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      originalPrice: product.originalPrice,
-      image: product.image,
-      color: selectedColor,
-      size: selectedSize,
-      quantity,
-    });
-
-    const mainImg = document.querySelector('.gallery-main-image .main-image') as HTMLImageElement | null;
-    triggerAnimation({
-      imgSrc: product.image,
-      imageRect: mainImg?.getBoundingClientRect() || null,
-      fallbackPoint: { x: e.clientX, y: e.clientY },
-    });
-    
-    // Show success feedback
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  };
 
   const handleBuyNow = (e: React.MouseEvent) => {
     addToCart({
@@ -68,7 +46,10 @@ const ProductActions = ({ product, selectedColor, selectedSize }: ProductActions
       imageRect: mainImg?.getBoundingClientRect() || null,
       fallbackPoint: { x: e.clientX, y: e.clientY },
     });
-    navigate('/cart');
+    setAdded(true);
+    setTimeout(() => {
+      navigate('/cart');
+    }, 300);
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
@@ -123,21 +104,16 @@ const ProductActions = ({ product, selectedColor, selectedSize }: ProductActions
 
       {/* Action Buttons */}
       <div className="action-buttons">
-        {/* Add to Cart Button */}
+        {/* Buy Now - Add to Cart */}
         <button
-          className={`btn-add-cart ${added ? 'added' : ''}`}
-          onClick={handleAddToCart}
-          disabled={added}
+          className={`btn-buy-now ${added ? 'added' : ''}`}
+          onClick={handleBuyNow}
         >
           {added ? (
-            <><Check size={20} /> ĐÃ THÊM VÀO GIỎ</>
+            <><Check size={18} /> Đã thêm</>
           ) : (
-            <><ShoppingCart size={20} /> THÊM VÀO GIỎ</>
+            <><ShoppingCart size={18} /> Thêm vào giỏ</>
           )}
-        </button>
-        {/* Buy Now Button */}
-        <button className="btn-buy-now" onClick={handleBuyNow}>
-          MUA NGAY
         </button>
         {/* Wishlist Button */}
         <button 

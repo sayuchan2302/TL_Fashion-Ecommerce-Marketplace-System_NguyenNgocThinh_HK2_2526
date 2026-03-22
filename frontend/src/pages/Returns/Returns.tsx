@@ -4,6 +4,7 @@ import './Returns.css';
 import { useToast } from '../../contexts/ToastContext';
 import { returnItems } from '../../mocks/products';
 import { CLIENT_TEXT } from '../../utils/texts';
+import { adminReturnService, type ReturnReason, type ReturnResolution } from '../Admin/adminReturnService';
 
 const t = CLIENT_TEXT.returns;
 
@@ -19,7 +20,8 @@ type ReturnItem = {
 const Returns = () => {
   const { addToast } = useToast();
   const [items, setItems] = useState<ReturnItem[]>(returnItems);
-  const [reason, setReason] = useState('size');
+  const [reason, setReason] = useState<ReturnReason>('size');
+  const [resolution, setResolution] = useState<ReturnResolution>('exchange');
   const [note, setNote] = useState('');
   const [uploading, setUploading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -30,12 +32,23 @@ const Returns = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!items.some(i => i.selected)) {
+    const selectedItems = items.filter(i => i.selected);
+    if (selectedItems.length === 0) {
       addToast(t.validation.selectOne, 'error');
       return;
     }
     setUploading(true);
     setTimeout(() => {
+      adminReturnService.submit({
+        orderId: 'guest',
+        customerName: 'Khách hàng',
+        customerEmail: '',
+        customerPhone: '',
+        items: selectedItems.map(({ id, name, variant, price, image }) => ({ id, name, variant, price, image })),
+        reason,
+        note: note.trim(),
+        resolution,
+      });
       setUploading(false);
       setSubmitted(true);
       addToast(t.submitted, 'success');
@@ -83,10 +96,10 @@ const Returns = () => {
                 <label>{t.info.reason}</label>
                 <div className="reason-grid">
                   {[
-                    { id: 'size', label: t.info.reasons.size },
-                    { id: 'defect', label: t.info.reasons.defect },
-                    { id: 'change', label: t.info.reasons.change },
-                    { id: 'other', label: t.info.reasons.other },
+                    { id: 'size' as ReturnReason, label: t.info.reasons.size },
+                    { id: 'defect' as ReturnReason, label: t.info.reasons.defect },
+                    { id: 'change' as ReturnReason, label: t.info.reasons.change },
+                    { id: 'other' as ReturnReason, label: t.info.reasons.other },
                   ].map(opt => (
                     <button
                       type="button"
@@ -131,14 +144,24 @@ const Returns = () => {
             <h3>{t.resolution.title}</h3>
             <div className="resolution-list">
               <label className="resolution-item">
-                <input type="radio" name="resolution" defaultChecked />
+                <input
+                  type="radio"
+                  name="resolution"
+                  checked={resolution === 'exchange'}
+                  onChange={() => setResolution('exchange')}
+                />
                 <div>
                   <p className="resolution-title">{t.resolution.changeSize}</p>
                   <p className="resolution-desc">{t.resolution.changeSizeDesc}</p>
                 </div>
               </label>
               <label className="resolution-item">
-                <input type="radio" name="resolution" />
+                <input
+                  type="radio"
+                  name="resolution"
+                  checked={resolution === 'refund'}
+                  onChange={() => setResolution('refund')}
+                />
                 <div>
                   <p className="resolution-title">{t.resolution.refund}</p>
                   <p className="resolution-desc">{t.resolution.refundDesc}</p>

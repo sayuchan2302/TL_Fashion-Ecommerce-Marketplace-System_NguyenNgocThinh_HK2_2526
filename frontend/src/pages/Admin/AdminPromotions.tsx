@@ -9,33 +9,9 @@ import { useAdminListState } from './useAdminListState';
 import { ADMIN_VIEW_KEYS } from './adminListView';
 import { useAdminViewState } from './useAdminViewState';
 import { useAdminToast } from './useAdminToast';
-import { ADMIN_ACTION_TITLES, ADMIN_COMMON_LABELS } from './adminUiLabels';
-import {
-  promotionStatusClass,
-  promotionStatusLabel,
-  type PromotionStatus,
-} from './adminStatusMaps';
-import { ADMIN_TOAST_MESSAGES } from './adminMessages';
-import { ADMIN_TEXT } from './adminText';
-
-type DiscountType = 'percent' | 'fixed';
-
-interface Promotion {
-  id: string;
-  name: string;
-  code: string;
-  description: string;
-  discountType: DiscountType;
-  discountValue: number;
-  maxDiscount: number;
-  minOrderValue: number;
-  userLimit: number;
-  totalIssued: number;
-  usedCount: number;
-  startDate: string;
-  endDate: string;
-  status: PromotionStatus;
-}
+import { ADMIN_DICTIONARY } from './adminDictionary';
+import { promotionStore, type Promotion, type DiscountType } from '../../services/promotionStore';
+import { promotionStatusClass, promotionStatusLabel } from './adminStatusMaps';
 
 interface PromotionDeleteConfirmState {
   ids: string[];
@@ -44,57 +20,6 @@ interface PromotionDeleteConfirmState {
   description: string;
   confirmLabel: string;
 }
-
-const initialPromotions: Promotion[] = [
-  {
-    id: 'pr-001',
-    name: 'Summer Flash Sale',
-    code: 'SUMMER20',
-    description: 'Chiến dịch hè giảm sâu cho nhóm sản phẩm bán chạy.',
-    discountType: 'percent',
-    discountValue: 20,
-    maxDiscount: 200000,
-    minOrderValue: 500000,
-    userLimit: 2,
-    totalIssued: 3000,
-    usedCount: 1820,
-    startDate: '2026-05-01',
-    endDate: '2026-05-31',
-    status: 'running',
-  },
-  {
-    id: 'pr-002',
-    name: 'Welcome New User',
-    code: 'HELLO100K',
-    description: 'Voucher chào mừng khách hàng mới.',
-    discountType: 'fixed',
-    discountValue: 100000,
-    maxDiscount: 100000,
-    minOrderValue: 699000,
-    userLimit: 1,
-    totalIssued: 5000,
-    usedCount: 4960,
-    startDate: '2026-01-01',
-    endDate: '2026-03-31',
-    status: 'expired',
-  },
-  {
-    id: 'pr-003',
-    name: 'Weekend Promo',
-    code: 'WKND50',
-    description: 'Ưu đãi cuối tuần cho toàn bộ danh mục.',
-    discountType: 'fixed',
-    discountValue: 50000,
-    maxDiscount: 50000,
-    minOrderValue: 399000,
-    userLimit: 3,
-    totalIssued: 4500,
-    usedCount: 820,
-    startDate: '2026-06-01',
-    endDate: '2026-07-30',
-    status: 'paused',
-  },
-];
 
 const emptyPromotion: Promotion = {
   id: '',
@@ -195,15 +120,15 @@ const validatePromotionForm = (form: Promotion, rows: Promotion[], editingId: st
 };
 
 const AdminPromotions = () => {
-  const t = ADMIN_TEXT.promotions;
-  const c = ADMIN_TEXT.common;
+  const t = ADMIN_DICTIONARY.promotions;
+  const c = ADMIN_DICTIONARY.common;
   const view = useAdminViewState({
     storageKey: ADMIN_VIEW_KEYS.promotions,
     path: '/admin/promotions',
     validStatusKeys: ['all', 'running', 'paused', 'expired'],
     defaultStatus: 'all',
   });
-  const [rows, setRows] = useState<Promotion[]>(initialPromotions);
+  const [rows, setRows] = useState<Promotion[]>(() => promotionStore.getAll());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const statusFilter: 'all' | PromotionStatus =
     view.status === 'running' || view.status === 'paused' || view.status === 'expired' || view.status === 'all'
@@ -253,9 +178,9 @@ const AdminPromotions = () => {
   const shareCurrentView = async () => {
     try {
       await view.shareCurrentView();
-      pushToast(ADMIN_TOAST_MESSAGES.viewCopied);
+       pushToast(ADMIN_DICTIONARY.actions.shareView);
     } catch {
-      pushToast(ADMIN_TOAST_MESSAGES.copyFailed);
+       pushToast(ADMIN_DICTIONARY.messages.copyFailed);
     }
   };
 
@@ -263,7 +188,7 @@ const AdminPromotions = () => {
     setSelected(new Set());
     setDeleteConfirm(null);
     view.resetCurrentView();
-    pushToast(ADMIN_TOAST_MESSAGES.promotions.resetView);
+     pushToast(ADMIN_DICTIONARY.messages.promotions.resetView);
   };
 
   const hasViewContext = statusFilter !== 'all' || Boolean(search.trim()) || view.page > 1;
@@ -325,8 +250,10 @@ const AdminPromotions = () => {
     }
 
     if (editingId) {
-      setRows((prev) => prev.map((item) => (item.id === editingId ? { ...form, id: editingId } : item)));
-      pushToast(ADMIN_TOAST_MESSAGES.promotions.updated);
+      const updated = { ...form, id: editingId };
+      setRows((prev) => prev.map((item) => (item.id === editingId ? updated : item)));
+      promotionStore.update(updated);
+       pushToast(ADMIN_DICTIONARY.messages.promotions.updated);
     } else {
       const newPromotion: Promotion = {
         ...form,
@@ -334,7 +261,8 @@ const AdminPromotions = () => {
         status: form.status,
       };
       setRows((prev) => [newPromotion, ...prev]);
-      pushToast(ADMIN_TOAST_MESSAGES.promotions.created);
+      promotionStore.add(newPromotion);
+       pushToast(ADMIN_DICTIONARY.messages.promotions.created);
     }
 
     closeDrawer();
@@ -351,16 +279,12 @@ const AdminPromotions = () => {
       }
     }
 
+    const nextStatus: PromotionStatus = target.status === 'paused' ? 'running' : 'paused';
+    const updatedTarget: Promotion = { ...target, status: nextStatus };
     setRows((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: item.status === 'paused' ? 'running' : 'paused',
-            }
-          : item,
-      ),
+      prev.map((item) => (item.id === id ? updatedTarget : item)),
     );
+    promotionStore.update(updatedTarget);
   };
 
   const toggleSelectAll = (checked: boolean) => {
@@ -380,15 +304,20 @@ const AdminPromotions = () => {
 
   const pauseSelected = () => {
     const selectedIds = new Set(selected);
-    const affected = rows.filter((item) => selectedIds.has(item.id) && item.status !== 'paused').length;
-    if (affected === 0) {
-      pushToast(ADMIN_TOAST_MESSAGES.promotions.noEligiblePauseBulk);
+    const paused = rows
+      .filter((item) => selectedIds.has(item.id) && item.status !== 'paused')
+      .map((item): Promotion => ({ ...item, status: 'paused' }));
+    if (paused.length === 0) {
+       pushToast(ADMIN_DICTIONARY.messages.promotions.noEligiblePauseBulk);
       return;
     }
-
-    setRows((prev) => prev.map((item) => (selectedIds.has(item.id) ? { ...item, status: 'paused' } : item)));
+    setRows((prev) => prev.map((item) => {
+      const found = paused.find((p) => p.id === item.id);
+      return found ?? item;
+    }));
+    paused.forEach((p) => promotionStore.update(p));
     setSelected(new Set());
-    pushToast(ADMIN_TOAST_MESSAGES.promotions.bulkPaused(affected));
+    pushToast(ADMIN_DICTIONARY.messages.promotions.bulkPaused(paused.length));
   };
 
   const deleteSelected = () => {
@@ -398,9 +327,10 @@ const AdminPromotions = () => {
     }
     const selectedIds = new Set(deleteConfirm.ids);
     setRows((prev) => prev.filter((item) => !selectedIds.has(item.id)));
+    selectedIds.forEach((id) => promotionStore.remove(id));
     setSelected(new Set());
     setDeleteConfirm(null);
-    pushToast(ADMIN_TOAST_MESSAGES.promotions.bulkDeleted(selectedIds.size));
+    pushToast(ADMIN_DICTIONARY.messages.promotions.bulkDeleted(selectedIds.size));
   };
 
   const requestDeleteSelected = () => {
@@ -433,9 +363,9 @@ const AdminPromotions = () => {
             <Search size={16} />
             <input placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} value={search} onChange={(e) => handleSearchChange(e.target.value)} />
           </div>
-          <button type="button" className="admin-ghost-btn" onClick={() => pushToast(ADMIN_TOAST_MESSAGES.promoTypeFilterComingSoon)}><Tag size={16} /> {t.promoType}</button>
-          <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_COMMON_LABELS.shareView}</button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_COMMON_LABELS.resetView}</button>
+          <button type="button" className="admin-ghost-btn" onClick={() => pushToast(ADMIN_DICTIONARY.messages.promoTypeFilterComingSoon)}><Tag size={16} /> {t.promoType}</button>
+           <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_DICTIONARY.actions.shareView}</button>
+           <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_DICTIONARY.actions.resetView}</button>
           <button className="admin-primary-btn" onClick={openCreateDrawer}><Plus size={16} /> {t.create}</button>
         </>
       }
@@ -510,7 +440,7 @@ const AdminPromotions = () => {
               type={search.trim() ? 'search-empty' : 'empty'}
               title={search.trim() ? t.empty.searchTitle : t.empty.defaultTitle}
               description={search.trim() ? t.empty.searchDescription : t.empty.defaultDescription}
-              actionLabel={ADMIN_COMMON_LABELS.resetFilters}
+               actionLabel={ADMIN_DICTIONARY.actions.resetFilters}
               onAction={resetCurrentView}
             />
           ) : (
@@ -562,11 +492,11 @@ const AdminPromotions = () => {
                   <div role="cell" className="admin-muted">{formatDate(promo.startDate)} - {formatDate(promo.endDate)}</div>
                   <div role="cell"><span className={`admin-pill ${promotionStatusClass(currentStatus)}`}>{promotionStatusLabel(currentStatus)}</span></div>
                   <div role="cell" className="admin-actions" onClick={(e) => e.stopPropagation()}>
-                    <button className="admin-icon-btn subtle" title={ADMIN_ACTION_TITLES.edit} aria-label={ADMIN_ACTION_TITLES.edit} onClick={() => openEditDrawer(promo)}><Pencil size={16} /></button>
-                    <button className="admin-icon-btn subtle" title={promo.status === 'paused' ? ADMIN_ACTION_TITLES.resumeCampaign : ADMIN_ACTION_TITLES.pauseCampaign} aria-label={promo.status === 'paused' ? ADMIN_ACTION_TITLES.resumeCampaign : ADMIN_ACTION_TITLES.pauseCampaign} onClick={() => togglePause(promo.id)}>
+                     <button className="admin-icon-btn subtle" title={ADMIN_DICTIONARY.actionTitles.edit} aria-label={ADMIN_DICTIONARY.actionTitles.edit} onClick={() => openEditDrawer(promo)}><Pencil size={16} /></button>
+                     <button className="admin-icon-btn subtle" title={promo.status === 'paused' ? ADMIN_DICTIONARY.actionTitles.resumeCampaign : ADMIN_DICTIONARY.actionTitles.pauseCampaign} aria-label={promo.status === 'paused' ? ADMIN_DICTIONARY.actionTitles.resumeCampaign : ADMIN_DICTIONARY.actionTitles.pauseCampaign} onClick={() => togglePause(promo.id)}>
                       {promo.status === 'paused' ? <Play size={16} /> : <Pause size={16} />}
                     </button>
-                    <button className="admin-icon-btn subtle danger-icon" title={ADMIN_ACTION_TITLES.delete} aria-label={ADMIN_ACTION_TITLES.delete} onClick={() => requestDeleteOne(promo)}><Trash2 size={16} /></button>
+                     <button className="admin-icon-btn subtle danger-icon" title={ADMIN_DICTIONARY.actionTitles.delete} aria-label={ADMIN_DICTIONARY.actionTitles.delete} onClick={() => requestDeleteOne(promo)}><Trash2 size={16} /></button>
                   </div>
                 </motion.div>
               );
@@ -633,7 +563,7 @@ const AdminPromotions = () => {
                   <p className="drawer-eyebrow">{t.drawer.eyebrow}</p>
                   <h3>{editingId ? t.drawer.editTitle : t.drawer.createTitle}</h3>
                 </div>
-                <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_ACTION_TITLES.close}><X size={16} /></button>
+                 <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_DICTIONARY.actionTitles.close}><X size={16} /></button>
               </div>
 
               <div className="drawer-body">

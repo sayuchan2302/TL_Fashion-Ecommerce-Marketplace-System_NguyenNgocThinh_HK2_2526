@@ -8,7 +8,8 @@ import {
   type PaymentStatus,
   type TransitionReasonCode,
 } from './orderWorkflow';
-import { adminOrdersData, type AdminOrderData, type AdminOrderTimelineEntry } from './adminOrdersData';
+import { type AdminOrderData, type AdminOrderTimelineEntry } from './adminOrdersData';
+import { sharedOrderStore } from '../../services/sharedOrderStore';
 
 type TransitionSource = 'orders_list' | 'order_detail';
 
@@ -74,24 +75,31 @@ const cloneOrder = (order: AdminOrderRecord): AdminOrderRecord => ({
   auditLog: order.auditLog.map((entry) => ({ ...entry })),
 });
 
-let orderRecords: AdminOrderRecord[] = adminOrdersData.map((order, index) => ({
-  ...order,
-  version: 1,
-  updatedAt: order.date,
-  auditLog: [
-    {
-      id: `seed-${index + 1}`,
-      at: order.date,
-      actor: 'system',
-      source: 'order_detail',
-      orderCode: order.code,
-      fromFulfillment: order.fulfillment,
-      toFulfillment: order.fulfillment,
-      fromPayment: order.paymentStatus,
-      toPayment: order.paymentStatus,
-    },
-  ],
-}));
+// ── Load from sharedOrderStore (single source of truth) ──────────────────
+const initOrderRecords = (): AdminOrderRecord[] =>
+  sharedOrderStore.getAll().map((order, index) => {
+    const adminData = sharedOrderStore.toAdminOrderData(order);
+    return {
+      ...adminData,
+      version: 1,
+      updatedAt: order.createdAt,
+      auditLog: [
+        {
+          id: `seed-${index + 1}`,
+          at: order.createdAt,
+          actor: 'system',
+          source: 'order_detail' as TransitionSource,
+          orderCode: adminData.code,
+          fromFulfillment: adminData.fulfillment,
+          toFulfillment: adminData.fulfillment,
+          fromPayment: adminData.paymentStatus,
+          toPayment: adminData.paymentStatus,
+        },
+      ],
+    };
+  });
+
+let orderRecords: AdminOrderRecord[] = initOrderRecords();
 
 const listeners = new Set<() => void>();
 
@@ -236,6 +244,23 @@ export const transitionAdminOrder = (input: TransitionInput): TransitionResult =
     next,
     ...orderRecords.slice(index + 1),
   ];
+
+  // ── Sync back to sharedOrderStore so client order pages stay in sync ────
+  const sharedOrder = sharedOrderStore.getById(input.code);
+  if (sharedOrder) {
+    sharedOrderStore.update({
+      ...sharedOrder,
+      fulfillment: next.fulfillment,
+      paymentStatus: next.paymentStatus,
+      tracking: next.tracking || sharedOrder.tracking,
+      timeline: next.timeline.map((t) => ({
+        time: t.time,
+        text: t.text,
+        tone: t.tone,
+      })),
+    });
+  }
+
   emitChange();
 
   return {

@@ -68,15 +68,16 @@
 .btn-add-to-cart,
 .btn-buy-now {
   flex: 1;
-  height: 56px;
+  height: 52px;
+  min-width: 160px;
   border-radius: var(--radius-md);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
 }
 
@@ -104,7 +105,7 @@
 }
 
 .btn-buy-now:hover {
-  background-color: var(--co-blue-dark);
+  background-color: #1e293b;
 }
 
 /* Trust List */

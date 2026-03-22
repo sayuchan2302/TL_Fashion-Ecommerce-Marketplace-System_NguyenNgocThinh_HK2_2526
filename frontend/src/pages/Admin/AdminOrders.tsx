@@ -17,9 +17,7 @@ import { bulkTransitionToPacking, listAdminOrders, subscribeAdminOrders, transit
 import { ADMIN_VIEW_KEYS } from './adminListView';
 import { useAdminViewState } from './useAdminViewState';
 import { useAdminToast } from './useAdminToast';
-import { ADMIN_ACTION_TITLES, ADMIN_COMMON_LABELS } from './adminUiLabels';
-import { ADMIN_TOAST_MESSAGES } from './adminMessages';
-import { ADMIN_TEXT } from './adminText';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 
 interface AdminOrderRow {
   code: string;
@@ -57,13 +55,13 @@ const tone = (status: string) => {
 };
 
 const tabs = [
-  { key: 'all', label: ADMIN_TEXT.orders.tabs.all },
-  { key: 'urgent', label: ADMIN_TEXT.orders.tabs.urgent },
-  { key: 'pending', label: ADMIN_TEXT.orders.tabs.pending },
-  { key: 'packing', label: ADMIN_TEXT.orders.tabs.packing },
-  { key: 'shipping', label: ADMIN_TEXT.orders.tabs.shipping },
-  { key: 'done', label: ADMIN_TEXT.orders.tabs.done },
-  { key: 'canceled', label: ADMIN_TEXT.orders.tabs.canceled },
+  { key: 'all', label: ADMIN_DICTIONARY.orders.tabs.all },
+  { key: 'urgent', label: ADMIN_DICTIONARY.orders.tabs.urgent },
+  { key: 'pending', label: ADMIN_DICTIONARY.orders.tabs.pending },
+  { key: 'packing', label: ADMIN_DICTIONARY.orders.tabs.packing },
+  { key: 'shipping', label: ADMIN_DICTIONARY.orders.tabs.shipping },
+  { key: 'done', label: ADMIN_DICTIONARY.orders.tabs.done },
+  { key: 'canceled', label: ADMIN_DICTIONARY.orders.tabs.canceled },
 ];
 
 const validStatusKeys = new Set(tabs.map((tab) => tab.key));
@@ -85,8 +83,10 @@ const formatDateTime = (value: string) => {
 const validStatusKeysArray = Array.from(validStatusKeys);
 
 const AdminOrders = () => {
-  const t = ADMIN_TEXT.orders;
-  const c = ADMIN_TEXT.common;
+  const t = ADMIN_DICTIONARY.orders;
+  const c = ADMIN_DICTIONARY.common;
+  const actions = ADMIN_DICTIONARY.actions;
+  const actionTitles = ADMIN_DICTIONARY.actionTitles;
   const aria = useMemo(() => c.aria, []);
   const view = useAdminViewState({
     storageKey: ADMIN_VIEW_KEYS.orders,
@@ -133,16 +133,16 @@ const AdminOrders = () => {
   const shareCurrentView = async () => {
     try {
       await view.shareCurrentView();
-      pushToast(ADMIN_TOAST_MESSAGES.viewCopied);
+      pushToast(ADMIN_DICTIONARY.messages.viewCopied);
     } catch {
-      pushToast(ADMIN_TOAST_MESSAGES.copyFailed);
+      pushToast(ADMIN_DICTIONARY.messages.copyFailed);
     }
   };
 
   const resetCurrentView = () => {
     setSelected(new Set());
     view.resetCurrentView();
-    pushToast(ADMIN_TOAST_MESSAGES.orders.resetView);
+    pushToast(ADMIN_DICTIONARY.messages.orders.resetView);
   };
 
   const activeTabLabel = tabs.find((tab) => tab.key === activeTab)?.label || t.tabs.all;
@@ -184,14 +184,14 @@ const AdminOrders = () => {
   const handleBulkConfirm = () => {
     const { updatedCodes, skippedCodes } = bulkTransitionToPacking(Array.from(selected), 'Admin');
     if (updatedCodes.length === 0) {
-      pushToast(ADMIN_TOAST_MESSAGES.orders.noEligibleBulkConfirm);
+       pushToast(ADMIN_DICTIONARY.messages.orders.noEligibleBulkConfirm);
       return;
     }
     setSelected(new Set());
     if (skippedCodes.length > 0) {
-      pushToast(ADMIN_TOAST_MESSAGES.orders.bulkConfirmedWithSkipped(updatedCodes.length, skippedCodes.length));
+       pushToast(ADMIN_DICTIONARY.messages.orders.bulkConfirmedWithSkipped(updatedCodes.length, skippedCodes.length));
     } else {
-      pushToast(ADMIN_TOAST_MESSAGES.orders.bulkConfirmed(updatedCodes.length));
+       pushToast(ADMIN_DICTIONARY.messages.orders.bulkConfirmed(updatedCodes.length));
     }
     setShowBulkConfirmModal(false);
   };
@@ -202,7 +202,7 @@ const AdminOrders = () => {
 
   const handleBulkPrint = () => {
     if (selected.size === 0) return;
-    pushToast(ADMIN_TOAST_MESSAGES.orders.preparingPrint(selected.size));
+     pushToast(ADMIN_DICTIONARY.messages.orders.preparingPrint(selected.size));
   };
 
   const handleApproveOrder = (code: string) => {
@@ -233,13 +233,13 @@ const AdminOrders = () => {
       title={t.title}
       actions={
         <>
-          <div className="admin-search">
-            <Search size={16} />
-            <input placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} value={search} onChange={e => handleSearchChange(e.target.value)} />
-          </div>
-          <button className="admin-ghost-btn" onClick={() => pushToast(ADMIN_TOAST_MESSAGES.advancedFilterComingSoon)}><Filter size={16} /> {c.filter}</button>
-          <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_COMMON_LABELS.shareView}</button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_COMMON_LABELS.resetView}</button>
+           <div className="admin-search">
+             <Search size={16} />
+             <input placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} value={search} onChange={e => handleSearchChange(e.target.value)} />
+           </div>
+           <button className="admin-ghost-btn" onClick={() => pushToast(ADMIN_DICTIONARY.messages.advancedFilterComingSoon)}><Filter size={16} /> {c.filter}</button>
+           <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {actions.shareView}</button>
+           <button className="admin-ghost-btn" onClick={resetCurrentView}>{actions.resetView}</button>
         </>
       }
     >
@@ -304,7 +304,7 @@ const AdminOrders = () => {
               type={search.trim() ? 'search-empty' : 'empty'}
               title={search.trim() ? t.empty.searchTitle : t.empty.defaultTitle}
               description={search.trim() ? t.empty.searchDescription : t.empty.defaultDescription}
-              actionLabel={ADMIN_COMMON_LABELS.resetFilters}
+               actionLabel={actions.resetFilters}
               onAction={resetCurrentView}
             />
           ) : (
@@ -364,21 +364,21 @@ const AdminOrders = () => {
                 </div>
                 <div role="cell" className="admin-muted order-date">{formatDateTime(order.date)}</div>
                 <div role="cell" className="admin-actions" onClick={(e) => e.stopPropagation()}>
-                  <Link to={`/admin/orders/${order.code}`} className="admin-icon-btn subtle" aria-label={ADMIN_ACTION_TITLES.viewDetail}>
+                  <Link to={`/admin/orders/${order.code}`} className="admin-icon-btn subtle" aria-label={actionTitles.viewDetail}>
                     <Eye size={16} />
                   </Link>
                   {order.fulfillment === 'pending' ? (
                     <button
                       className="admin-icon-btn subtle"
                       type="button"
-                      aria-label={ADMIN_ACTION_TITLES.approveOrder}
-                      title={ADMIN_ACTION_TITLES.approveOrder}
+                       aria-label={actionTitles.approveOrder}
+                       title={actionTitles.approveOrder}
                       onClick={() => handleApproveOrder(order.code)}
                     >
                       <CheckCircle2 size={16} />
                     </button>
                   ) : (
-                    <button className="admin-icon-btn subtle" type="button" aria-label={ADMIN_ACTION_TITLES.printInvoice}>
+                    <button className="admin-icon-btn subtle" type="button" aria-label={actionTitles.printInvoice}>
                       <Printer size={16} />
                     </button>
                   )}

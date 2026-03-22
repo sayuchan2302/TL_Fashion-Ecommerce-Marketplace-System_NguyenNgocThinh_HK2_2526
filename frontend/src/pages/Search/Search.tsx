@@ -8,6 +8,7 @@ import EmptySearchState from '../../components/EmptySearchState/EmptySearchState
 import { searchService } from '../../services/searchService';
 import { useFilter } from '../../contexts/FilterContext';
 import { CLIENT_TEXT } from '../../utils/texts';
+import { useClientViewState } from '../../hooks/useClientViewState';
 import './Search.css';
 
 const t = CLIENT_TEXT.search;
@@ -17,6 +18,7 @@ const Search = () => {
   const query = searchParams.get('q') || '';
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const { filters } = useFilter();
+  const view = useClientViewState({ path: '/search', validSortKeys: ['newest', 'bestseller', 'price-asc', 'price-desc', 'discount'] });
 
   const history = searchService.getRecentSearches();
 
@@ -29,9 +31,9 @@ const Search = () => {
     if (!query) return [];
     let results = [...searchResults];
 
-    if (filters.priceRanges.length > 0) {
+    if (view.priceRanges.length > 0) {
       results = results.filter(product => {
-        return filters.priceRanges.some(range => {
+        return view.priceRanges.some(range => {
           if (range === 'under-200k') return product.price < 200000;
           if (range === 'from-200k-500k') return product.price >= 200000 && product.price <= 500000;
           if (range === 'over-500k') return product.price > 500000;
@@ -40,7 +42,7 @@ const Search = () => {
       });
     }
 
-    if (filters.colors.length > 0) {
+    if (view.colors.length > 0) {
       const colorMap: Record<string, string> = {
         'Đen': '#000000',
         'Trắng': '#ffffff',
@@ -51,15 +53,35 @@ const Search = () => {
       };
       results = results.filter(product => {
         return product.colors && product.colors.some(colorHex =>
-          filters.colors.some(selectedColor =>
+          view.colors.some(selectedColor =>
             (colorMap[selectedColor] || '').toLowerCase() === colorHex.toLowerCase()
           )
         );
       });
     }
 
+    switch (view.sortKey) {
+      case 'price-asc':
+        results = [...results].sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        results = [...results].sort((a, b) => b.price - a.price);
+        break;
+      case 'discount':
+        results = [...results].sort((a, b) => {
+          const discountA = a.originalPrice ? ((a.originalPrice - a.price) / a.originalPrice) * 100 : 0;
+          const discountB = b.originalPrice ? ((b.originalPrice - b.price) / b.originalPrice) * 100 : 0;
+          return discountB - discountA;
+        });
+        break;
+      case 'newest':
+      case 'bestseller':
+      default:
+        break;
+    }
+
     return results;
-  }, [query, searchResults, filters]);
+  }, [query, searchResults, view.priceRanges, view.colors, view.sortKey]);
 
   const clearHistory = () => {
     searchService.clearHistory();
@@ -199,7 +221,15 @@ const Search = () => {
                         </button>
                       </div>
                       <div className="sidebar-content">
-                        <FilterSidebar />
+                        <FilterSidebar
+                          selectedPriceRanges={view.priceRanges}
+                          selectedSizes={view.sizes}
+                          selectedColors={view.colors}
+                          onTogglePrice={(id, checked) => view.togglePrice(id)}
+                          onToggleSize={(size, checked) => view.toggleSize(size)}
+                          onToggleColor={(color, checked) => view.toggleColor(color)}
+                          onReset={() => view.reset()}
+                        />
                       </div>
                     </aside>
 
@@ -214,7 +244,15 @@ const Search = () => {
                     )}
 
                     <main className="plp-main">
-                      <ProductGrid customResults={filteredResults.length > 0 ? filteredResults : searchResults} />
+                      <ProductGrid
+                        customResults={filteredResults.length > 0 ? filteredResults : searchResults}
+                        viewState={{
+                          priceRanges: view.priceRanges,
+                          colors: view.colors,
+                          sortKey: view.sortKey,
+                          setSort: (value) => view.setSort(value),
+                        }}
+                      />
                     </main>
                   </div>
                 </>

@@ -5,6 +5,7 @@ export const ADMIN_VIEW_KEYS = {
   customers: 'admin.customers.view',
   categories: 'admin.categories.view',
   reviews: 'admin.reviews.view',
+  returns: 'admin.returns.view',
 } as const;
 
 export const getPersistedAdminView = (key: string) => {

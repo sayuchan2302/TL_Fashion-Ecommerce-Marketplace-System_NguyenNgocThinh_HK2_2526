@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 export interface FilterState {
@@ -28,14 +28,28 @@ export const FilterProvider = ({ children }: { children: ReactNode }) => {
     sortBy: 'newest',
   });
 
-  const setFiltersState = (next: FilterState) => {
-    setFilters({
-      priceRanges: Array.from(new Set(next.priceRanges)),
-      sizes: Array.from(new Set(next.sizes)),
-      colors: Array.from(new Set(next.colors)),
-      sortBy: next.sortBy || 'newest',
-    });
+  const normalizeList = (values: string[]) => Array.from(new Set(values)).sort();
+
+  const isSameFilterState = (a: FilterState, b: FilterState) => {
+    const samePrices = a.priceRanges.length === b.priceRanges.length && a.priceRanges.every((v, idx) => v === b.priceRanges[idx]);
+    const sameSizes = a.sizes.length === b.sizes.length && a.sizes.every((v, idx) => v === b.sizes[idx]);
+    const sameColors = a.colors.length === b.colors.length && a.colors.every((v, idx) => v === b.colors[idx]);
+    return samePrices && sameSizes && sameColors && a.sortBy === b.sortBy;
   };
+
+  const setFiltersState = useCallback((next: FilterState) => {
+    setFilters(prev => {
+      const normalized: FilterState = {
+        priceRanges: normalizeList(next.priceRanges),
+        sizes: normalizeList(next.sizes),
+        colors: normalizeList(next.colors),
+        sortBy: next.sortBy || 'newest',
+      };
+
+      if (isSameFilterState(prev, normalized)) return prev;
+      return normalized;
+    });
+  }, []);
 
   const updatePriceRange = (range: string, checked: boolean) => {
     setFilters(prev => ({

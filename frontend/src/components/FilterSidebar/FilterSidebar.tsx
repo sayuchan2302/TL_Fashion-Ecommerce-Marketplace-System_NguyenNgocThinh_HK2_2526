@@ -2,8 +2,27 @@ import './FilterSidebar.css';
 import { Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
 import { useFilter } from '../../contexts/FilterContext';
+import { CLIENT_DICTIONARY } from '../../utils/clientDictionary';
 
-const FilterSidebar = () => {
+interface FilterSidebarProps {
+  selectedPriceRanges?: string[];
+  selectedSizes?: string[];
+  selectedColors?: string[];
+  onTogglePrice?: (id: string, checked: boolean) => void;
+  onToggleSize?: (size: string, checked: boolean) => void;
+  onToggleColor?: (color: string, checked: boolean) => void;
+  onReset?: () => void;
+}
+
+const FilterSidebar = ({
+  selectedPriceRanges,
+  selectedSizes,
+  selectedColors,
+  onTogglePrice,
+  onToggleSize,
+  onToggleColor,
+  onReset,
+}: FilterSidebarProps) => {
   const { filters, updatePriceRange, updateSize, updateColor, resetFilters } = useFilter();
 
   // State for collapsible filter sections
@@ -26,6 +45,7 @@ const FilterSidebar = () => {
     }));
   };
 
+  const listingDict = CLIENT_DICTIONARY.listing;
   const priceRanges = [
     { id: 'under-200k', label: 'Dưới 200.000đ' },
     { id: 'from-200k-500k', label: '200.000đ - 500.000đ' },
@@ -41,11 +61,47 @@ const FilterSidebar = () => {
     { name: 'Be', hex: '#f5f5dc' }
   ];
 
+  const selectedPrice = selectedPriceRanges ?? filters.priceRanges;
+  const selectedSize = selectedSizes ?? filters.sizes;
+  const selectedColor = selectedColors ?? filters.colors;
+
+  const handlePrice = (id: string, checked: boolean) => {
+    if (onTogglePrice) {
+      onTogglePrice(id, checked);
+    } else {
+      updatePriceRange(id, checked);
+    }
+  };
+
+  const handleSize = (size: string, checked: boolean) => {
+    if (onToggleSize) {
+      onToggleSize(size, checked);
+    } else {
+      updateSize(size, checked);
+    }
+  };
+
+  const handleColor = (color: string, checked: boolean) => {
+    if (onToggleColor) {
+      onToggleColor(color, checked);
+    } else {
+      updateColor(color, checked);
+    }
+  };
+
+  const handleReset = () => {
+    if (onReset) {
+      onReset();
+    } else {
+      resetFilters();
+    }
+  };
+
   return (
     <div className="filter-sidebar">
       <div className="filter-header">
-        <h3 className="filter-title">Bộ Lọc</h3>
-        <button type="button" className="clear-filter-btn" onClick={resetFilters}>Xóa tất cả</button>
+        <h3 className="filter-title">{listingDict.filters.label}</h3>
+        <button type="button" className="clear-filter-btn" onClick={handleReset}>{listingDict.filters.clearAll}</button>
       </div>
 
       {/* Filter by Price */}
@@ -57,7 +113,7 @@ const FilterSidebar = () => {
           aria-expanded={openSections.price}
           aria-controls={`${sectionIds.price}-content`}
         >
-          <h4 className="filter-section-title">Khoảng Giá</h4>
+          <h4 className="filter-section-title">{listingDict.filters.priceLabel || 'Khoảng Giá'}</h4>
           {openSections.price ? <Minus size={16} /> : <Plus size={16} />}
         </button>
         
@@ -68,8 +124,8 @@ const FilterSidebar = () => {
                 <input 
                   type="checkbox" 
                   className="filter-checkbox"
-                  checked={filters.priceRanges.includes(range.id)}
-                  onChange={(e) => updatePriceRange(range.id, e.target.checked)}
+                  checked={selectedPrice.includes(range.id)}
+                  onChange={(e) => handlePrice(range.id, e.target.checked)}
                 />
                 <span>{range.label}</span>
               </label>
@@ -87,7 +143,7 @@ const FilterSidebar = () => {
           aria-expanded={openSections.size}
           aria-controls={`${sectionIds.size}-content`}
         >
-          <h4 className="filter-section-title">Kích Cỡ</h4>
+          <h4 className="filter-section-title">{listingDict.filters.sizeLabel || 'Kích Cỡ'}</h4>
           {openSections.size ? <Minus size={16} /> : <Plus size={16} />}
         </button>
         
@@ -97,8 +153,8 @@ const FilterSidebar = () => {
               {['S', 'M', 'L', 'XL', '2XL', '3XL'].map(size => (
                 <button 
                   key={size} 
-                  className={`size-btn ${filters.sizes.includes(size) ? 'selected' : ''}`}
-                  onClick={() => updateSize(size, !filters.sizes.includes(size))}
+                  className={`size-btn ${selectedSize.includes(size) ? 'selected' : ''}`}
+                  onClick={() => handleSize(size, !selectedSize.includes(size))}
                 >
                   {size}
                 </button>
@@ -117,7 +173,7 @@ const FilterSidebar = () => {
           aria-expanded={openSections.color}
           aria-controls={`${sectionIds.color}-content`}
         >
-          <h4 className="filter-section-title">Màu Sắc</h4>
+          <h4 className="filter-section-title">{listingDict.filters.colorLabel || 'Màu Sắc'}</h4>
           {openSections.color ? <Minus size={16} /> : <Plus size={16} />}
         </button>
         
@@ -127,12 +183,12 @@ const FilterSidebar = () => {
               {colorOptions.map(color => (
                 <button 
                   key={color.name} 
-                  className={`color-btn ${filters.colors.includes(color.name) ? 'selected' : ''}`}
+                  className={`color-btn ${selectedColor.includes(color.name) ? 'selected' : ''}`}
                   style={{ 
                     backgroundColor: color.hex,
-                    borderColor: filters.colors.includes(color.name) ? '#2b56e6' : 'transparent'
+                    borderColor: selectedColor.includes(color.name) ? '#2b56e6' : 'transparent'
                   }}
-                  onClick={() => updateColor(color.name, !filters.colors.includes(color.name))}
+                  onClick={() => handleColor(color.name, !selectedColor.includes(color.name))}
                   aria-label={color.name}
                   title={color.name}
                 ></button>

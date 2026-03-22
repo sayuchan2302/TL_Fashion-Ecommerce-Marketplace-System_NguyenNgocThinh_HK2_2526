@@ -8,20 +8,18 @@ import { AdminStateBlock, AdminTableSkeleton } from './AdminStateBlocks';
 import { useAdminListState } from './useAdminListState';
 import { useAdminViewState } from './useAdminViewState';
 import { useAdminToast } from './useAdminToast';
-import { ADMIN_TEXT } from './adminText';
-import { ADMIN_TOAST_MESSAGES } from './adminMessages';
-import { ADMIN_VIEW_KEYS } from './adminListView';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 import { adminReviewService, type Review, type ReviewStatus } from './adminReviewService';
-import { ADMIN_ACTION_TITLES, ADMIN_COMMON_LABELS } from './adminUiLabels';
+import { ADMIN_VIEW_KEYS } from './adminListView';
 import AdminConfirmDialog from './AdminConfirmDialog';
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-const ReviewStatusBadge = ({ status }: { status: ReviewStatus }) => {
+const ReviewStatusBadge = ({ status, labels }: { status: ReviewStatus; labels: Record<ReviewStatus, string> }) => {
   const config: Record<ReviewStatus, { label: string; pillClass: string }> = {
-    pending:  { label: 'Chờ duyệt', pillClass: 'admin-pill pending'  },
-    approved: { label: 'Đã duyệt',  pillClass: 'admin-pill success'  },
-    hidden:   { label: 'Ẩn',         pillClass: 'admin-pill neutral'  },
+    pending:  { label: labels.pending, pillClass: 'admin-pill pending'  },
+    approved: { label: labels.approved, pillClass: 'admin-pill success'  },
+    hidden:   { label: labels.hidden,   pillClass: 'admin-pill neutral'  },
   };
   const { label, pillClass } = config[status];
   return <span className={pillClass}>{label}</span>;
@@ -42,12 +40,17 @@ const RatingStars = ({ rating, size = 14 }: { rating: number; size?: number }) =
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+const getInitials = (name: string) => {
+  const parts = name.trim().split(' ');
+  return parts.length >= 2 ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() : name.slice(0, 2).toUpperCase();
+};
+
 // ── Main Component ──────────────────────────────────────────────────────────
 
 const AdminReviews = () => {
   const { toast, pushToast } = useAdminToast();
-  const c = ADMIN_TEXT.common;
-  const t = ADMIN_TEXT.reviews;
+const c = ADMIN_DICTIONARY.common;
+const t = ADMIN_DICTIONARY.reviews;
 
   // ── Data ─────────────────────────────────────────────────────────────────
   const [allReviews, setAllReviews] = useState<Review[]>([]);
@@ -150,27 +153,29 @@ const AdminReviews = () => {
   // ── Actions ──────────────────────────────────────────────────────────────
   const applyStatusUpdate = (id: string, status: ReviewStatus) => {
     const updated = adminReviewService.updateStatus(id, status);
-    if (updated) setAllReviews((prev) => prev.map((r) => r.id === id ? updated : r));
+    if (updated) setAllReviews((prev) => prev.map((r) => (r.id === id ? updated : r)));
     return updated;
   };
 
-  const handleApprove = useCallback((id: string) => {
-    if (applyStatusUpdate(id, 'approved')) pushToast(ADMIN_TOAST_MESSAGES.reviews.approveSuccess);
-  }, [pushToast]);
+    const handleApprove = useCallback((id: string) => {
+      if (applyStatusUpdate(id, 'approved')) pushToast(ADMIN_DICTIONARY.reviews.approveSuccess);
+    }, [pushToast]);
 
-  const handleHide = useCallback((id: string) => {
-    if (applyStatusUpdate(id, 'hidden')) pushToast(ADMIN_TOAST_MESSAGES.reviews.hideSuccess);
-  }, [pushToast]);
+    const handleHide = useCallback((id: string) => {
+      if (applyStatusUpdate(id, 'hidden')) pushToast(ADMIN_DICTIONARY.reviews.hideSuccess);
+    }, [pushToast]);
 
   const handleReply = useCallback((id: string) => {
-    if (!replyText.trim()) return;
+    if (!replyText.trim()) {
+      pushToast(ADMIN_DICTIONARY.reviews.replyRequired);
+      return;
+    }
     const updated = adminReviewService.addReply(id, replyText.trim());
     if (updated) {
-      setAllReviews((prev) => prev.map((r) => r.id === id ? updated : r));
+      setAllReviews((prev) => prev.map((r) => (r.id === id ? updated : r)));
       setDrawerReview(updated);
       setReplyText('');
-      // If review was pending and now approved, update the drawer state too
-      pushToast(ADMIN_TOAST_MESSAGES.reviews.replySuccess);
+      pushToast(ADMIN_DICTIONARY.reviews.replySuccess);
     }
   }, [replyText, pushToast]);
 
@@ -183,7 +188,7 @@ const AdminReviews = () => {
         count++;
       }
     });
-    pushToast(ADMIN_TOAST_MESSAGES.reviews.deleteSuccess);
+    pushToast(ADMIN_DICTIONARY.reviews.deleteSuccess);
     setSelected(new Set());
     setDeleteTarget(null);
     if (drawerReview && deleteTarget.ids.includes(drawerReview.id)) closeDrawer();
@@ -197,9 +202,9 @@ const AdminReviews = () => {
     });
     if (count > 0) {
       setSelected(new Set());
-      pushToast(ADMIN_TOAST_MESSAGES.reviews.bulkApproved(count));
+      pushToast(ADMIN_DICTIONARY.reviews.bulkApproved(count));
     } else {
-      pushToast(ADMIN_TOAST_MESSAGES.reviews.noEligibleBulkApprove);
+      pushToast(ADMIN_DICTIONARY.reviews.noEligibleBulkApprove);
     }
   }, [selected, pushToast]);
 
@@ -210,9 +215,9 @@ const AdminReviews = () => {
     });
     if (count > 0) {
       setSelected(new Set());
-      pushToast(ADMIN_TOAST_MESSAGES.reviews.bulkHidden(count));
+      pushToast(ADMIN_DICTIONARY.reviews.bulkHidden(count));
     } else {
-      pushToast(ADMIN_TOAST_MESSAGES.reviews.noEligibleBulkHide);
+      pushToast(ADMIN_DICTIONARY.reviews.noEligibleBulkHide);
     }
   }, [selected, pushToast]);
 
@@ -266,32 +271,32 @@ const AdminReviews = () => {
     >
       {/* ── Stat Cards ─────────────────────────────────────── */}
       <div className="admin-stats grid-4">
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">{t.stats.total}</div>
-          <div className="admin-stat-value">{stats.total}</div>
-          <div className="admin-stat-sub">Tất cả đánh giá</div>
-        </div>
-        <div className={`admin-stat-card ${tabCounts.pending > 0 ? 'warning' : ''}`}
-          onClick={() => changeTab('pending')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-label">{t.stats.pending}</div>
-          <div className="admin-stat-value">{stats.pending}</div>
-          <div className="admin-stat-sub">Cần phê duyệt</div>
-        </div>
-        <div className="admin-stat-card success"
-          onClick={() => changeTab('approved')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-label">{t.stats.approved}</div>
-          <div className="admin-stat-value">{stats.approved}</div>
-          <div className="admin-stat-sub">Đã công khai</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">{t.stats.averageRating}</div>
-          <div className="admin-stat-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            {stats.averageRating.toFixed(1)}
-            <Star size={18} style={{ color: '#facc15', fill: '#facc15' }} />
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">{t.stats.total}</div>
+            <div className="admin-stat-value">{stats.total}</div>
+            <div className="admin-stat-sub">{t.statsSub.total}</div>
           </div>
-          <div className="admin-stat-sub">Trung bình sao</div>
+          <div className={`admin-stat-card ${tabCounts.pending > 0 ? 'warning' : ''}`}
+            onClick={() => changeTab('pending')} style={{ cursor: 'pointer' }}>
+            <div className="admin-stat-label">{t.stats.pending}</div>
+            <div className="admin-stat-value">{stats.pending}</div>
+            <div className="admin-stat-sub">{t.statsSub.pending}</div>
+          </div>
+          <div className="admin-stat-card success"
+            onClick={() => changeTab('approved')} style={{ cursor: 'pointer' }}>
+            <div className="admin-stat-label">{t.stats.approved}</div>
+            <div className="admin-stat-value">{stats.approved}</div>
+            <div className="admin-stat-sub">{t.statsSub.approved}</div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">{t.stats.averageRating}</div>
+            <div className="admin-stat-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {stats.averageRating.toFixed(1)}
+              <Star size={18} style={{ color: '#facc15', fill: '#facc15' }} />
+            </div>
+            <div className="admin-stat-sub">{t.statsSub.average}</div>
+          </div>
         </div>
-      </div>
 
       {/* Tabs */}
       <div className="admin-tabs">
@@ -331,7 +336,7 @@ const AdminReviews = () => {
               type={search.trim() ? 'search-empty' : 'empty'}
               title={search.trim() ? t.empty.searchTitle : t.empty.defaultTitle}
               description={search.trim() ? t.empty.searchDescription : t.empty.defaultDescription}
-              actionLabel={ADMIN_COMMON_LABELS.resetFilters}
+               actionLabel={ADMIN_DICTIONARY.actions.resetFilters}
               onAction={resetCurrentView}
             />
           ) : (
@@ -386,13 +391,19 @@ const AdminReviews = () => {
                       </div>
                     </div>
                     <div role="cell"><RatingStars rating={review.rating} /></div>
-                    <div role="cell" className="admin-bold">{review.customerName}</div>
+                    <div role="cell" className="customer-info-cell">
+                      <div className="customer-avatar initials">{getInitials(review.customerName)}</div>
+                      <div className="customer-text">
+                        <p className="admin-bold customer-name">{review.customerName}</p>
+                        <p className="admin-muted customer-email">{review.customerEmail}</p>
+                      </div>
+                    </div>
                     <div role="cell" className="order-date admin-muted">{formatDate(review.date)}</div>
-                    <div role="cell"><ReviewStatusBadge status={review.status} /></div>
+                     <div role="cell"><ReviewStatusBadge status={review.status} labels={t.statuses} /></div>
                     <div role="cell" className="admin-actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         className="admin-icon-btn subtle"
-                        title={ADMIN_ACTION_TITLES.viewDetail}
+                         title={ADMIN_DICTIONARY.actionTitles.viewDetail}
                         onClick={() => openDrawer(review)}
                       >
                         <Eye size={16} />
@@ -401,7 +412,7 @@ const AdminReviews = () => {
                         <button
                           className="admin-icon-btn subtle"
                           onClick={() => handleApprove(review.id)}
-                          title={ADMIN_ACTION_TITLES.approve}
+                           title={ADMIN_DICTIONARY.actionTitles.approve}
                         >
                           <CheckCircle size={16} />
                         </button>
@@ -410,7 +421,7 @@ const AdminReviews = () => {
                         <button
                           className="admin-icon-btn subtle"
                           onClick={() => handleHide(review.id)}
-                          title={ADMIN_ACTION_TITLES.hide}
+                           title={ADMIN_DICTIONARY.actionTitles.hide}
                         >
                           <EyeOff size={16} />
                         </button>
@@ -418,7 +429,7 @@ const AdminReviews = () => {
                       <button
                         className="admin-icon-btn subtle danger-icon"
                         onClick={() => requestDelete(review)}
-                        title={ADMIN_ACTION_TITLES.delete}
+                         title={ADMIN_DICTIONARY.actionTitles.delete}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -508,7 +519,7 @@ const AdminReviews = () => {
                   <p className="drawer-eyebrow">{t.drawer.title}</p>
                   <h3>{drawerReview.productName}</h3>
                 </div>
-                <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_ACTION_TITLES.close}>
+                 <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_DICTIONARY.actionTitles.close}>
                   <X size={16} />
                 </button>
               </div>
@@ -527,10 +538,10 @@ const AdminReviews = () => {
                     />
                     <div>
                       <p className="admin-bold" style={{ margin: 0 }}>{drawerReview.productName}</p>
-                      <p className="admin-muted small" style={{ margin: 0 }}>ID: {drawerReview.productId}</p>
-                      {drawerReview.orderId && (
-                        <p className="admin-muted small" style={{ margin: 0 }}>Đơn: #{drawerReview.orderId}</p>
-                      )}
+                       <p className="admin-muted small" style={{ margin: 0 }}>{t.drawer.productIdLabel}: {drawerReview.productId}</p>
+                       {drawerReview.orderId && (
+                         <p className="admin-muted small" style={{ margin: 0 }}>{t.drawer.orderIdLabel}: #{drawerReview.orderId}</p>
+                       )}
                     </div>
                   </div>
                 </section>
@@ -547,7 +558,7 @@ const AdminReviews = () => {
                     </div>
                     <div className="admin-card-row">
                       <span className="admin-muted small">{formatDate(drawerReview.date)}</span>
-                      <ReviewStatusBadge status={drawerReview.status} />
+                         <ReviewStatusBadge status={drawerReview.status} labels={t.statuses} />
                     </div>
                   </div>
                 </section>
@@ -643,14 +654,14 @@ const AdminReviews = () => {
       {/* Delete Confirm Dialog */}
       <AdminConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Xóa đánh giá"
-        description="Bạn có chắc chắn muốn xóa đánh giá này? Hành động này không thể hoàn tác."
-        selectedItems={deleteTarget?.names}
-        selectedNoun={t.selectedNoun}
-        confirmLabel="Xóa đánh giá"
-        danger
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={confirmDelete}
+         title={t.confirmDelete.title}
+         description={t.confirmDelete.description}
+         selectedItems={deleteTarget?.names}
+         selectedNoun={t.selectedNoun}
+         confirmLabel={t.confirmDelete.confirmLabel}
+         danger
+         onCancel={() => setDeleteTarget(null)}
+         onConfirm={confirmDelete}
       />
 
       {/* Toast */}

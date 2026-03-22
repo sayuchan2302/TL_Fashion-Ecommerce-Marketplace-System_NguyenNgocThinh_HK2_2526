@@ -17,14 +17,12 @@ import {
 import { getAdminOrderByCode, subscribeAdminOrders, transitionAdminOrder } from './adminOrderService';
 import { AdminStateBlock } from './AdminStateBlocks';
 import { useAdminToast } from './useAdminToast';
-import { ADMIN_ACTION_TITLES } from './adminUiLabels';
-import { ADMIN_TOAST_MESSAGES } from './adminMessages';
-import { ADMIN_TEXT } from './adminText';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 
 const formatVND = (n: number) => n.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
 
 const AdminOrderDetail = () => {
-  const t = ADMIN_TEXT.orderDetail;
+  const t = ADMIN_DICTIONARY.orderDetail;
   const { id } = useParams();
   const orderCode = useMemo(() => (id || '').replace('#', ''), [id]);
   const [order, setOrder] = useState(() => getAdminOrderByCode(orderCode));
@@ -92,10 +90,10 @@ const AdminOrderDetail = () => {
       reasonCode,
       reasonNote,
     });
-    if (!result.ok) {
-      pushToast(result.error || ADMIN_TOAST_MESSAGES.orderDetail.transitionFailed);
-      return;
-    }
+     if (!result.ok) {
+       pushToast(result.error || ADMIN_DICTIONARY.messages.orderDetail.transitionFailed);
+       return;
+     }
     setReasonCode('other');
     setReasonNote('');
     setPendingTransition(null);
@@ -123,7 +121,7 @@ const AdminOrderDetail = () => {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    pushToast(ADMIN_TOAST_MESSAGES.orderDetail.auditExported(order.code));
+    pushToast(ADMIN_DICTIONARY.messages.orderDetail.auditExported(order.code));
   };
 
   const nextPaymentStatusPreview = useMemo(() => {
@@ -197,7 +195,7 @@ const AdminOrderDetail = () => {
                 <span className="od-label">Mã vận đơn</span>
                 <div className="tracking-value">
                   <strong>{order.tracking}</strong>
-                  <button className="admin-icon-btn subtle" aria-label={ADMIN_ACTION_TITLES.copyTracking} onClick={() => navigator.clipboard?.writeText(order.tracking)}>
+                   <button className="admin-icon-btn subtle" aria-label={ADMIN_DICTIONARY.actionTitles.copyTracking} onClick={() => navigator.clipboard?.writeText(order.tracking)}>
                     <Copy size={14} />
                   </button>
                 </div>

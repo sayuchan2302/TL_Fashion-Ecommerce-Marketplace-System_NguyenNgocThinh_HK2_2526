@@ -1,9 +1,9 @@
 import './Admin.css';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Search, Bell, Settings, ChevronRight, LogOut, Home, User } from 'lucide-react';
+import { LayoutGrid, Search, Bell, Settings, ChevronRight, LogOut, Home } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { ADMIN_TEXT } from './adminText';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 import { authService } from '../../services/authService';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -15,15 +15,16 @@ interface AdminLayoutProps {
 }
 
 const navItems = [
-  { label: ADMIN_TEXT.layout.nav.dashboard, to: '/admin' },
-  { label: ADMIN_TEXT.layout.nav.orders, to: '/admin/orders' },
-  { label: ADMIN_TEXT.layout.nav.products, to: '/admin/products' },
-  { label: ADMIN_TEXT.layout.nav.categories, to: '/admin/categories' },
-  { label: ADMIN_TEXT.layout.nav.customers, to: '/admin/customers' },
-  { label: ADMIN_TEXT.layout.nav.promotions, to: '/admin/promotions' },
-  { label: ADMIN_TEXT.reviews.title, to: '/admin/reviews' },
-  { label: ADMIN_TEXT.layout.nav.content, to: '/admin/content' },
-  { label: ADMIN_TEXT.layout.nav.settings, to: '/admin/settings' },
+  { label: ADMIN_DICTIONARY.layout.nav.dashboard, to: '/admin' },
+  { label: ADMIN_DICTIONARY.layout.nav.orders, to: '/admin/orders' },
+  { label: 'Yêu cầu đổi trả', to: '/admin/returns' },
+  { label: ADMIN_DICTIONARY.layout.nav.products, to: '/admin/products' },
+  { label: ADMIN_DICTIONARY.layout.nav.categories, to: '/admin/categories' },
+  { label: ADMIN_DICTIONARY.layout.nav.customers, to: '/admin/customers' },
+  { label: ADMIN_DICTIONARY.layout.nav.promotions, to: '/admin/promotions' },
+  { label: ADMIN_DICTIONARY.reviews.title, to: '/admin/reviews' },
+  { label: ADMIN_DICTIONARY.layout.nav.content, to: '/admin/content' },
+  { label: ADMIN_DICTIONARY.layout.nav.settings, to: '/admin/settings' },
 ];
 
 const AdminLayout = ({ title, actions, children, hideTopbarTitle = false }: AdminLayoutProps) => {
@@ -31,7 +32,7 @@ const AdminLayout = ({ title, actions, children, hideTopbarTitle = false }: Admi
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const t = ADMIN_TEXT.layout;
+  const t = ADMIN_DICTIONARY.layout;
 
   const adminSession = authService.getAdminSession();
   const adminUser = adminSession?.user;
@@ -55,7 +56,7 @@ const AdminLayout = ({ title, actions, children, hideTopbarTitle = false }: Admi
     if (path.startsWith('/admin/categories')) return [t.nav.categories, t.breadcrumbs.categoryList];
     if (path.startsWith('/admin/customers') || path.startsWith('/admin/customer')) return [t.nav.customers, t.breadcrumbs.customerList];
     if (path.startsWith('/admin/promotions')) return [t.nav.promotions, t.breadcrumbs.promoList];
-    if (path.startsWith('/admin/reviews')) return [ADMIN_TEXT.reviews.title, t.breadcrumbs.reviewList];
+    if (path.startsWith('/admin/reviews')) return [ADMIN_DICTIONARY.reviews.title, t.breadcrumbs.reviewList];
     return [t.nav.dashboard];
   };
 
@@ -137,10 +138,6 @@ const AdminLayout = ({ title, actions, children, hideTopbarTitle = false }: Admi
                   <Home size={16} />
                   Quay về trang chủ
                 </button>
-                <button className="admin-dropdown-item" onClick={() => { setIsDropdownOpen(false); navigate('/admin'); }}>
-                  <User size={16} />
-                  Tài khoản của tôi
-                </button>
                 <div className="admin-dropdown-divider"></div>
                 <button className="admin-dropdown-item logout" onClick={handleLogout}>
                   <LogOut size={16} />
@@ -151,11 +148,13 @@ const AdminLayout = ({ title, actions, children, hideTopbarTitle = false }: Admi
           </div>
         </header>
 
-        <div className="admin-topbar actions-row">
-          {!hideTopbarTitle ? <h1>{title}</h1> : <div className="admin-topbar-title-spacer" />}
-          <div className="admin-topbar-actions">{actions}</div>
+        <div className="admin-content-inner">
+          <div className="admin-topbar actions-row">
+            {!hideTopbarTitle ? <h1>{title}</h1> : <div className="admin-topbar-title-spacer" />}
+            <div className="admin-topbar-actions">{actions}</div>
+          </div>
+          {children}
         </div>
-        {children}
       </main>
     </div>
   );

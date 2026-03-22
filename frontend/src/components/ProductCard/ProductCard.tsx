@@ -9,6 +9,7 @@ import './ProductCard.css';
 
 interface ProductCardProps {
   id: number;
+  sku?: string;
   name: string;
   price: number;
   originalPrice?: number;
@@ -16,11 +17,13 @@ interface ProductCardProps {
   badge?: string;
   colors?: string[];
   sizes?: string[];
+  statusType?: string;
+  stock?: number;
 }
 
 const DEFAULT_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 
-const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, sizes }: ProductCardProps) => {
+const ProductCard = ({ id, sku, name, price, originalPrice, image, badge, colors, sizes, statusType, stock }: ProductCardProps) => {
   const discount = originalPrice ? Math.round((1 - price / originalPrice) * 100) : 0;
   const { addToCart } = useCart();
   const { triggerAnimation } = useCartAnimation();
@@ -30,7 +33,7 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  const isWished = isInWishlist(String(id));
+  const isWished = isInWishlist(String(sku || id));
 
   const availableSizes = sizes ?? DEFAULT_SIZES;
   const selectedColorValue = colors?.[selectedColorIdx] ?? '';
@@ -40,7 +43,7 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
     e.stopPropagation();
 
     addToCart({
-      id,
+      id: sku || id,
       name,
       price,
       originalPrice,
@@ -69,7 +72,7 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
     e.preventDefault();
     e.stopPropagation();
     if (isWished) {
-      removeFromWishlist(String(id));
+      removeFromWishlist(String(sku || id));
     } else {
       triggerAnimation({
         imgSrc: image,
@@ -78,7 +81,7 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
         target: 'wishlist',
       });
       addToWishlist({
-        id: String(id),
+        id: String(sku || id),
         name,
         price,
         originalPrice,
@@ -106,7 +109,7 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
           <Heart size={20} fill={isWished ? "currentColor" : "none"} strokeWidth={isWished ? 1 : 1.5} />
         </button>
 
-        <Link to={`/product/${id}`}>
+        <Link to={`/product/${sku || id}`}>
           <img
             ref={imageRef}
             src={image}
@@ -170,7 +173,7 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
             ))}
           </div>
         )}
-        <Link to={`/product/${id}`} className="product-name-link">
+         <Link to={`/product/${sku || id}`} className="product-name-link">
           <h3 className="product-name">{name}</h3>
         </Link>
         <div className="product-prices">
@@ -181,7 +184,7 @@ const ProductCard = ({ id, name, price, originalPrice, image, badge, colors, siz
 
       {/* Quick View Modal */}
       <QuickViewModal
-        product={{ id, name, price, originalPrice, image, colors, sizes }}
+        product={{ id: sku || id, name, price, originalPrice, image, colors, sizes }}
         isOpen={isQuickViewOpen}
         onClose={() => setIsQuickViewOpen(false)}
       />

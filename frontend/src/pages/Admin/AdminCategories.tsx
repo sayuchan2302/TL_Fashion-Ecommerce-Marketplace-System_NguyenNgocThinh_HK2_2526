@@ -9,9 +9,7 @@ import { useAdminListState } from './useAdminListState';
 import { ADMIN_VIEW_KEYS } from './adminListView';
 import { useAdminViewState } from './useAdminViewState';
 import { useAdminToast } from './useAdminToast';
-import { ADMIN_ACTION_TITLES, ADMIN_COMMON_LABELS } from './adminUiLabels';
-import { ADMIN_TOAST_MESSAGES } from './adminMessages';
-import { ADMIN_TEXT } from './adminText';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 
 interface Category {
   id: string;
@@ -53,8 +51,8 @@ const initialCategories: Category[] = [
 const validCategoryFilters = new Set(['all', 'visible', 'hidden', 'menu']);
 
 const AdminCategories = () => {
-  const t = ADMIN_TEXT.categories;
-  const c = ADMIN_TEXT.common;
+  const t = ADMIN_DICTIONARY.categories;
+  const c = ADMIN_DICTIONARY.common;
   const view = useAdminViewState({
     storageKey: ADMIN_VIEW_KEYS.categories,
     path: '/admin/categories',
@@ -147,9 +145,9 @@ const AdminCategories = () => {
   const shareCurrentView = async () => {
     try {
       await view.shareCurrentView();
-      pushToast(ADMIN_TOAST_MESSAGES.viewCopied);
+       pushToast(ADMIN_DICTIONARY.actions.shareView);
     } catch {
-      pushToast(ADMIN_TOAST_MESSAGES.copyFailed);
+       pushToast(ADMIN_DICTIONARY.messages.copyFailed);
     }
   };
 
@@ -157,7 +155,7 @@ const AdminCategories = () => {
     setSelected(new Set());
     setDeleteConfirm(null);
     view.resetCurrentView();
-    pushToast(ADMIN_TOAST_MESSAGES.categories.resetView);
+     pushToast(ADMIN_DICTIONARY.messages.categories.resetView);
   };
 
   const activeFilterLabel = activeFilter === 'all' ? t.tabs.all : activeFilter === 'visible' ? t.tabs.visible : activeFilter === 'hidden' ? t.tabs.hidden : t.tabs.menu;
@@ -190,7 +188,7 @@ const AdminCategories = () => {
         if (successMessage) pushToast(successMessage);
       } catch {
         setCategories(snapshot);
-        pushToast(failMessage || ADMIN_TOAST_MESSAGES.categories.syncRollback);
+         pushToast(failMessage || ADMIN_DICTIONARY.messages.categories.syncRollback);
       }
     },
     [categories],
@@ -292,7 +290,7 @@ const AdminCategories = () => {
     const deletable = selectedCategories.filter((item) => !getCategoryDeleteBlockReason(item));
     const blocked = selectedCategories.filter((item) => Boolean(getCategoryDeleteBlockReason(item)));
     if (deletable.length === 0) {
-      pushToast(ADMIN_TOAST_MESSAGES.categories.noDeletable);
+       pushToast(ADMIN_DICTIONARY.messages.categories.noDeletable);
       return;
     }
     setDeleteConfirm({
@@ -315,7 +313,7 @@ const AdminCategories = () => {
     setSelected(new Set());
     setUndoPayload({ items: deletedItems, message: deleteConfirm.undoMessage });
     if ((deleteConfirm.blockedCount || 0) > 0) {
-      pushToast(ADMIN_TOAST_MESSAGES.categories.skippedBlocked(deleteConfirm.blockedCount || 0));
+       pushToast(ADMIN_DICTIONARY.messages.categories.skippedBlocked(deleteConfirm.blockedCount || 0));
     }
     setDeleteConfirm(null);
   };
@@ -386,8 +384,8 @@ const AdminCategories = () => {
             <Search size={16} />
             <input placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} value={search} onChange={e => handleSearchChange(e.target.value)} />
           </div>
-          <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_COMMON_LABELS.shareView}</button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_COMMON_LABELS.resetView}</button>
+           <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_DICTIONARY.actions.shareView}</button>
+           <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_DICTIONARY.actions.resetView}</button>
           <button className="admin-primary-btn" onClick={openNewCategory}><Plus size={14} /> {t.addCategory}</button>
         </>
       )}
@@ -455,7 +453,7 @@ const AdminCategories = () => {
               type={search.trim() ? 'search-empty' : 'empty'}
               title={search.trim() ? t.empty.searchTitle : t.empty.defaultTitle}
                 description={search.trim() ? t.empty.searchDescription : t.empty.defaultDescription}
-                actionLabel={ADMIN_COMMON_LABELS.resetFilters}
+                actionLabel={ADMIN_DICTIONARY.actions.resetFilters}
                 onAction={resetCurrentView}
               />
           ) : (
@@ -520,7 +518,7 @@ const AdminCategories = () => {
                 </div>
                 <div role="cell"><span className={`admin-pill ${cat.status === 'visible' ? 'success' : 'neutral'}`}>{cat.status === 'visible' ? 'Đang hiện' : 'Ẩn'}</span></div>
                 <div role="cell" className="admin-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="admin-icon-btn subtle" title={ADMIN_ACTION_TITLES.edit} aria-label={ADMIN_ACTION_TITLES.edit} onClick={() => openEditCategory(cat.id)}><Pencil size={16} /></button>
+                   <button className="admin-icon-btn subtle" title={ADMIN_DICTIONARY.actionTitles.edit} aria-label={ADMIN_DICTIONARY.actionTitles.edit} onClick={() => openEditCategory(cat.id)}><Pencil size={16} /></button>
                   <button
                     className="admin-icon-btn subtle"
                     title={cat.status === 'visible' ? 'Ẩn danh mục' : 'Hiện danh mục'}
@@ -536,11 +534,11 @@ const AdminCategories = () => {
                       );
                     }}
                   ><Layers size={16} /></button>
-                  <button
-                    className="admin-icon-btn subtle danger-icon"
-                    title={ADMIN_ACTION_TITLES.delete}
-                    aria-label={ADMIN_ACTION_TITLES.delete}
-                    onClick={() => {
+                   <button
+                     className="admin-icon-btn subtle danger-icon"
+                     title={ADMIN_DICTIONARY.actionTitles.delete}
+                     aria-label={ADMIN_DICTIONARY.actionTitles.delete}
+                     onClick={() => {
                       const blockReason = getCategoryDeleteBlockReason(cat);
                       if (blockReason) {
                         pushToast(blockReason);
@@ -591,7 +589,7 @@ const AdminCategories = () => {
             <span>{undoPayload.message}</span>
             <div className="admin-actions">
               <button className="admin-ghost-btn" onClick={restoreDeleted}>Hoàn tác</button>
-              <button className="admin-icon-btn subtle" onClick={() => setUndoPayload(null)} aria-label={`${ADMIN_ACTION_TITLES.close} thông báo`}><X size={14} /></button>
+               <button className="admin-icon-btn subtle" onClick={() => setUndoPayload(null)} aria-label={`${ADMIN_DICTIONARY.actionTitles.close} thông báo`}><X size={14} /></button>
             </div>
           </motion.div>
         )}
@@ -638,7 +636,7 @@ const AdminCategories = () => {
                 <p className="drawer-eyebrow">{categoryForm.id ? 'Chỉnh sửa' : 'Thêm'} danh mục</p>
                 <h3>{categoryForm.name || 'Danh mục mới'}</h3>
               </div>
-              <button className="admin-icon-btn" onClick={() => setShowCategoryDrawer(false)} aria-label={ADMIN_ACTION_TITLES.close}><X size={16} /></button>
+               <button className="admin-icon-btn" onClick={() => setShowCategoryDrawer(false)} aria-label={ADMIN_DICTIONARY.actionTitles.close}><X size={16} /></button>
             </div>
 
             <div className="drawer-body">

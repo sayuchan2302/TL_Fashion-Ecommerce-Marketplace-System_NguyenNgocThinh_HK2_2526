@@ -1,126 +1,90 @@
-import type { Order } from '../types';
+/**
+ * orderService.ts — Client-facing order operations.
+ * Now reads/writes through sharedOrderStore (unified with AdminOrders).
+ */
+import { sharedOrderStore, fulfillmentToClientStatus, clientStatusToFulfillment, type SharedOrder, type ClientOrderStatus } from './sharedOrderStore';
+import type { Order, OrderStatus, OrderItem, OrderStatusStep } from '../types';
 
-const KEY = 'coolmate_orders_v1';
-
-const seedOrders: Order[] = [
-  {
-    id: 'DH123456',
-    createdAt: '2026-03-10T10:30:00Z',
-    status: 'shipping',
-    total: 958000,
-    paymentMethod: 'VNPAY',
-    addressSummary: 'Anh Thịnh, 0382253049, Hùng Sơn, Đại Từ, Thái Nguyên',
-    items: [
-      {
-        id: '101',
-        name: 'Áo Polo Nam Cotton Khử Mùi',
-        price: 359000,
-        originalPrice: 450000,
-        image: 'https://media.coolmate.me/cdn-cgi/image/width=320,height=470,quality=85/uploads/February2025/11025595_24_copy_11.jpg',
-        quantity: 1,
-        color: 'Đen',
-        size: 'L',
-      },
-      {
-        id: '105',
-        name: 'Quần Shorts Nam Thể Thao Co Giãn',
-        price: 249000,
-        originalPrice: 299000,
-        image: 'https://media.coolmate.me/cdn-cgi/image/width=320,height=470,quality=85/uploads/November2024/24CMCW.AT012.2_72.jpg',
-        quantity: 2,
-        color: 'Đen',
-        size: 'M',
-      },
-    ],
-    statusSteps: [
-      { label: 'Tiếp nhận', timestamp: '2026-03-10 10:35', description: 'Đơn hàng đã được tiếp nhận' },
-      { label: 'Đang chuẩn bị hàng', timestamp: '2026-03-10 16:00', description: 'Kho đang đóng gói' },
-      { label: 'Đang giao', timestamp: '2026-03-11 08:20', description: 'Đã bàn giao cho đơn vị vận chuyển' },
-    ],
-  },
-  {
-    id: 'DH123455',
-    createdAt: '2026-02-28T09:10:00Z',
-    status: 'delivered',
-    total: 399000,
-    paymentMethod: 'COD',
-    addressSummary: 'Anh Thịnh, 0382253049, Hùng Sơn, Đại Từ, Thái Nguyên',
-    items: [
-      {
-        id: '208',
-        name: 'Áo Dây Cami Lụa Mát Mẻ',
-        price: 159000,
-        image: 'https://media.coolmate.me/cdn-cgi/image/width=320,height=470,quality=85/uploads/November2024/24CMCW.AT005.5_88.jpg',
-        quantity: 1,
-        color: 'Trắng',
-        size: 'S',
-      },
-      {
-        id: '201',
-        name: 'Váy Liền Nữ Cổ Khuy Thanh Lịch',
-        price: 240000,
-        originalPrice: 499000,
-        image: 'https://media.coolmate.me/cdn-cgi/image/width=320,height=470,quality=85/uploads/November2024/24CMCW.DK001.2_77.jpg',
-        quantity: 1,
-        color: 'Đen',
-        size: 'M',
-      },
-    ],
-    statusSteps: [
-      { label: 'Tiếp nhận', timestamp: '2026-02-28 09:12' },
-      { label: 'Đang chuẩn bị hàng', timestamp: '2026-02-28 12:00' },
-      { label: 'Đang giao', timestamp: '2026-03-01 08:00' },
-      { label: 'Giao thành công', timestamp: '2026-03-02 11:25' },
-    ],
-  },
-];
-
-const load = (): Order[] => {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return seedOrders;
-    const data: Order[] = JSON.parse(raw);
-    return data.length ? data : seedOrders;
-  } catch {
-    return seedOrders;
-  }
-};
-
-const save = (orders: Order[]) => {
-  localStorage.setItem(KEY, JSON.stringify(orders));
-};
+// ── Adapters ─────────────────────────────────────────────────────────────
+const toClientOrder = (o: SharedOrder): Order => ({
+  id: o.id,
+  createdAt: o.createdAt,
+  status: fulfillmentToClientStatus(o.fulfillment, o.paymentStatus) as OrderStatus,
+  total: o.total,
+  items: o.items.map((item): OrderItem => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    originalPrice: item.originalPrice,
+    image: item.image,
+    quantity: item.quantity,
+    color: item.color,
+    size: item.size,
+  })),
+  addressSummary: `${o.customerName}, ${o.customerPhone}, ${o.address}`,
+  paymentMethod: o.paymentMethod,
+  statusSteps: o.timeline.map((t): OrderStatusStep => ({
+    label: t.text,
+    timestamp: t.time,
+  })),
+  cancelReason: o.cancelReason,
+  cancelledAt: o.cancelledAt,
+});
 
 export const orderService = {
   list(): Order[] {
-    return load().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return sharedOrderStore.getAll().map(toClientOrder);
   },
 
   getById(id: string): Order | null {
-    return load().find(o => o.id === id) || null;
+    const order = sharedOrderStore.getById(id);
+    return order ? toClientOrder(order) : null;
   },
 
   add(order: Order) {
-    const data = load();
-    data.push(order);
-    save(data);
+    const now = new Date().toISOString();
+    const shared: SharedOrder = {
+      id: order.id,
+      createdAt: order.createdAt || now,
+      customerName: order.addressSummary.split(',')[0]?.trim() || 'Khách hàng',
+      customerEmail: '',
+      customerPhone: order.addressSummary.split(',')[1]?.trim() || '',
+      customerAvatar: `https://ui-avatars.com/api/?name=KH&background=3B82F6&color=fff`,
+      address: order.addressSummary.split(',').slice(2).join(',').trim() || order.addressSummary,
+      shipMethod: 'GHN - Giao tiêu chuẩn',
+      tracking: '',
+      note: '',
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentMethod === 'COD' ? 'cod_uncollected' : 'paid',
+      fulfillment: clientStatusToFulfillment(order.status as ClientOrderStatus),
+      items: order.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        originalPrice: item.originalPrice,
+        image: item.image,
+        quantity: item.quantity,
+        color: item.color,
+        size: item.size,
+      })),
+      subtotal: order.items.reduce((s, i) => s + i.price * i.quantity, 0),
+      shippingFee: 0,
+      discount: 0,
+      total: order.total,
+      timeline: [
+        { time: new Date().toLocaleString('vi-VN'), text: 'Đặt hàng thành công.', tone: 'success' },
+      ],
+    };
+    sharedOrderStore.add(shared);
   },
 
   cancel(id: string, reason: string): boolean {
-    const data = load();
-    const order = data.find(o => o.id === id);
-    if (!order) return false;
-    if (order.status !== 'pending' && order.status !== 'processing') {
-      return false;
-    }
-    order.status = 'cancelled';
-    order.cancelReason = reason;
-    order.cancelledAt = new Date().toISOString();
-    save(data);
-    return true;
+    return sharedOrderStore.cancel(id, reason);
   },
 
   canCancel(order: Order): boolean {
-    return order.status === 'pending' || order.status === 'processing';
+    const shared = sharedOrderStore.getById(order.id);
+    if (!shared) return false;
+    return sharedOrderStore.canCancel(shared);
   },
-
 };

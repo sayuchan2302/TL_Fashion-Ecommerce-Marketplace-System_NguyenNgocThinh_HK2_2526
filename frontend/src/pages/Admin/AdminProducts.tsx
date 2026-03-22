@@ -22,10 +22,8 @@ import {
   updateProductPrice,
   type AdminProductRecord,
 } from './adminProductService';
-import { ADMIN_ACTION_TITLES, ADMIN_COMMON_LABELS } from './adminUiLabels';
 import { productStatusTone } from './adminStatusMaps';
-import { ADMIN_TOAST_MESSAGES } from './adminMessages';
-import { ADMIN_TEXT } from './adminText';
+import { ADMIN_DICTIONARY } from './adminDictionary';
 
 const MANAGED_PRODUCT_SKU = 'POLO-001';
 
@@ -37,18 +35,18 @@ interface PendingStockAdjustment {
 }
 
 const tabs = [
-  { key: 'all', label: ADMIN_TEXT.products.tabs.all },
-  { key: 'stock-alert', label: ADMIN_TEXT.products.tabs.stockAlert },
-  { key: 'active', label: ADMIN_TEXT.products.tabs.active },
-  { key: 'low', label: ADMIN_TEXT.products.tabs.low },
-  { key: 'out', label: ADMIN_TEXT.products.tabs.out },
+  { key: 'all', label: ADMIN_DICTIONARY.products.tabs.all },
+  { key: 'stock-alert', label: ADMIN_DICTIONARY.products.tabs.stockAlert },
+  { key: 'active', label: ADMIN_DICTIONARY.products.tabs.active },
+  { key: 'low', label: ADMIN_DICTIONARY.products.tabs.low },
+  { key: 'out', label: ADMIN_DICTIONARY.products.tabs.out },
 ];
 
 const validProductTabs = new Set(tabs.map((tab) => tab.key));
 
 const AdminProducts = () => {
-  const t = ADMIN_TEXT.products;
-  const c = ADMIN_TEXT.common;
+  const t = ADMIN_DICTIONARY.products;
+  const c = ADMIN_DICTIONARY.common;
   const view = useAdminViewState({
     storageKey: ADMIN_VIEW_KEYS.products,
     path: '/admin/products',
@@ -139,16 +137,16 @@ const AdminProducts = () => {
   const shareCurrentView = async () => {
     try {
       await view.shareCurrentView();
-      pushToast(ADMIN_TOAST_MESSAGES.viewCopied);
+       pushToast(ADMIN_DICTIONARY.actions.shareView);
     } catch {
-      pushToast(ADMIN_TOAST_MESSAGES.copyFailed);
+       pushToast(ADMIN_DICTIONARY.messages.copyFailed);
     }
   };
 
   const resetCurrentView = () => {
     setSelected(new Set());
     view.resetCurrentView();
-    pushToast(ADMIN_TOAST_MESSAGES.products.resetView);
+     pushToast(ADMIN_DICTIONARY.messages.products.resetView);
   };
 
   const activeTabLabel = tabs.find((tab) => tab.key === activeTab)?.label || t.tabs.all;
@@ -201,7 +199,7 @@ const AdminProducts = () => {
     if (!result.ok) {
       pushToast(result.error);
     } else {
-      pushToast(ADMIN_TOAST_MESSAGES.products.priceUpdated(editingPrice.sku));
+       pushToast(ADMIN_DICTIONARY.messages.products.priceUpdated(editingPrice.sku));
     }
     setEditingPrice(null);
   };
@@ -211,7 +209,7 @@ const AdminProducts = () => {
     const value = parseInt(editingStock.value.replace(/\D/g, ''), 10) || 0;
     const current = rows.find((item) => item.sku === editingStock.sku);
     if (!current) {
-      pushToast(ADMIN_TOAST_MESSAGES.products.stockTargetMissing);
+      pushToast(ADMIN_DICTIONARY.messages.products.stockTargetMissing);
       setEditingStock(null);
       return;
     }
@@ -244,7 +242,7 @@ const AdminProducts = () => {
       return;
     }
     pushToast(
-      ADMIN_TOAST_MESSAGES.products.stockAdjusted(
+      ADMIN_DICTIONARY.messages.products.stockAdjusted(
         pendingStockAdjustment.sku,
         pendingStockAdjustment.before,
         pendingStockAdjustment.after,
@@ -268,7 +266,7 @@ const AdminProducts = () => {
   const closeDrawer = () => setShowDrawer(false);
 
   const handleSaveDrawer = () => {
-    pushToast(ADMIN_TOAST_MESSAGES.products.saved, 2000);
+    pushToast(ADMIN_DICTIONARY.messages.products.saved, 2000);
     setShowDrawer(false);
   };
 
@@ -287,7 +285,7 @@ const AdminProducts = () => {
     }
     setVariantRows(matrix);
     setInventoryLogs(getProductInventoryLedger(MANAGED_PRODUCT_SKU, 6));
-    pushToast(ADMIN_TOAST_MESSAGES.products.variantsSynced, 2000);
+    pushToast(ADMIN_DICTIONARY.messages.products.variantsSynced, 2000);
   };
 
   return (
@@ -299,9 +297,9 @@ const AdminProducts = () => {
             <Search size={16} />
             <input placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder} value={search} onChange={e => handleSearchChange(e.target.value)} />
           </div>
-          <button className="admin-ghost-btn" onClick={() => pushToast(ADMIN_TOAST_MESSAGES.advancedFilterComingSoon)}><Filter size={16} /> {c.filter}</button>
-          <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_COMMON_LABELS.shareView}</button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_COMMON_LABELS.resetView}</button>
+          <button className="admin-ghost-btn" onClick={() => pushToast(ADMIN_DICTIONARY.messages.advancedFilterComingSoon)}><Filter size={16} /> {c.filter}</button>
+          <button className="admin-ghost-btn" onClick={shareCurrentView}><Link2 size={16} /> {ADMIN_DICTIONARY.actions.shareView}</button>
+          <button className="admin-ghost-btn" onClick={resetCurrentView}>{ADMIN_DICTIONARY.actions.resetView}</button>
           <button type="button" className="admin-primary-btn" onClick={handleAddProduct}><Plus size={16} /> {t.addProduct}</button>
         </>
       )}
@@ -363,7 +361,7 @@ const AdminProducts = () => {
               type={search.trim() ? 'search-empty' : 'empty'}
               title={search.trim() ? t.empty.searchTitle : t.empty.defaultTitle}
               description={search.trim() ? t.empty.searchDescription : t.empty.defaultDescription}
-              actionLabel={ADMIN_COMMON_LABELS.resetFilters}
+              actionLabel={ADMIN_DICTIONARY.actions.resetFilters}
               onAction={resetCurrentView}
             />
           ) : (
@@ -442,9 +440,9 @@ const AdminProducts = () => {
                 </div>
                 <div role="cell"><span className={`admin-pill ${productStatusTone(p.statusType)}`}>{p.status}</span></div>
                 <div role="cell" className="admin-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="admin-icon-btn subtle" title={ADMIN_ACTION_TITLES.edit} aria-label={ADMIN_ACTION_TITLES.edit} onClick={() => openDrawer(p)}><Pencil size={16} /></button>
-                  <button className="admin-icon-btn subtle" title={ADMIN_ACTION_TITLES.manageVariants} aria-label={ADMIN_ACTION_TITLES.manageVariants} onClick={openVariants}><Layers size={16} /></button>
-                  <button className="admin-icon-btn subtle danger-icon" title={ADMIN_ACTION_TITLES.delete} aria-label={ADMIN_ACTION_TITLES.delete}><Trash2 size={16} /></button>
+                  <button className="admin-icon-btn subtle" title={ADMIN_DICTIONARY.actionTitles.edit} aria-label={ADMIN_DICTIONARY.actionTitles.edit} onClick={() => openDrawer(p)}><Pencil size={16} /></button>
+                  <button className="admin-icon-btn subtle" title={ADMIN_DICTIONARY.actionTitles.manageVariants} aria-label={ADMIN_DICTIONARY.actionTitles.manageVariants} onClick={openVariants}><Layers size={16} /></button>
+                  <button className="admin-icon-btn subtle danger-icon" title={ADMIN_DICTIONARY.actionTitles.delete} aria-label={ADMIN_DICTIONARY.actionTitles.delete}><Trash2 size={16} /></button>
                 </div>
               </motion.div>
             ))}
@@ -515,7 +513,7 @@ const AdminProducts = () => {
                 <p className="drawer-eyebrow">Chỉnh sửa sản phẩm</p>
                 <h3>#POLO-001</h3>
               </div>
-              <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_ACTION_TITLES.close}><X size={16} /></button>
+               <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_DICTIONARY.actionTitles.close}><X size={16} /></button>
             </div>
 
             <div className="drawer-body">

@@ -1,4 +1,5 @@
-import { AlertCircle, Inbox, RefreshCw, SearchX } from 'lucide-react';
+import { AlertCircle, Inbox, RefreshCw, SearchX, Check } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type StateType = 'empty' | 'search-empty' | 'error';
 
@@ -46,3 +47,21 @@ export const AdminTableSkeleton = ({ columns, rows = 6 }: AdminTableSkeletonProp
     </div>
   );
 };
+
+export const AdminToast = ({ toast }: { toast: string }) => (
+  <AnimatePresence>
+    {toast && (
+      <motion.div
+        className="admin-toast-fixed success"
+        initial={{ opacity: 0, y: 20, x: '-50%' }}
+        animate={{ opacity: 1, y: 0, x: '-50%' }}
+        exit={{ opacity: 0, y: 20, x: '-50%' }}
+        role="alert"
+      >
+        <Check size={16} />
+        <span>{toast}</span>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
