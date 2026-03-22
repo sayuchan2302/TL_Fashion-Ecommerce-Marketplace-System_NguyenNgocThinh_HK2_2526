@@ -236,3 +236,24 @@
     justify-content: center;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .success-check-circle {
+    animation: none;
+    transform: scale(1);
+  }
+  
+  .os-title,
+  .os-subtitle,
+  .os-order-info,
+  .os-actions,
+  .os-cross-sell {
+    animation: none;
+    opacity: 1;
+  }
+  
+  @keyframes fadeSlideUp {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

@@ -510,7 +510,7 @@ const AdminProducts = () => {
           <div className="drawer">
             <div className="drawer-header">
               <div>
-                <p className="drawer-eyebrow">Chỉnh sửa sản phẩm</p>
+                <p className="drawer-eyebrow">{t.drawer.title}</p>
                 <h3>#POLO-001</h3>
               </div>
                <button className="admin-icon-btn" onClick={closeDrawer} aria-label={ADMIN_DICTIONARY.actionTitles.close}><X size={16} /></button>
@@ -518,28 +518,28 @@ const AdminProducts = () => {
 
             <div className="drawer-body">
               <section className="drawer-section">
-                <h4>Hình ảnh</h4>
+                <h4>{t.drawer.images}</h4>
                 <div className="media-grid">
-                  <div className="media-cover">Ảnh đại diện</div>
-                  <div className="media-thumb">Ảnh phụ</div>
-                  <div className="media-thumb">Ảnh phụ</div>
-                  <button className="media-add">+ Thêm ảnh</button>
+                  <div className="media-cover">{t.drawer.coverImage}</div>
+                  <div className="media-thumb">{t.drawer.thumbnail}</div>
+                  <div className="media-thumb">{t.drawer.thumbnail}</div>
+                  <button className="media-add">+ {t.drawer.addImage}</button>
                 </div>
               </section>
 
               <section className="drawer-section">
-                <h4>Thông tin chung</h4>
+                <h4>{t.drawer.generalInfo}</h4>
                 <div className="form-grid">
                   <label className="form-field">
-                    <span>Tên sản phẩm</span>
+                    <span>{t.drawer.name}</span>
                     <input type="text" defaultValue="Áo Polo Cotton Khử Mùi" />
                   </label>
                   <label className="form-field">
-                    <span>SKU</span>
+                    <span>{t.drawer.sku}</span>
                     <input type="text" defaultValue="POLO-001" />
                   </label>
                   <label className="form-field">
-                    <span>Danh mục</span>
+                    <span>{t.drawer.category}</span>
                     <select defaultValue="polo">
                       <option value="polo">Áo Polo</option>
                       <option value="jeans">Quần Jeans</option>
@@ -548,16 +548,16 @@ const AdminProducts = () => {
                   </label>
                 </div>
                 <label className="form-field">
-                  <span>Mô tả sản phẩm</span>
-                  <textarea rows={4} defaultValue="Mô tả ngắn gọn về chất liệu, form và công năng..." />
+                  <span>{t.drawer.description}</span>
+                  <textarea rows={4} defaultValue={t.drawer.descriptionPlaceholder} />
                 </label>
               </section>
 
               <section className="drawer-section two-col">
                 <div>
-                  <h4>Giá & Khuyến mãi</h4>
+                  <h4>{t.drawer.pricingInventory}</h4>
                   <label className="form-field">
-                    <span>Giá bán</span>
+                    <span>{t.drawer.price}</span>
                     <input
                       type="text"
                       value={price}
@@ -566,7 +566,7 @@ const AdminProducts = () => {
                     />
                   </label>
                   <label className="form-field">
-                    <span>Giá khuyến mãi</span>
+                    <span>{t.drawer.salePrice}</span>
                     <input
                       type="text"
                       value={salePrice}
@@ -576,9 +576,9 @@ const AdminProducts = () => {
                   </label>
                 </div>
                 <div>
-                  <h4>Tồn kho</h4>
+                  <h4>{t.drawer.inventory}</h4>
                   <label className="form-field">
-                    <span>Số lượng</span>
+                    <span>{t.drawer.quantity}</span>
                     <input
                       type="text"
                       value={hasVariants ? formatCurrency(variantStockTotal.toString()) : stock}
@@ -587,15 +587,15 @@ const AdminProducts = () => {
                       disabled={hasVariants}
                       className={hasVariants ? 'disabled-input' : ''}
                     />
-                    {hasVariants && <span className="admin-muted small">Tự động tính từ biến thể</span>}
+                    {hasVariants && <span className="admin-muted small">{t.drawer.autoCalculated}</span>}
                   </label>
                 </div>
               </section>
 
               <section className="drawer-section">
-                <h4>Nhật ký tồn kho gần nhất</h4>
+                <h4>{t.drawer.inventoryLog}</h4>
                 {inventoryLogs.length === 0 ? (
-                  <p className="admin-muted small">Chưa có biến động tồn kho.</p>
+                  <p className="admin-muted small">{t.drawer.noInventoryChanges}</p>
                 ) : (
                   <ul className="inventory-log-list">
                     {inventoryLogs.map((entry) => (
@@ -612,10 +612,10 @@ const AdminProducts = () => {
               </section>
 
               <section className="drawer-section">
-                <h4>Thuộc tính</h4>
+                <h4>{t.drawer.attributes}</h4>
                 <div className="form-grid">
                   <label className="form-field">
-                    <span>Chất liệu</span>
+                    <span>{t.drawer.material}</span>
                     <select defaultValue="cotton">
                       <option value="cotton">Cotton</option>
                       <option value="poly">Polyester</option>
@@ -623,7 +623,7 @@ const AdminProducts = () => {
                     </select>
                   </label>
                   <label className="form-field">
-                    <span>Form dáng</span>
+                    <span>{t.drawer.fit}</span>
                     <select defaultValue="regular">
                       <option value="regular">Regular</option>
                       <option value="slim">Slim</option>
@@ -631,7 +631,7 @@ const AdminProducts = () => {
                     </select>
                   </label>
                   <label className="form-field">
-                    <span>Giới tính</span>
+                    <span>{t.drawer.gender}</span>
                     <select defaultValue="unisex">
                       <option value="male">Nam</option>
                       <option value="female">Nữ</option>
@@ -642,14 +642,14 @@ const AdminProducts = () => {
               </section>
 
               <section className="drawer-section">
-                <h4>Tối ưu SEO</h4>
+                <h4>{t.drawer.seo}</h4>
                 <div className="form-grid">
                   <label className="form-field">
-                    <span>URL Slug</span>
+                    <span>{t.drawer.slug}</span>
                     <input value={slug} onChange={e => handleSlugChange(e.target.value)} />
                   </label>
                   <label className="form-field">
-                    <span>Meta Title</span>
+                    <span>{t.drawer.metaTitle}</span>
                     <input value={metaTitle} onChange={e => setMetaTitle(e.target.value)} />
                   </label>
                 </div>
@@ -657,8 +657,8 @@ const AdminProducts = () => {
             </div>
 
             <div className="drawer-footer">
-              <button className="admin-ghost-btn" onClick={closeDrawer}>Hủy</button>
-              <button className="admin-primary-btn" onClick={handleSaveDrawer}>Lưu thay đổi</button>
+              <button className="admin-ghost-btn" onClick={closeDrawer}>{c.cancel}</button>
+              <button className="admin-primary-btn" onClick={handleSaveDrawer}>{c.save}</button>
             </div>
           </div>
         </>

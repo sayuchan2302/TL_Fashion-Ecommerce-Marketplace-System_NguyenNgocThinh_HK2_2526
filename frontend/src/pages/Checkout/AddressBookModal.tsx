@@ -38,8 +38,8 @@ const AddressBookModal = ({ isOpen, onClose, onSelectAddress }: AddressBookModal
       <div className="address-modal-container">
         <div className="address-modal-header">
           <h2>Chọn từ sổ địa chỉ</h2>
-          <button className="close-btn" onClick={onClose}>
-            <X size={24} />
+          <button className="close-btn" onClick={onClose} aria-label="Đóng">
+            <X size={24} aria-hidden="true" />
           </button>
         </div>
 
@@ -49,10 +49,11 @@ const AddressBookModal = ({ isOpen, onClose, onSelectAddress }: AddressBookModal
           ) : (
             <div className="address-list">
               {addresses.map(addr => (
-                <div 
+                <button 
                   key={addr.id} 
                   className={`address-item ${selectedId === addr.id ? 'selected' : ''}`}
                   onClick={() => setSelectedId(addr.id)}
+                  aria-pressed={selectedId === addr.id}
                 >
                   <div className="address-item-header">
                     <span className="address-name">{addr.fullName}</span>
@@ -67,7 +68,7 @@ const AddressBookModal = ({ isOpen, onClose, onSelectAddress }: AddressBookModal
                       <CheckCircle2 fill="var(--co-blue)" color="white" size={24} />
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}

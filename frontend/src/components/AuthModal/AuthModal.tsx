@@ -215,6 +215,8 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login' }: AuthModalProps) =>
                       className={`form-input ${registerErrors.fullName ? 'input-error' : ''}`}
                       value={fullName}
                       onChange={(e) => { setFullName(e.target.value); clearRegisterError('fullName'); }}
+                      autoComplete="name"
+                      name="fullName"
                     />
                     {registerErrors.fullName && <span className="field-error">{registerErrors.fullName}</span>}
                   </div>
@@ -230,6 +232,8 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login' }: AuthModalProps) =>
                       setEmail(e.target.value);
                       activeTab === 'login' ? clearLoginError('email') : clearRegisterError('email');
                     }}
+                    autoComplete={activeTab === 'login' ? 'email' : 'email'}
+                    name="email"
                   />
                   {activeTab === 'login' && loginErrors.email && <span className="field-error">{loginErrors.email}</span>}
                   {activeTab === 'register' && registerErrors.email && <span className="field-error">{registerErrors.email}</span>}
@@ -246,6 +250,8 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login' }: AuthModalProps) =>
                         setPassword(e.target.value);
                         activeTab === 'login' ? clearLoginError('password') : clearRegisterError('password');
                       }}
+                      autoComplete={activeTab === 'login' ? 'current-password' : 'new-password'}
+                      name="password"
                     />
                     <button 
                       type="button"
@@ -279,6 +285,8 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login' }: AuthModalProps) =>
                         className={`form-input ${registerErrors.confirmPassword ? 'input-error' : ''}`}
                         value={confirmPassword}
                         onChange={(e) => { setConfirmPassword(e.target.value); clearRegisterError('confirmPassword'); }}
+                        autoComplete="new-password"
+                        name="confirmPassword"
                       />
                       <button 
                         type="button"

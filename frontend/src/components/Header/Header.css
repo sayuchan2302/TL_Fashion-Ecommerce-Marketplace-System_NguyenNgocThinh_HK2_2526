@@ -251,6 +251,13 @@
   box-shadow: 0 0 0 3px rgba(47, 90, 207, 0.1);
 }
 
+.search-input:focus-visible {
+  outline: none;
+  width: 220px;
+  border-color: var(--co-blue);
+  box-shadow: 0 0 0 3px rgba(47, 90, 207, 0.2);
+}
+
 .icon-btn {
   position: relative;
   display: flex;
@@ -394,7 +401,7 @@
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .account-dropdown.show {
@@ -683,6 +690,15 @@
     to { opacity: 1; }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-overlay {
+      animation: none;
+    }
+    .mobile-sub-menu {
+      animation: none;
+    }
+  }
+
   /* Drawer */
   .mobile-drawer {
     display: flex;
@@ -766,6 +782,19 @@
   @keyframes slideDown {
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-overlay {
+      animation: none;
+    }
+    .mobile-sub-menu {
+      animation: none;
+    }
+    @keyframes slideDown {
+      from { opacity: 1; }
+      to { opacity: 1; }
+    }
   }
 
   .mobile-sub-menu a {

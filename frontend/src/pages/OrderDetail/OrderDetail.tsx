@@ -3,125 +3,15 @@ import {
   ChevronRight, Package, Truck, CheckCircle2, XCircle, Clock,
   MapPin, Phone, CreditCard, ArrowLeft, RotateCcw, Copy, X, AlertTriangle
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
+import { orderService } from '../../services/orderService';
 import { formatPrice } from '../../utils/formatters';
+import { CLIENT_TEXT } from '../../utils/texts';
+import type { Order } from '../../types';
 import './OrderDetail.css';
 
-interface OrderItem {
-  name: string;
-  variant: string;
-  qty: number;
-  price: number;
-  image: string;
-}
-
-interface TimelineStep {
-  label: string;
-  time: string;
-  done: boolean;
-  icon: React.ReactNode;
-}
-
-interface OrderData {
-  id: string;
-  date: string;
-  status: 'pending' | 'delivered' | 'shipping' | 'processing' | 'cancelled';
-  statusText: string;
-  paymentMethod: string;
-  shippingAddress: { name: string; phone: string; address: string };
-  items: OrderItem[];
-  subtotal: number;
-  shippingFee: number;
-  discount: number;
-  total: number;
-  timeline: TimelineStep[];
-  trackingCode?: string;
-}
-
-const MOCK_ORDERS: Record<string, OrderData> = {
-  'CM20260318': {
-    id: 'CM20260318',
-    date: '18/03/2026, 09:00',
-    status: 'pending',
-    statusText: 'Chờ xác nhận',
-    paymentMethod: 'Thanh toán khi nhận hàng (COD)',
-    shippingAddress: { name: 'Ngọc Thịnh Nguyễn', phone: '0382253049', address: 'Q7F, Quốc lộ 37, Thị trấn Hùng Sơn, Huyện Đại Từ, Thái Nguyên' },
-    items: [
-      { name: 'Áo Sơ Mi Nam Dài Tay', variant: 'Trắng | Size: L', qty: 1, price: 399000, image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=120&h=120&fit=crop' },
-      { name: 'Quần Tây Nam Slim', variant: 'Đen | Size: 32', qty: 1, price: 549000, image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=120&h=120&fit=crop' },
-    ],
-    subtotal: 948000, shippingFee: 0, discount: 0, total: 948000,
-    timeline: [
-      { label: 'Đặt hàng thành công', time: '18/03 09:00', done: true, icon: <Clock size={16} /> },
-      { label: 'Chờ xác nhận', time: '', done: false, icon: <CheckCircle2 size={16} /> },
-      { label: 'Đang chuẩn bị hàng', time: '', done: false, icon: <Package size={16} /> },
-      { label: 'Đang vận chuyển', time: '', done: false, icon: <Truck size={16} /> },
-    ],
-  },
-  'CM20260301': {
-    id: 'CM20260301',
-    date: '01/03/2026, 14:32',
-    status: 'delivered',
-    statusText: 'Đã giao',
-    paymentMethod: 'Thanh toán khi nhận hàng (COD)',
-    shippingAddress: { name: 'Ngọc Thịnh Nguyễn', phone: '0382253049', address: 'Q7F, Quốc lộ 37, Thị trấn Hùng Sơn, Huyện Đại Từ, Thái Nguyên' },
-    items: [
-      { name: 'Áo Thun Nam Cổ Tròn Cotton', variant: 'Trắng | Size: L', qty: 2, price: 299000, image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=120&h=120&fit=crop' },
-      { name: 'Quần Jeans Nam Slim Fit', variant: 'Xanh đậm | Size: 32', qty: 1, price: 459000, image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=120&h=120&fit=crop' },
-    ],
-    subtotal: 1057000, shippingFee: 0, discount: 0, total: 1057000,
-    timeline: [
-      { label: 'Đặt hàng thành công', time: '01/03 14:32', done: true, icon: <Clock size={16} /> },
-      { label: 'Đã xác nhận', time: '01/03 15:00', done: true, icon: <CheckCircle2 size={16} /> },
-      { label: 'Đang vận chuyển', time: '02/03 09:15', done: true, icon: <Truck size={16} /> },
-      { label: 'Đã giao hàng', time: '04/03 16:40', done: true, icon: <Package size={16} /> },
-    ],
-    trackingCode: 'GHN20260301VN',
-  },
-  'CM20260312': {
-    id: 'CM20260312',
-    date: '12/03/2026, 10:15',
-    status: 'shipping',
-    statusText: 'Đang giao',
-    paymentMethod: 'VNPAY / ThaiQR',
-    shippingAddress: { name: 'Ngọc Thịnh Nguyễn', phone: '0382253049', address: 'Q7F, Quốc lộ 37, Thị trấn Hùng Sơn, Huyện Đại Từ, Thái Nguyên' },
-    items: [
-      { name: 'Áo Polo Nam Excool', variant: 'Xanh navy | Size: XL', qty: 1, price: 389000, image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=120&h=120&fit=crop' },
-    ],
-    subtotal: 389000, shippingFee: 0, discount: 0, total: 389000,
-    timeline: [
-      { label: 'Đặt hàng thành công', time: '12/03 10:15', done: true, icon: <Clock size={16} /> },
-      { label: 'Đã xác nhận', time: '12/03 10:45', done: true, icon: <CheckCircle2 size={16} /> },
-      { label: 'Đang vận chuyển', time: '13/03 08:00', done: true, icon: <Truck size={16} /> },
-      { label: 'Đã giao hàng', time: '', done: false, icon: <Package size={16} /> },
-    ],
-    trackingCode: 'GHTK20260312VN',
-  },
-  'CM20260220': {
-    id: 'CM20260220',
-    date: '20/02/2026, 20:05',
-    status: 'cancelled',
-    statusText: 'Đã hủy',
-    paymentMethod: 'MoMo',
-    shippingAddress: { name: 'Thịnh Nguyễn', phone: '0987654321', address: 'Số 15, Đường Lê Lợi, Phường Bến Nghé, Quận 1, Hồ Chí Minh' },
-    items: [
-      { name: 'Áo Hoodie Oversize Unisex', variant: 'Đen | Size: M', qty: 1, price: 549000, image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=120&h=120&fit=crop' },
-    ],
-    subtotal: 549000, shippingFee: 30000, discount: 0, total: 579000,
-    timeline: [
-      { label: 'Đặt hàng thành công', time: '20/02 20:05', done: true, icon: <Clock size={16} /> },
-      { label: 'Đã hủy bởi khách hàng', time: '20/02 21:30', done: true, icon: <XCircle size={16} /> },
-    ],
-  },
-};
-
-const statusColorMap: Record<string, string> = {
-  delivered: 'status-delivered',
-  shipping: 'status-shipping',
-  processing: 'status-processing',
-  cancelled: 'status-cancelled',
-};
+const t = CLIENT_TEXT.common;
 
 const CANCEL_REASONS = [
   'Tôi muốn thay đổi địa chỉ giao hàng',
@@ -132,24 +22,48 @@ const CANCEL_REASONS = [
   'Lý do khác',
 ];
 
+const statusColorMap: Record<string, string> = {
+  delivered: 'status-delivered',
+  shipping: 'status-shipping',
+  processing: 'status-processing',
+  cancelled: 'status-cancelled',
+  refunded: 'status-refunded',
+};
+
 const OrderDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const order = id ? MOCK_ORDERS[id] : null;
+  const [order, setOrder] = useState<Order | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
   const [otherReason, setOtherReason] = useState('');
 
+  useEffect(() => {
+    if (id) {
+      const foundOrder = orderService.getById(id);
+      setOrder(foundOrder);
+    }
+  }, [id]);
+
   const handleCancelOrder = () => {
+    if (!order) return;
     const finalReason = selectedReason === 'Lý do khác' ? otherReason : selectedReason;
     if (!finalReason) {
       addToast('Vui lòng chọn hoặc nhập lý do hủy đơn', 'error');
       return;
     }
+    orderService.cancel(order.id, finalReason);
     addToast('Đã hủy đơn hàng thành công!', 'success');
     setIsCancelModalOpen(false);
     setTimeout(() => navigate('/profile'), 1500);
+  };
+
+  const handleCopyTracking = () => {
+    if (order?.tracking) {
+      navigator.clipboard.writeText(order.tracking);
+      addToast('Đã sao chép mã vận đơn!', 'success');
+    }
   };
 
   if (!order) {
@@ -167,17 +81,14 @@ const OrderDetail = () => {
     );
   }
 
-  const handleCopyTracking = () => {
-    if (order.trackingCode) {
-      navigator.clipboard.writeText(order.trackingCode);
-      addToast('Đã sao chép mã vận đơn!', 'success');
-    }
-  };
+  const addressParts = order.addressSummary.split(',');
+  const shippingName = addressParts[0]?.trim() || '';
+  const shippingPhone = addressParts[1]?.trim() || '';
+  const shippingAddress = addressParts.slice(2).join(',').trim() || '';
 
   return (
     <div className="od-page">
       <div className="od-container">
-        {/* Breadcrumb */}
         <div className="od-breadcrumb">
           <Link to="/">Trang chủ</Link>
           <ChevronRight size={14} />
@@ -186,46 +97,48 @@ const OrderDetail = () => {
           <span>Đơn hàng #{order.id}</span>
         </div>
 
-        {/* Header */}
         <div className="od-header">
           <Link to="/profile" className="od-back-btn">
             <ArrowLeft size={18} /> Quay lại
           </Link>
           <div className="od-header-info">
             <h1>Đơn hàng <span className="od-order-id">#{order.id}</span></h1>
-            <span className="od-date">Ngày đặt: {order.date}</span>
+            <span className="od-date">Ngày đặt: {new Date(order.createdAt).toLocaleString('vi-VN')}</span>
           </div>
-          <span className={`od-status-badge ${statusColorMap[order.status]}`}>{order.statusText}</span>
+          <span className={`od-status-badge ${statusColorMap[order.status]}`}>{t.status[order.status]}</span>
         </div>
 
         <div className="od-grid">
-          {/* Left Column */}
           <div className="od-left">
-            {/* Timeline */}
             <div className="od-card">
               <h3 className="od-card-title">Trạng thái đơn hàng</h3>
               <div className="od-timeline">
-                {order.timeline.map((step, idx) => (
-                  <div key={idx} className={`od-tl-step ${step.done ? 'done' : ''} ${idx === order.timeline.length - 1 && step.done ? 'last-done' : ''}`}>
-                    <div className="od-tl-dot">{step.icon}</div>
+                {order.statusSteps.map((step, idx) => (
+                  <div key={idx} className={`od-tl-step done`}>
+                    <div className="od-tl-dot">
+                      {step.label.includes('Đặt') ? <Clock size={16} /> :
+                       step.label.includes('Xác nhận') ? <CheckCircle2 size={16} /> :
+                       step.label.includes('giao') ? <Truck size={16} /> :
+                       step.label.includes('hủy') ? <XCircle size={16} /> :
+                       <Package size={16} />}
+                    </div>
                     <div className="od-tl-content">
                       <span className="od-tl-label">{step.label}</span>
-                      {step.time && <span className="od-tl-time">{step.time}</span>}
+                      {step.timestamp && <span className="od-tl-time">{step.timestamp}</span>}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {order.trackingCode && (
+              {order.tracking && (
                 <div className="od-tracking">
                   <span className="od-tracking-label">Mã vận đơn:</span>
-                  <code className="od-tracking-code">{order.trackingCode}</code>
+                  <code className="od-tracking-code">{order.tracking}</code>
                   <button className="od-tracking-copy" onClick={handleCopyTracking}><Copy size={14} /> Sao chép</button>
                 </div>
               )}
             </div>
 
-            {/* Items */}
             <div className="od-card">
               <h3 className="od-card-title">Sản phẩm ({order.items.length})</h3>
               <div className="od-items">
@@ -234,8 +147,9 @@ const OrderDetail = () => {
                     <img src={item.image} alt={item.name} className="od-item-img" />
                     <div className="od-item-info">
                       <p className="od-item-name">{item.name}</p>
-                      <p className="od-item-variant">{item.variant}</p>
-                      <p className="od-item-qty">x{item.qty}</p>
+                      {item.color && <p className="od-item-variant">Màu: {item.color}</p>}
+                      {item.size && <p className="od-item-variant">Size: {item.size}</p>}
+                      <p className="od-item-qty">x{item.quantity}</p>
                     </div>
                     <span className="od-item-price">{formatPrice(item.price)}</span>
                   </div>
@@ -244,40 +158,36 @@ const OrderDetail = () => {
             </div>
           </div>
 
-          {/* Right Column */}
           <div className="od-right">
-            {/* Shipping Info */}
             <div className="od-card">
               <h3 className="od-card-title"><MapPin size={16} /> Thông tin giao hàng</h3>
               <div className="od-info-block">
-                <p className="od-info-name">{order.shippingAddress.name}</p>
-                <p className="od-info-phone"><Phone size={14} /> {order.shippingAddress.phone}</p>
-                <p className="od-info-address">{order.shippingAddress.address}</p>
+                <p className="od-info-name">{shippingName}</p>
+                <p className="od-info-phone"><Phone size={14} /> {shippingPhone}</p>
+                <p className="od-info-address">{shippingAddress}</p>
               </div>
             </div>
 
-            {/* Payment */}
             <div className="od-card">
               <h3 className="od-card-title"><CreditCard size={16} /> Phương thức thanh toán</h3>
               <p className="od-payment-method">{order.paymentMethod}</p>
             </div>
 
-            {/* Summary */}
             <div className="od-card">
               <h3 className="od-card-title">Chi tiết thanh toán</h3>
               <div className="od-summary">
                 <div className="od-sum-row">
                   <span>Tạm tính</span>
-                  <span>{formatPrice(order.subtotal)}</span>
+                  <span>{formatPrice(order.total)}</span>
                 </div>
                 <div className="od-sum-row">
                   <span>Phí vận chuyển</span>
-                  <span>{order.shippingFee === 0 ? 'Miễn phí' : formatPrice(order.shippingFee)}</span>
+                  <span>Miễn phí</span>
                 </div>
-                {order.discount > 0 && (
-                  <div className="od-sum-row od-discount">
-                    <span>Giảm giá</span>
-                    <span>-{formatPrice(order.discount)}</span>
+                {order.cancelReason && (
+                  <div className="od-sum-row">
+                    <span>Trạng thái</span>
+                    <span>Đã hủy: {order.cancelReason}</span>
                   </div>
                 )}
                 <div className="od-sum-row od-total-row">
@@ -287,7 +197,6 @@ const OrderDetail = () => {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="od-card od-actions-card">
               {order.status === 'delivered' && (
                 <>
@@ -316,7 +225,6 @@ const OrderDetail = () => {
         </div>
       </div>
 
-      {/* Cancel Confirmation Modal */}
       {isCancelModalOpen && (
         <div className="od-modal-overlay">
           <div className="od-cancel-modal">
@@ -333,7 +241,7 @@ const OrderDetail = () => {
             </p>
             
             <div className="od-cancel-reasons">
-              <p className="od-reason-label">Lý do hủy đơn:</p>
+              <p className="od-reason-label">Lý do hủy đơ:</p>
               {CANCEL_REASONS.map((reason) => (
                 <label key={reason} className="od-reason-option">
                   <input

@@ -8,6 +8,7 @@ import {
 import AdminLayout from './AdminLayout';
 import { AdminStateBlock, AdminTableSkeleton } from './AdminStateBlocks';
 import AdminConfirmDialog from './AdminConfirmDialog';
+import { AdminPagination } from './AdminPagination';
 import { useAdminListState } from './useAdminListState';
 import { ADMIN_VIEW_KEYS } from './adminListView';
 import { useAdminViewState } from './useAdminViewState';
@@ -383,21 +384,18 @@ const AdminReturns = () => {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="admin-pagination">
-              <span className="admin-muted">{startIndex + 1}–{endIndex} / {filteredItems.length}</span>
-              <button className="admin-icon-btn" onClick={prev} disabled={page === 1}>‹</button>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  className={`admin-page-btn ${page === i + 1 ? 'active' : ''}`}
-                  onClick={() => setPage(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              <button className="admin-icon-btn" onClick={next} disabled={page === totalPages}>›</button>
-            </div>
+          {!isLoading && filteredItems.length > 0 && (
+            <AdminPagination
+              page={page}
+              totalPages={totalPages}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              total={filteredItems.length}
+              onPageChange={setPage}
+              onPrev={prev}
+              onNext={next}
+              selectedNoun={t.selectedNoun}
+            />
           )}
         </>
       )}

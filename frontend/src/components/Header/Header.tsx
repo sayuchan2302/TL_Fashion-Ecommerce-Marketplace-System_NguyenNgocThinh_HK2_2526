@@ -344,7 +344,7 @@ const handleSearchSubmit = (query: string) => {
         </div>
 
       {/* Mobile Drawer Overlay */}
-      {isMobileMenuOpen && <div className="mobile-overlay" onClick={closeMobileMenu} />}
+      {isMobileMenuOpen && <button className="mobile-overlay" onClick={closeMobileMenu} aria-label="Đóng menu" />}
 
       {/* Mobile Drawer */}
       <div className={`mobile-drawer ${isMobileMenuOpen ? 'open' : ''}`}>
@@ -359,8 +359,8 @@ const handleSearchSubmit = (query: string) => {
           <Link to="/category/new" className="mobile-nav-link mobile-new" onClick={closeMobileMenu}>NEW</Link>
           
           <div className="mobile-nav-group">
-            <button className="mobile-nav-link" onClick={() => toggleMobileSubMenu('men')}>
-              NAM <ChevronDown size={16} className={expandedMobileMenu === 'men' ? 'rotated' : ''} />
+            <button className="mobile-nav-link" onClick={() => toggleMobileSubMenu('men')} aria-label="Danh mục Nam">
+              NAM <ChevronDown size={16} className={expandedMobileMenu === 'men' ? 'rotated' : ''} aria-hidden="true" />
             </button>
             {expandedMobileMenu === 'men' && (
               <div className="mobile-sub-menu">
@@ -375,8 +375,8 @@ const handleSearchSubmit = (query: string) => {
           </div>
 
           <div className="mobile-nav-group">
-            <button className="mobile-nav-link" onClick={() => toggleMobileSubMenu('women')}>
-              NỮ <ChevronDown size={16} className={expandedMobileMenu === 'women' ? 'rotated' : ''} />
+            <button className="mobile-nav-link" onClick={() => toggleMobileSubMenu('women')} aria-label="Danh mục Nữ">
+              NỮ <ChevronDown size={16} className={expandedMobileMenu === 'women' ? 'rotated' : ''} aria-hidden="true" />
             </button>
             {expandedMobileMenu === 'women' && (
               <div className="mobile-sub-menu">
@@ -390,8 +390,8 @@ const handleSearchSubmit = (query: string) => {
           </div>
 
           <div className="mobile-nav-group">
-            <button className="mobile-nav-link" onClick={() => toggleMobileSubMenu('acc')}>
-              PHỤ KIỆN <ChevronDown size={16} className={expandedMobileMenu === 'acc' ? 'rotated' : ''} />
+            <button className="mobile-nav-link" onClick={() => toggleMobileSubMenu('acc')} aria-label="Danh mục Phụ kiện">
+              PHỤ KIỆN <ChevronDown size={16} className={expandedMobileMenu === 'acc' ? 'rotated' : ''} aria-hidden="true" />
             </button>
             {expandedMobileMenu === 'acc' && (
               <div className="mobile-sub-menu">

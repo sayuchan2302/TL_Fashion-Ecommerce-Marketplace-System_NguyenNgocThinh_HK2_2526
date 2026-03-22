@@ -170,6 +170,11 @@
   box-shadow: 0 0 0 3px rgba(47, 90, 207, 0.1);
 }
 
+.checkout-input:focus-visible {
+  border-color: var(--co-blue);
+  box-shadow: 0 0 0 3px rgba(47, 90, 207, 0.2);
+}
+
 .input-error {
   border-color: var(--co-error) !important;
 }
@@ -236,6 +241,11 @@
   outline: none;
   cursor: pointer;
   color: var(--co-black);
+}
+
+.prefix-select:focus-visible {
+  outline: 2px solid var(--co-blue);
+  outline-offset: -2px;
 }
 
 .input-with-prefix .checkout-input {
@@ -718,7 +728,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .ticket-radio.checked {
@@ -1080,6 +1090,17 @@
 
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .spinner {
+    animation: spin 2s linear infinite;
   }
 }
 

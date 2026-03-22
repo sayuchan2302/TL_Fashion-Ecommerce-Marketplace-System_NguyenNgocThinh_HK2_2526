@@ -115,7 +115,7 @@ const ProductActions = ({ product, selectedColor, selectedSize }: ProductActions
         <button 
           className={`btn-wishlist-action ${isWished ? 'wished' : ''}`}
           onClick={handleToggleWishlist}
-          title={isWished ? "Xoá khỏi yêu thích" : "Thêm vào yêu thích"}
+          aria-label={isWished ? "Xoá khỏi yêu thích" : "Thêm vào yêu thích"}
         >
           <Heart size={24} fill={isWished ? 'currentColor' : 'none'} />
         </button>

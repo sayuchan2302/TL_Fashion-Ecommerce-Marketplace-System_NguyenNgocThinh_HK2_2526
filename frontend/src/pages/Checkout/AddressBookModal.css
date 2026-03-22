@@ -26,6 +26,12 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .address-modal-container {
+    animation: none;
+  }
+}
+
 .address-modal-header {
   display: flex;
   align-items: center;
@@ -50,6 +56,12 @@
 
 .close-btn:hover {
   color: var(--co-black);
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid var(--co-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .address-modal-body {

@@ -365,6 +365,21 @@
   to { transform: rotate(360deg); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .auth-spinner {
+    animation: spin 2s linear infinite;
+  }
+  
+  .auth-modal-overlay {
+    animation: none;
+  }
+}
+
 /* Responsiveness */
 @media (max-width: 480px) {
   .auth-form-container {

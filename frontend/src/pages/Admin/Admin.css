@@ -959,9 +959,12 @@ body {
 
 .table-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 0 4px; }
 .table-footer-meta { color: var(--co-gray-600); font-size: 13px; font-weight: 600; }
-.pagination { display: inline-flex; gap: 6px; }
-.page-btn { min-width: 34px; height: 32px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--co-gray-200); background: white; cursor: pointer; font-size: 13px; font-weight: 700; }
+.pagination { display: inline-flex; gap: 6px; align-items: center; }
+.page-btn { min-width: 34px; height: 32px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--co-gray-200); background: white; cursor: pointer; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.page-btn:hover:not(:disabled) { background: var(--co-gray-100); }
 .page-btn.active { background: var(--co-blue); color: white; border-color: var(--co-blue); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-ellipsis { min-width: 34px; height: 32px; display: inline-flex; align-items: center; justify-content: center; color: var(--co-gray-400); font-weight: 700; }
 
 .product-cell .thumb-wrapper { display: inline-block; }
 

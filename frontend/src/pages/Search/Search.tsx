@@ -123,9 +123,9 @@ const Search = () => {
                 <div className="search-history-section">
                   <div className="search-section-header">
                     <h3 className="search-section-title">
-                      <Clock size={16} /> {t.dropdown.recentSearches}
+                      <Clock size={16} aria-hidden="true" /> {t.dropdown.recentSearches}
                     </h3>
-                    <button className="search-clear-btn" onClick={clearHistory}>
+                    <button className="search-clear-btn" onClick={clearHistory} aria-label={t.dropdown.clearAll}>
                       {t.dropdown.clearAll}
                     </button>
                   </div>
@@ -145,8 +145,9 @@ const Search = () => {
                             e.stopPropagation();
                             removeHistoryItem(item);
                           }}
+                          aria-label={`Xóa "${item}" khỏi lịch sử`}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} aria-hidden="true" />
                         </button>
                       </motion.div>
                     ))}
@@ -204,7 +205,7 @@ const Search = () => {
                       onClick={() => setIsMobileFilterOpen(true)}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <SlidersHorizontal size={18} />
+                      <SlidersHorizontal size={18} aria-hidden="true" />
                       {CLIENT_TEXT.filter.title}
                     </motion.button>
 
@@ -214,8 +215,9 @@ const Search = () => {
                         <button
                           className="close-filter-btn"
                           onClick={() => setIsMobileFilterOpen(false)}
+                          aria-label="Đóng bộ lọc"
                         >
-                          <X size={24} />
+                          <X size={24} aria-hidden="true" />
                         </button>
                       </div>
                       <div className="sidebar-content">

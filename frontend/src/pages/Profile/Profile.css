@@ -449,6 +449,11 @@
   border-color: var(--co-blue);
 }
 
+.modal-input:focus-visible {
+  border-color: var(--co-blue);
+  box-shadow: 0 0 0 3px rgba(47, 90, 207, 0.1);
+}
+
 .modal-input.select-arrow-pad {
   padding-right: 36px;
 }
@@ -568,6 +573,11 @@
   border-radius: 2px;
   outline: none;
   cursor: pointer;
+}
+
+.modal-slider:focus-visible {
+  outline: 2px solid var(--co-blue);
+  outline-offset: 4px;
 }
 
 .modal-slider::-webkit-slider-thumb {

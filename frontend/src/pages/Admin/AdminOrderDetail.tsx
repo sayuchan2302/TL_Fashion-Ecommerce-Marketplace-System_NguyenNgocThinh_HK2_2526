@@ -57,8 +57,8 @@ const AdminOrderDetail = () => {
 
   if (!order) {
     return (
-      <AdminLayout title="Chi tiết đơn hàng">
-        <AdminStateBlock type="error" title="Không tìm thấy đơn hàng" description="Mã đơn không tồn tại hoặc đã bị xóa khỏi hệ thống." />
+      <AdminLayout title={t.title}>
+        <AdminStateBlock type="error" title={t.notFound.title} description={t.notFound.description} />
       </AdminLayout>
     );
   }
@@ -101,7 +101,7 @@ const AdminOrderDetail = () => {
     setReasonNote('');
     setPendingTransition(null);
     setShowTransitionModal(false);
-    pushToast(result.message || `Đã chuyển sang ${fulfillmentLabel(next)}.`);
+    pushToast(result.message || t.messages.transitionSuccess(fulfillmentLabel(next)));
   };
 
   const exportAuditLog = () => {
@@ -143,7 +143,7 @@ const AdminOrderDetail = () => {
       }
       actions={(
         <div className="admin-actions">
-          <select className="admin-select" aria-label="Trạng thái đơn hàng" value={fulfillment} onChange={(e) => requestTransition(e.target.value as FulfillmentStatus)}>
+          <select className="admin-select" aria-label={t.statusSelectLabel} value={fulfillment} onChange={(e) => requestTransition(e.target.value as FulfillmentStatus)}>
             {statusOptions.map(state => (
               <option key={state} value={state}>{fulfillmentLabel(state)}</option>
             ))}
@@ -179,10 +179,10 @@ const AdminOrderDetail = () => {
               ))}
             </div>
             <div className="od-summary">
-              <div className="od-summary-row"><span>Tạm tính</span><strong>{formatVND(order.pricing.subtotal)}</strong></div>
-              <div className="od-summary-row"><span>Phí vận chuyển</span><strong>{formatVND(order.pricing.shipping)}</strong></div>
-              <div className="od-summary-row"><span>Giảm giá {order.pricing.voucher && `(${order.pricing.voucher})`}</span><strong>-{formatVND(order.pricing.discount)}</strong></div>
-              <div className="od-summary-row od-total"><span>Tổng thanh toán</span><strong>{formatVND(total)}</strong></div>
+              <div className="od-summary-row"><span>{t.orderSummary.subtotal}</span><strong>{formatVND(order.pricing.subtotal)}</strong></div>
+              <div className="od-summary-row"><span>{t.orderSummary.shippingFee}</span><strong>{formatVND(order.pricing.shipping)}</strong></div>
+              <div className="od-summary-row"><span>{t.orderSummary.discount} {order.pricing.voucher && `(${order.pricing.voucher})`}</span><strong>-{formatVND(order.pricing.discount)}</strong></div>
+              <div className="od-summary-row od-total"><span>{t.orderSummary.total}</span><strong>{formatVND(total)}</strong></div>
             </div>
           </section>
 
@@ -191,9 +191,9 @@ const AdminOrderDetail = () => {
               <h2>{t.sections.paymentInfo}</h2>
             </div>
             <div className="od-card">
-              <div className="od-card-row"><span className="od-label">Phương thức thanh toán</span><strong>{order.paymentMethod}</strong></div>
-               <div className="od-card-row"><span className="od-label">Thanh toán</span><span className={`admin-pill ${paymentStatus === 'paid' ? 'success' : paymentStatus === 'refund_pending' ? 'error' : 'pending'}`}>{paymentLabel(paymentStatus)}</span></div>
-               <div className="od-card-row"><span className="od-label">Vận chuyển</span><span className={`admin-pill ${fulfillment === 'done' ? 'success' : fulfillment === 'canceled' ? 'error' : 'pending'}`}><Truck size={14} /> {shipLabel(fulfillment)}</span></div>
+              <div className="od-card-row"><span className="od-label">{t.paymentInfo.method}</span><strong>{order.paymentMethod}</strong></div>
+               <div className="od-card-row"><span className="od-label">{t.paymentInfo.paymentStatus}</span><span className={`admin-pill ${paymentStatus === 'paid' ? 'success' : paymentStatus === 'refund_pending' ? 'error' : 'pending'}`}>{paymentLabel(paymentStatus)}</span></div>
+               <div className="od-card-row"><span className="od-label">{t.paymentInfo.shippingStatus}</span><span className={`admin-pill ${fulfillment === 'done' ? 'success' : fulfillment === 'canceled' ? 'error' : 'pending'}`}><Truck size={14} /> {shipLabel(fulfillment)}</span></div>
               <div className="od-card-row tracking-row">
                 <span className="od-label">{t.trackingNumber}</span>
                 {isEditingTracking ? (
@@ -312,7 +312,7 @@ const AdminOrderDetail = () => {
 
                 <label className="form-field">
                   <span>Ghi chú nội bộ</span>
-                  <textarea rows={3} value={reasonNote} onChange={(e) => setReasonNote(e.target.value)} placeholder="Mô tả thêm nếu cần (log nội bộ)" />
+                  <textarea rows={3} value={reasonNote} onChange={(e) => setReasonNote(e.target.value)} placeholder={t.reasonNotePlaceholder} />
                 </label>
               </div>
             )}

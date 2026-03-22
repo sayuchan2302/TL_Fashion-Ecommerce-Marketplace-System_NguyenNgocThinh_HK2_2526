@@ -11,6 +11,7 @@ import { addressService } from '../../services/addressService';
 import { orderService } from '../../services/orderService';
 import type { Address } from '../../types';
 import AddressBookModal from './AddressBookModal';
+import { useAddressLocation } from '../../hooks/useAddressLocation';
 
 const t = CLIENT_TEXT.checkout;
 const tCommon = CLIENT_TEXT.common;
@@ -25,23 +26,6 @@ interface FormErrors {
   ward?: string;
   note?: string;
 }
-
-interface Province {
-  code: number;
-  name: string;
-}
-
-interface District {
-  code: number;
-  name: string;
-}
-
-interface Ward {
-  code: number;
-  name: string;
-}
-
-const API_BASE = 'https://provinces.open-api.vn/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -65,21 +49,9 @@ const Checkout = () => {
   const [isCouponLoading, setIsCouponLoading] = useState(false);
   const [availableCoupons] = useState(() => couponService.getAvailableCoupons());
 
-  // Address states
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [wards, setWards] = useState<Ward[]>([]);
-
-  const [selectedProvinceCode, setSelectedProvinceCode] = useState('');
-  const [selectedDistrictCode, setSelectedDistrictCode] = useState('');
-  const [selectedWardCode, setSelectedWardCode] = useState('');
-
-  const [loadingProvinces, setLoadingProvinces] = useState(false);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
-  const [loadingWards, setLoadingWards] = useState(false);
+  const addressLocation = useAddressLocation();
   const couponScrollRef = useRef<HTMLDivElement>(null);
 
-  // Horizontal scroll with mouse wheel on coupon tickets
   useEffect(() => {
     const el = couponScrollRef.current;
     if (!el) return;
@@ -93,49 +65,6 @@ const Checkout = () => {
     return () => el.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // Fetch provinces on mount
-  useEffect(() => {
-    setLoadingProvinces(true);
-    fetch(`${API_BASE}/?depth=1`)
-      .then(res => res.json())
-      .then((data: Province[]) => {
-        setProvinces(data);
-        setLoadingProvinces(false);
-      })
-      .catch(() => setLoadingProvinces(false));
-  }, []);
-
-  // Fetch districts when province changes
-  useEffect(() => {
-    if (!selectedProvinceCode) {
-      setDistricts([]);
-      return;
-    }
-    setLoadingDistricts(true);
-    fetch(`${API_BASE}/p/${selectedProvinceCode}?depth=2`)
-      .then(res => res.json())
-      .then((data: { districts: District[] }) => {
-        setDistricts(data.districts || []);
-        setLoadingDistricts(false);
-      })
-      .catch(() => setLoadingDistricts(false));
-  }, [selectedProvinceCode]);
-
-  // Fetch wards when district changes
-  useEffect(() => {
-    if (!selectedDistrictCode) {
-      setWards([]);
-      return;
-    }
-    setLoadingWards(true);
-    fetch(`${API_BASE}/d/${selectedDistrictCode}?depth=2`)
-      .then(res => res.json())
-      .then((data: { wards: Ward[] }) => {
-        setWards(data.wards || []);
-        setLoadingWards(false);
-      })
-      .catch(() => setLoadingWards(false));
-  }, [selectedDistrictCode]);
   const handleQuantityChange = (cartId: string, delta: number) => {
     const item = items.find(i => i.cartId === cartId);
     if (item) {
@@ -206,9 +135,7 @@ const Checkout = () => {
       district: addr.district, 
       province: addr.province,
     }));
-    setSelectedProvinceCode('');
-    setSelectedDistrictCode('');
-    setSelectedWardCode('');
+    addressLocation.clearSelection();
     setFormErrors({});
   };
 
@@ -308,7 +235,7 @@ const Checkout = () => {
               <section className="checkout-section">
                 <div className="section-header-flex">
                   <h2 className="checkout-section-title">{t.title}</h2>
-                  <button className="address-book-toggle-btn" onClick={() => setIsAddressModalOpen(true)}>
+                  <button className="address-book-toggle-btn" onClick={() => setIsAddressModalOpen(true)} aria-label={t.addressBook.title}>
                     {t.addressBook.title} <ChevronRight size={16} />
                   </button>
                 </div>
@@ -380,23 +307,18 @@ const Checkout = () => {
                     <div className="select-wrapper">
                       <select
                         className={`checkout-input checkout-select ${formErrors.city ? 'input-error' : ''}`}
-                        value={selectedProvinceCode}
+                        value={addressLocation.selectedProvinceCode}
                         name="province"
                         autoComplete="address-level1"
                         onChange={e => {
-                          const code = e.target.value;
-                          setSelectedProvinceCode(code);
-                          const p = provinces.find(p => String(p.code) === code);
-                          handleFieldChange('city', p ? p.name : '');
-                          // Reset nested
-                          setSelectedDistrictCode('');
-                          setSelectedWardCode('');
+                          addressLocation.setSelectedProvinceCode(e.target.value);
+                          handleFieldChange('city', addressLocation.getProvinceName(e.target.value));
                           handleFieldChange('district', '');
                           handleFieldChange('ward', '');
                         }}
                       >
-                        <option value="">{loadingProvinces ? t.form.loading : t.form.province}</option>
-                        {provinces.map(p => (
+                        <option value="">{addressLocation.loadingProvinces ? t.form.loading : t.form.province}</option>
+                        {addressLocation.provinces.map(p => (
                           <option key={p.code} value={p.code}>{p.name}</option>
                         ))}
                       </select>
@@ -409,22 +331,18 @@ const Checkout = () => {
                     <div className="select-wrapper">
                       <select
                         className={`checkout-input checkout-select ${formErrors.district ? 'input-error' : ''}`}
-                        value={selectedDistrictCode}
-                        disabled={!selectedProvinceCode}
+                        value={addressLocation.selectedDistrictCode}
+                        disabled={!addressLocation.selectedProvinceCode}
                         name="district"
                         autoComplete="address-level2"
                         onChange={e => {
-                          const code = e.target.value;
-                          setSelectedDistrictCode(code);
-                          const d = districts.find(d => String(d.code) === code);
-                          handleFieldChange('district', d ? d.name : '');
-                          // Reset nested
-                          setSelectedWardCode('');
+                          addressLocation.setSelectedDistrictCode(e.target.value);
+                          handleFieldChange('district', addressLocation.getDistrictName(e.target.value));
                           handleFieldChange('ward', '');
                         }}
                       >
-                        <option value="">{loadingDistricts ? t.form.loading : t.form.district}</option>
-                        {districts.map(d => (
+                        <option value="">{addressLocation.loadingDistricts ? t.form.loading : t.form.district}</option>
+                        {addressLocation.districts.map(d => (
                           <option key={d.code} value={d.code}>{d.name}</option>
                         ))}
                       </select>
@@ -437,19 +355,17 @@ const Checkout = () => {
                     <div className="select-wrapper">
                       <select
                         className={`checkout-input checkout-select ${formErrors.ward ? 'input-error' : ''}`}
-                        value={selectedWardCode}
-                        disabled={!selectedDistrictCode}
+                        value={addressLocation.selectedWardCode}
+                        disabled={!addressLocation.selectedDistrictCode}
                         name="ward"
                         autoComplete="address-level3"
                         onChange={e => {
-                          const code = e.target.value;
-                          setSelectedWardCode(code);
-                          const w = wards.find(w => String(w.code) === code);
-                          handleFieldChange('ward', w ? w.name : '');
+                          addressLocation.setSelectedWardCode(e.target.value);
+                          handleFieldChange('ward', addressLocation.getWardName(e.target.value));
                         }}
                       >
-                        <option value="">{loadingWards ? t.form.loading : t.form.ward}</option>
-                        {wards.map(w => (
+                        <option value="">{addressLocation.loadingWards ? t.form.loading : t.form.ward}</option>
+                        {addressLocation.wards.map(w => (
                           <option key={w.code} value={w.code}>{w.name}</option>
                         ))}
                       </select>
@@ -586,18 +502,18 @@ const Checkout = () => {
 
                 {/* Freeship Alert */}
                 <div className="freeship-alert">
-                  <Check size={18} /> Đơn hàng đã được Miễn phí vận chuyển
+                  <Check size={18} /> {t.freeshipAlert}
                 </div>
 
                 {/* Cart Header */}
                 <div className="cart-header-actions">
-                  <span className="cart-item-count">Đơn hàng ({items.length} sản phẩm)</span>
+                  <span className="cart-item-count">{t.cartItemCount.replace('{count}', String(items.length))}</span>
                 </div>
 
                 {/* Cart Items */}
                 <div className="unified-cart-list">
                   {items.length === 0 ? (
-                    <div className="empty-cart-msg">Chưa có sản phẩm nào</div>
+                    <div className="empty-cart-msg">{t.emptyCart}</div>
                   ) : (
                     items.map(item => (
                       <div className="unified-cart-item" key={item.cartId}>
@@ -610,16 +526,16 @@ const Checkout = () => {
                             <div className="fake-select">{item.color} <ChevronRight size={14} /></div>
                             <div className="fake-select">{item.size} <ChevronRight size={14} /></div>
                           </div>
-                          <button className="unified-item-remove" onClick={() => handleRemoveItem(item.cartId)}>
-                            <Trash2 size={14} /> Xóa
+                          <button className="unified-item-remove" onClick={() => handleRemoveItem(item.cartId)} aria-label={t.remove}>
+                            <Trash2 size={14} aria-hidden="true" /> {t.remove}
                           </button>
                         </div>
 
                         <div className="unified-qty-price">
                           <div className="unified-qty-control">
-                            <button onClick={() => handleQuantityChange(item.cartId, -1)} disabled={item.quantity <= 1}>−</button>
+                            <button onClick={() => handleQuantityChange(item.cartId, -1)} disabled={item.quantity <= 1} aria-label="Giảm số lượng">−</button>
                             <span>{item.quantity}</span>
-                            <button onClick={() => handleQuantityChange(item.cartId, 1)}>+</button>
+                            <button onClick={() => handleQuantityChange(item.cartId, 1)} aria-label="Tăng số lượng">+</button>
                           </div>
                           <div className="unified-item-price">{formatPrice(item.price)}</div>
                         </div>
@@ -630,7 +546,7 @@ const Checkout = () => {
 
                 {/* Social Proof */}
                 <div className="social-proof-alert">
-                  Có <b>6 người</b> đang thêm cùng sản phẩm giống bạn vào giỏ hàng.
+                  {t.socialProof}
                 </div>
 
                 {/* Coupon Tickets */}
@@ -642,9 +558,9 @@ const Checkout = () => {
                       onClick={() => handleSelectCoupon(coupon)}
                     >
                       <div className="ticket-info">
-                        <strong>{coupon.code}</strong> (Còn {coupon.remaining})<br/>
+                        <strong>{coupon.code}</strong> ({t.ticketRemaining.replace('{count}', String(coupon.remaining))})<br/>
                         <span className="ticket-desc">{coupon.description}</span>
-                        <div className="ticket-expiry">HSD: {new Date(coupon.expiresAt).toLocaleDateString('vi-VN')}</div>
+                        <div className="ticket-expiry">{t.ticketExpiry.replace('{date}', new Date(coupon.expiresAt).toLocaleDateString('vi-VN'))}</div>
                       </div>
                       <div className="ticket-action">
                         <div className={`ticket-radio ${appliedCoupon?.code === coupon.code ? 'checked' : ''}`}>
@@ -658,12 +574,12 @@ const Checkout = () => {
                 {/* Voucher Input */}
                 <div className="checkout-coupon-box">
                   <button className="btn-wallet-voucher">
-                    <Wallet size={16} /> Ví Voucher
+                    <Wallet size={16} /> {t.walletVoucher}
                   </button>
                   <div className="input-group-row">
                     <input 
                       type="text" 
-                      placeholder="Nhập mã giảm giá" 
+                      placeholder={t.enterCouponCode} 
                       className={`checkout-input coupon-input ${couponError ? 'input-error' : ''}`}
                       value={couponInput}
                       onChange={(e) => {
@@ -673,16 +589,17 @@ const Checkout = () => {
                       disabled={!!appliedCoupon}
                     />
                     {appliedCoupon ? (
-                      <button className="btn-remove-coupon" onClick={handleRemoveCoupon}>
-                        <X size={16} />
+                      <button className="btn-remove-coupon" onClick={handleRemoveCoupon} aria-label="Xóa mã giảm giá">
+                        <X size={16} aria-hidden="true" />
                       </button>
                     ) : (
                       <button 
                         className="btn-dark-apply" 
                         onClick={handleApplyCoupon}
                         disabled={isCouponLoading}
+                        aria-label="Áp dụng mã giảm giá"
                       >
-                        {isCouponLoading ? <Loader2 size={16} className="spinner" /> : 'ÁP DỤNG'}
+                        {isCouponLoading ? <Loader2 size={16} className="spinner" /> : t.apply}
                       </button>
                     )}
                   </div>
@@ -694,7 +611,7 @@ const Checkout = () => {
                   {appliedCoupon && (
                     <div className="coupon-success">
                       <Tag size={14} />
-                      <span>Đã áp dụng: <strong>{appliedCoupon.code}</strong> - {appliedCoupon.description}</span>
+                      <span>{t.couponApplied.replace('{code}', appliedCoupon.code).replace('{description}', appliedCoupon.description)}</span>
                     </div>
                   )}
                 </div>
@@ -704,24 +621,24 @@ const Checkout = () => {
                   <h3 className="calc-title">Chi tiết thanh toán</h3>
 
                   <div className="calc-row">
-                    <span className="calc-label">Tổng giá trị sản phẩm</span>
+                    <span className="calc-label">{t.productValue}</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
 
                   <div className="calc-row">
-                    <span className="calc-label">Phí giao hàng</span>
-                    <span>{shippingFee === 0 ? 'Miễn phí' : formatPrice(shippingFee)}</span>
+                    <span className="calc-label">{t.shippingCost}</span>
+                    <span>{shippingFee === 0 ? t.free : formatPrice(shippingFee)}</span>
                   </div>
 
                   {appliedCoupon && discount > 0 && (
                     <div className="calc-row calc-discount">
-                      <span className="calc-label">Giảm giá ({appliedCoupon.code})</span>
+                      <span className="calc-label">{t.discount.replace('{code}', appliedCoupon.code)}</span>
                       <span className="discount-value">-{formatPrice(discount)}</span>
                     </div>
                   )}
 
                   <div className="calc-row calc-total">
-                    <strong>Thành tiền</strong>
+                    <strong>{t.total}</strong>
                     <div className="total-value-block">
                       <strong className="total-price-big">{formatPrice(total)}</strong>
                       {savings > 0 && (
@@ -771,7 +688,7 @@ const Checkout = () => {
                 <button className="btn-place-order-sticky"
                   onClick={handlePlaceOrder}
                   disabled={isLoading || items.length === 0}>
-                  {isLoading ? <Loader2 size={24} className="spinner" /> : 'Đặt hàng'}
+                  {isLoading ? <Loader2 size={24} className="spinner" /> : t.orderPlaced}
                 </button>
               </div>
             </div>
@@ -781,15 +698,15 @@ const Checkout = () => {
           {isSuccessModalOpen && (
             <div className="modal-overlay">
               <div className="success-modal">
-                <button className="modal-close-btn" onClick={handleBackToHome}>
-                  <X size={24} />
+                <button className="modal-close-btn" onClick={handleBackToHome} aria-label="Đóng">
+                  <X size={24} aria-hidden="true" />
                 </button>
                 <div className="success-icon-wrapper">
                   <Check size={32} className="success-icon" />
                 </div>
                 <h3 className="success-title">Đặt hàng thành công!</h3>
                 <p className="success-desc">Mã đơn hàng: <strong>#{Math.floor(Math.random() * 1000000)}</strong></p>
-                <button className="btn-continue-shopping" onClick={handleBackToHome}>
+                <button className="btn-continue-shopping" onClick={handleBackToHome} aria-label="Tiếp tục mua sắm">
                   Tiếp tục mua sắm
                 </button>
               </div>

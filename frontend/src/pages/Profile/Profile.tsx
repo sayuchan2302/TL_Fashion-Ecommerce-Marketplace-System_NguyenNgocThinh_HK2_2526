@@ -34,7 +34,11 @@ import { CLIENT_TEXT } from '../../utils/texts';
 import { CLIENT_TOAST_MESSAGES } from '../../utils/clientMessages';
 import { notificationService } from '../../services/notificationService';
 import { addressService } from '../../services/addressService';
+import { orderService } from '../../services/orderService';
+import { couponService } from '../../services/couponService';
 import type { Address } from '../../types';
+import type { Order } from '../../types';
+import type { Coupon } from '../../services/couponService';
 import './Profile.css';
 
 const t = CLIENT_TEXT.profile;
@@ -119,6 +123,18 @@ const Profile = () => {
   const refreshAddresses = () => {
     setSavedAddresses(addressService.getAll());
   };
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [vouchers, setVouchers] = useState<Coupon[]>([]);
+
+  useEffect(() => {
+    if (activeTab === 'orders') {
+      setOrders(orderService.list());
+    }
+    if (activeTab === 'vouchers') {
+      setVouchers(couponService.getAvailableCoupons());
+    }
+  }, [activeTab]);
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewProduct, setReviewProduct] = useState<PendingProduct | null>(null);
@@ -253,133 +269,66 @@ const Profile = () => {
 
             {/* Order Cards */}
             <div className="order-list">
-              {/* Note: In a real app, this would check if orders array is empty */}
-              {/* For demo, we are showing mock orders. To see empty state, imagine orders = [] */}
-              {/* 
-              <EmptyState 
-                icon={<Package size={80} strokeWidth={1} />}
-                title="Bạn chưa có đơn hàng nào"
-                description="Hãy trải nghiệm các sản phẩm của Coolmate để bắt đầu hành trình mua sắm của bạn!"
-                actionText="Mua sắm ngay"
-                actionLink="/"
-              />
-              */}
-              {/* Order 1 - Delivered */}
-              <div className="order-card">
-                <div className="order-card-header">
-                  <div className="order-card-meta">
-                    <Link to="/profile/orders/CM20260301" className="order-id">Mã đơn: #CM20260301</Link>
-                    <span className="order-date">01/03/2026</span>
+              {orders.length === 0 ? (
+                <EmptyState 
+                  icon={<Package size={80} strokeWidth={1} />}
+                  title="Bạn chưa có đơn hàng nào"
+                  description="Hãy trải nghiệm các sản phẩm của Coolmate để bắt đầu hành trình mua sắm của bạn!"
+                  actionText="Mua sắm ngay"
+                  actionLink="/"
+                />
+              ) : (
+                orders.map((order) => (
+                  <div key={order.id} className="order-card">
+                    <div className="order-card-header">
+                      <div className="order-card-meta">
+                        <Link to={`/profile/orders/${order.id}`} className="order-id">Mã đơn: #{order.id}</Link>
+                        <span className="order-date">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</span>
+                      </div>
+                      <span className={`order-status-badge status-${order.status}`}>
+                        {tCommon.status[order.status]}
+                      </span>
+                    </div>
+                    <div className="order-card-items">
+                      {order.items.slice(0, 2).map((item, idx) => (
+                        <div key={idx} className="order-item">
+                          <div className="order-item-img">
+                            <img src={item.image} alt={item.name} />
+                          </div>
+                          <div className="order-item-info">
+                            <p className="order-item-name">{item.name}</p>
+                            {item.color && <p className="order-item-variant">Màu: {item.color}</p>}
+                            {item.size && <p className="order-item-variant">Size: {item.size}</p>}
+                            <p className="order-item-qty">x{item.quantity}</p>
+                          </div>
+                          <span className="order-item-price">{item.price.toLocaleString('vi-VN')}đ</span>
+                        </div>
+                      ))}
+                      {order.items.length > 2 && (
+                        <p className="order-more-items">+{order.items.length - 2} sản phẩm khác</p>
+                      )}
+                    </div>
+                    <div className="order-card-footer">
+                      <div className="order-total">
+                        <span>Tổng cộng:</span>
+                        <span className="order-total-price">{order.total.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                      <div className="order-actions">
+                        <Link to={`/profile/orders/${order.id}`} className="order-action-btn order-btn-outline">Xem chi tiết</Link>
+                        {order.status === 'delivered' && (
+                          <button className="order-action-btn order-btn-primary">Đánh giá</button>
+                        )}
+                        {order.status === 'shipping' && (
+                          <button className="order-action-btn order-btn-primary">Theo dõi đơn</button>
+                        )}
+                        {order.status === 'cancelled' && (
+                          <button className="order-action-btn order-btn-outline">Mua lại</button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className="order-status-badge status-delivered">Đã giao</span>
-                </div>
-                <div className="order-card-items">
-                  <div className="order-item">
-                    <div className="order-item-img">
-                      <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=80&h=80&fit=crop" alt="Áo Thun" />
-                    </div>
-                    <div className="order-item-info">
-                      <p className="order-item-name">Áo Thun Nam Cổ Tròn Cotton</p>
-                      <p className="order-item-variant">Màu: Trắng | Size: L</p>
-                      <p className="order-item-qty">x2</p>
-                    </div>
-                    <span className="order-item-price">299.000đ</span>
-                  </div>
-                  <div className="order-item">
-                    <div className="order-item-img">
-                      <img src="https://images.unsplash.com/photo-1542272604-787c3835535d?w=80&h=80&fit=crop" alt="Quần" />
-                    </div>
-                    <div className="order-item-info">
-                      <p className="order-item-name">Quần Jeans Nam Slim Fit</p>
-                      <p className="order-item-variant">Màu: Xanh đậm | Size: 32</p>
-                      <p className="order-item-qty">x1</p>
-                    </div>
-                    <span className="order-item-price">459.000đ</span>
-                  </div>
-                </div>
-                <div className="order-card-footer">
-                  <div className="order-total">
-                    <span>Tổng cộng:</span>
-                    <span className="order-total-price">1.057.000đ</span>
-                  </div>
-                    <div className="order-actions">
-                      <Link to="/profile/orders/CM20260301" className="order-action-btn order-btn-outline">Xem chi tiết</Link>
-                      <button className="order-action-btn order-btn-primary">Đánh giá</button>
-                    </div>
-                </div>
-              </div>
-
-              {/* Order 2 - Shipping */}
-              <div className="order-card">
-                <div className="order-card-header">
-                  <Link to="/profile/orders/CM20260312" className="order-card-header-link">
-                    <div className="order-card-meta">
-                      <span className="order-id">Mã đơn: #CM20260312</span>
-                      <span className="order-date">12/03/2026</span>
-                    </div>
-                  </Link>
-                  <span className="order-status-badge status-shipping">Đang giao</span>
-                </div>
-                <div className="order-card-items">
-                  <div className="order-item">
-                    <div className="order-item-img">
-                      <img src="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=80&h=80&fit=crop" alt="Áo Polo" />
-                    </div>
-                    <div className="order-item-info">
-                      <p className="order-item-name">Áo Polo Nam Excool</p>
-                      <p className="order-item-variant">Màu: Xanh navy | Size: XL</p>
-                      <p className="order-item-qty">x1</p>
-                    </div>
-                    <span className="order-item-price">389.000đ</span>
-                  </div>
-                </div>
-                <div className="order-card-footer">
-                  <div className="order-total">
-                    <span>Tổng cộng:</span>
-                    <span className="order-total-price">389.000đ</span>
-                  </div>
-                    <div className="order-actions">
-                      <Link to="/profile/orders/CM20260312" className="order-action-btn order-btn-outline">Xem chi tiết</Link>
-                      <button className="order-action-btn order-btn-primary">Theo dõi đơn</button>
-                    </div>
-                </div>
-              </div>
-
-              {/* Order 3 - Cancelled */}
-              <div className="order-card">
-                <div className="order-card-header">
-                  <Link to="/profile/orders/CM20260220" className="order-card-header-link">
-                    <div className="order-card-meta">
-                      <span className="order-id">Mã đơn: #CM20260220</span>
-                      <span className="order-date">20/02/2026</span>
-                    </div>
-                  </Link>
-                  <span className="order-status-badge status-cancelled">Đã hủy</span>
-                </div>
-                <div className="order-card-items">
-                  <div className="order-item">
-                    <div className="order-item-img">
-                      <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=80&h=80&fit=crop" alt="Hoodie" />
-                    </div>
-                    <div className="order-item-info">
-                      <p className="order-item-name">Áo Hoodie Oversize Unisex</p>
-                      <p className="order-item-variant">Màu: Đen | Size: M</p>
-                      <p className="order-item-qty">x1</p>
-                    </div>
-                    <span className="order-item-price">549.000đ</span>
-                  </div>
-                </div>
-                <div className="order-card-footer">
-                  <div className="order-total">
-                    <span>Tổng cộng:</span>
-                    <span className="order-total-price">549.000đ</span>
-                  </div>
-                    <div className="order-actions">
-                      <Link to="/profile/orders/CM20260220" className="order-action-btn order-btn-outline">Xem chi tiết</Link>
-                      <button className="order-action-btn order-btn-outline">Mua lại</button>
-                    </div>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
         );
@@ -390,64 +339,32 @@ const Profile = () => {
               <h2 className="profile-content-title">Ví voucher của tôi</h2>
             </div>
             <div className="voucher-list">
-              {/* Note: In a real app, this would check if vouchers array is empty */}
-              {/* For demo, we are showing mock vouchers. If empty: */}
-              {/*
-              <EmptyState 
-                icon={<Ticket size={80} strokeWidth={1} />}
-                title="Ví voucher trống"
-                description="Săn ngay những mã giảm giá hấp dẫn để mua sắm tiết kiệm hơn tại Coolmate."
-                actionText="Săn Voucher"
-                actionLink="/"
-              />
-              */}
-              {/* Voucher 1 */}
-              <div className="voucher-card">
-                <div className="voucher-stripe"></div>
-                <div className="voucher-body">
-                  <div className="voucher-top">
-                    <span className="voucher-code">WELCOMEJ7BMF6</span>
-                    <span className="voucher-remain">(Còn 1)</span>
+              {vouchers.length === 0 ? (
+                <EmptyState 
+                  icon={<Ticket size={80} strokeWidth={1} />}
+                  title="Ví voucher trống"
+                  description="Săn ngay những mã giảm giá hấp dẫn để mua sắm tiết kiệm hơn tại Coolmate."
+                  actionText="Săn Voucher"
+                  actionLink="/"
+                />
+              ) : (
+                vouchers.map((voucher) => (
+                  <div key={voucher.code} className="voucher-card">
+                    <div className="voucher-stripe"></div>
+                    <div className="voucher-body">
+                      <div className="voucher-top">
+                        <span className="voucher-code">{voucher.code}</span>
+                        <span className="voucher-remain">(Còn {voucher.remaining})</span>
+                      </div>
+                      <p className="voucher-desc">{voucher.description}</p>
+                      <div className="voucher-bottom">
+                        <span className="voucher-expiry">HSD: {new Date(voucher.expiresAt).toLocaleDateString('vi-VN')}</span>
+                        <button className="voucher-condition-btn">Điều kiện</button>
+                      </div>
+                    </div>
                   </div>
-                  <p className="voucher-desc">Giảm 15% tối đa 50K cho đơn bất kỳ (Không áp dụng cho danh mục SALE)</p>
-                  <div className="voucher-bottom">
-                    <span className="voucher-expiry">HSD: 12/04/2026</span>
-                    <button className="voucher-condition-btn">Điều kiện</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Voucher 2 */}
-              <div className="voucher-card">
-                <div className="voucher-stripe"></div>
-                <div className="voucher-body">
-                  <div className="voucher-top">
-                    <span className="voucher-code">FREESHIP50K</span>
-                    <span className="voucher-remain">(Còn 2)</span>
-                  </div>
-                  <p className="voucher-desc">Miễn phí vận chuyển cho đơn hàng từ 300K</p>
-                  <div className="voucher-bottom">
-                    <span className="voucher-expiry">HSD: 30/06/2026</span>
-                    <button className="voucher-condition-btn">Điều kiện</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Voucher 3 */}
-              <div className="voucher-card">
-                <div className="voucher-stripe"></div>
-                <div className="voucher-body">
-                  <div className="voucher-top">
-                    <span className="voucher-code">SUMMER2026</span>
-                    <span className="voucher-remain">(Còn 1)</span>
-                  </div>
-                  <p className="voucher-desc">Giảm 20% tối đa 100K cho đơn từ 500K – BST Hè 2026</p>
-                  <div className="voucher-bottom">
-                    <span className="voucher-expiry">HSD: 31/08/2026</span>
-                    <button className="voucher-condition-btn">Điều kiện</button>
-                  </div>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
         );
@@ -624,7 +541,7 @@ const Profile = () => {
           ) : (
             <div className="notifications-list">
               {notifications.map((notif) => (
-                <div 
+                <button 
                   key={notif.id} 
                   className={`notification-card ${!notif.read ? 'unread' : ''}`}
                   onClick={() => {
@@ -635,6 +552,7 @@ const Profile = () => {
                       navigate(notif.link);
                     }
                   }}
+                  type="button"
                 >
                   <div className={`notification-icon notification-icon-${notif.type}`}>
                     {notif.type === 'order' && <Package size={20} />}
@@ -656,11 +574,12 @@ const Profile = () => {
                       deleteNotification(notif.id);
                       addToast(CLIENT_TOAST_MESSAGES.notifications.deleted, 'info');
                     }}
+                    aria-label="Xóa thông báo"
                   >
-                    <Trash size={16} />
+                    <Trash size={16} aria-hidden="true" />
                   </button>
                   {!notif.read && <span className="notification-dot" />}
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -755,29 +674,29 @@ const Profile = () => {
               {/* Name Input */}
               <div className="modal-input-group mt-10">
                 <span className="modal-floating-label">Họ và tên</span>
-                <User className="modal-input-icon" size={18} />
-                <input type="text" className="modal-input" defaultValue={user.name} />
+                <User className="modal-input-icon" size={18} aria-hidden="true" />
+                <input type="text" className="modal-input" defaultValue={user.name} autoComplete="name" name="name" />
               </div>
               
               {/* DOB Inputs */}
               <div className="modal-flex-row mt-10 gap-4">
                 <div className="modal-input-group">
                   <span className="modal-floating-label">Ngày</span>
-                  <Calendar className="modal-input-icon" size={18} />
-                  <input type="text" className="modal-input select-arrow-pad" defaultValue="23" />
-                  <ChevronDown className="modal-select-arrow" size={16} />
+                  <Calendar className="modal-input-icon" size={18} aria-hidden="true" />
+                  <input type="text" className="modal-input select-arrow-pad" defaultValue="23" autoComplete="bday-day" name="bday-day" aria-label="Ngày sinh" />
+                  <ChevronDown className="modal-select-arrow" size={16} aria-hidden="true" />
                 </div>
                 <div className="modal-input-group">
                   <span className="modal-floating-label">Tháng</span>
-                  <Calendar className="modal-input-icon" size={18} />
-                  <input type="text" className="modal-input select-arrow-pad" defaultValue="2" />
-                  <ChevronDown className="modal-select-arrow" size={16} />
+                  <Calendar className="modal-input-icon" size={18} aria-hidden="true" />
+                  <input type="text" className="modal-input select-arrow-pad" defaultValue="2" autoComplete="bday-month" name="bday-month" aria-label="Tháng sinh" />
+                  <ChevronDown className="modal-select-arrow" size={16} aria-hidden="true" />
                 </div>
                 <div className="modal-input-group">
                   <span className="modal-floating-label">Năm</span>
-                  <Calendar className="modal-input-icon" size={18} />
-                  <input type="text" className="modal-input select-arrow-pad" defaultValue="2004" />
-                  <ChevronDown className="modal-select-arrow" size={16} />
+                  <Calendar className="modal-input-icon" size={18} aria-hidden="true" />
+                  <input type="text" className="modal-input select-arrow-pad" defaultValue="2004" autoComplete="bday-year" name="bday-year" aria-label="Năm sinh" />
+                  <ChevronDown className="modal-select-arrow" size={16} aria-hidden="true" />
                 </div>
               </div>
               

@@ -1,21 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { addressService } from '../../services/addressService';
-
-interface Province {
-  code: number;
-  name: string;
-}
-
-interface District {
-  code: number;
-  name: string;
-}
-
-interface Ward {
-  code: number;
-  name: string;
-}
+import { useAddressLocation } from '../../hooks/useAddressLocation';
 
 interface AddressModalProps {
   isOpen: boolean;
@@ -33,115 +19,37 @@ export interface AddressData {
   isDefault: boolean;
 }
 
-const API_BASE = 'https://provinces.open-api.vn/api';
-
 const AddressModal = ({ isOpen, onClose, onSave }: AddressModalProps) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [detail, setDetail] = useState('');
   const [isDefault, setIsDefault] = useState(false);
 
-  // Province / District / Ward states
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [wards, setWards] = useState<Ward[]>([]);
+  const addressLocation = useAddressLocation({ loadOnMount: isOpen });
 
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedWard, setSelectedWard] = useState('');
-
-  const [selectedProvinceName, setSelectedProvinceName] = useState('');
-  const [selectedDistrictName, setSelectedDistrictName] = useState('');
-  const [selectedWardName, setSelectedWardName] = useState('');
-
-  const [loadingProvinces, setLoadingProvinces] = useState(false);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
-  const [loadingWards, setLoadingWards] = useState(false);
-
-  // Fetch provinces on mount
   useEffect(() => {
-    if (!isOpen) return;
-    setLoadingProvinces(true);
-    fetch(`${API_BASE}/?depth=1`)
-      .then(res => res.json())
-      .then((data: Province[]) => {
-        setProvinces(data);
-        setLoadingProvinces(false);
-      })
-      .catch(() => setLoadingProvinces(false));
-  }, [isOpen]);
-
-  // Fetch districts when province changes
-  useEffect(() => {
-    if (!selectedProvince) {
-      setDistricts([]);
-      setSelectedDistrict('');
-      setSelectedDistrictName('');
-      setWards([]);
-      setSelectedWard('');
-      setSelectedWardName('');
-      return;
+    if (isOpen) {
+      addressLocation.clearSelection();
     }
-    setLoadingDistricts(true);
-    setDistricts([]);
-    setSelectedDistrict('');
-    setSelectedDistrictName('');
-    setWards([]);
-    setSelectedWard('');
-    setSelectedWardName('');
-    fetch(`${API_BASE}/p/${selectedProvince}?depth=2`)
-      .then(res => res.json())
-      .then((data: { districts: District[] }) => {
-        setDistricts(data.districts || []);
-        setLoadingDistricts(false);
-      })
-      .catch(() => setLoadingDistricts(false));
-  }, [selectedProvince]);
-
-  // Fetch wards when district changes
-  useEffect(() => {
-    if (!selectedDistrict) {
-      setWards([]);
-      setSelectedWard('');
-      setSelectedWardName('');
-      return;
-    }
-    setLoadingWards(true);
-    setWards([]);
-    setSelectedWard('');
-    setSelectedWardName('');
-    fetch(`${API_BASE}/d/${selectedDistrict}?depth=2`)
-      .then(res => res.json())
-      .then((data: { wards: Ward[] }) => {
-        setWards(data.wards || []);
-        setLoadingWards(false);
-      })
-      .catch(() => setLoadingWards(false));
-  }, [selectedDistrict]);
+  }, [isOpen, addressLocation.clearSelection]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addressService.add({
       fullName: name,
       phone,
-      province: selectedProvinceName,
-      district: selectedDistrictName,
-      ward: selectedWardName,
+      province: addressLocation.selectedProvinceName,
+      district: addressLocation.selectedDistrictName,
+      ward: addressLocation.selectedWardName,
       detail,
       isDefault,
     });
     if (onSave) onSave();
-    // Reset form
     setName('');
     setPhone('');
     setDetail('');
     setIsDefault(false);
-    setSelectedProvince('');
-    setSelectedDistrict('');
-    setSelectedWard('');
-    setSelectedProvinceName('');
-    setSelectedDistrictName('');
-    setSelectedWardName('');
+    addressLocation.clearSelection();
     onClose();
   };
 
@@ -150,8 +58,8 @@ const AddressModal = ({ isOpen, onClose, onSave }: AddressModalProps) => {
   return (
     <div className="profile-modal-overlay" onClick={onClose}>
       <div className="profile-modal address-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="profile-modal-close" onClick={onClose}>
-          <X size={20} />
+        <button className="profile-modal-close" onClick={onClose} aria-label="Đóng">
+          <X size={20} aria-hidden="true" />
         </button>
         <h2 className="profile-modal-title">Thêm địa chỉ mới</h2>
 
@@ -165,6 +73,8 @@ const AddressModal = ({ isOpen, onClose, onSave }: AddressModalProps) => {
               style={{ paddingLeft: '16px' }}
               value={name}
               onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              name="fullName"
               required
             />
           </div>
@@ -178,6 +88,8 @@ const AddressModal = ({ isOpen, onClose, onSave }: AddressModalProps) => {
               style={{ paddingLeft: '16px' }}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
+              name="phone"
               required
             />
           </div>
@@ -187,25 +99,20 @@ const AddressModal = ({ isOpen, onClose, onSave }: AddressModalProps) => {
             <span className="modal-floating-label">Tỉnh / Thành phố</span>
             <select
               className="modal-input modal-select"
-              value={selectedProvince}
-              onChange={(e) => {
-                const code = e.target.value;
-                setSelectedProvince(code);
-                const p = provinces.find(p => String(p.code) === code);
-                setSelectedProvinceName(p ? p.name : '');
-              }}
+              value={addressLocation.selectedProvinceCode}
+              onChange={(e) => addressLocation.setSelectedProvinceCode(e.target.value)}
               required
             >
               <option value="">
-                {loadingProvinces ? 'Đang tải...' : '-- Chọn Tỉnh / Thành phố --'}
+                {addressLocation.loadingProvinces ? 'Đang tải...' : '-- Chọn Tỉnh / Thành phố --'}
               </option>
-              {provinces.map((p) => (
+              {addressLocation.provinces.map((p) => (
                 <option key={p.code} value={p.code}>
                   {p.name}
                 </option>
               ))}
             </select>
-            <ChevronDown className="modal-select-arrow" size={16} />
+            <ChevronDown className="modal-select-arrow" size={16} aria-hidden="true" />
           </div>
 
           {/* District Select */}
@@ -213,26 +120,21 @@ const AddressModal = ({ isOpen, onClose, onSave }: AddressModalProps) => {
             <span className="modal-floating-label">Quận / Huyện</span>
             <select
               className="modal-input modal-select"
-              value={selectedDistrict}
-              onChange={(e) => {
-                const code = e.target.value;
-                setSelectedDistrict(code);
-                const d = districts.find(d => String(d.code) === code);
-                setSelectedDistrictName(d ? d.name : '');
-              }}
-              disabled={!selectedProvince}
+              value={addressLocation.selectedDistrictCode}
+              onChange={(e) => addressLocation.setSelectedDistrictCode(e.target.value)}
+              disabled={!addressLocation.selectedProvinceCode}
               required
             >
               <option value="">
-                {loadingDistricts ? 'Đang tải...' : '-- Chọn Quận / Huyện --'}
+                {addressLocation.loadingDistricts ? 'Đang tải...' : '-- Chọn Quận / Huyện --'}
               </option>
-              {districts.map((d) => (
+              {addressLocation.districts.map((d) => (
                 <option key={d.code} value={d.code}>
                   {d.name}
                 </option>
               ))}
             </select>
-            <ChevronDown className="modal-select-arrow" size={16} />
+            <ChevronDown className="modal-select-arrow" size={16} aria-hidden="true" />
           </div>
 
           {/* Ward Select */}
@@ -240,26 +142,21 @@ const AddressModal = ({ isOpen, onClose, onSave }: AddressModalProps) => {
             <span className="modal-floating-label">Phường / Xã</span>
             <select
               className="modal-input modal-select"
-              value={selectedWard}
-              onChange={(e) => {
-                const code = e.target.value;
-                setSelectedWard(code);
-                const w = wards.find(w => String(w.code) === code);
-                setSelectedWardName(w ? w.name : '');
-              }}
-              disabled={!selectedDistrict}
+              value={addressLocation.selectedWardCode}
+              onChange={(e) => addressLocation.setSelectedWardCode(e.target.value)}
+              disabled={!addressLocation.selectedDistrictCode}
               required
             >
               <option value="">
-                {loadingWards ? 'Đang tải...' : '-- Chọn Phường / Xã --'}
+                {addressLocation.loadingWards ? 'Đang tải...' : '-- Chọn Phường / Xã --'}
               </option>
-              {wards.map((w) => (
+              {addressLocation.wards.map((w) => (
                 <option key={w.code} value={w.code}>
                   {w.name}
                 </option>
               ))}
             </select>
-            <ChevronDown className="modal-select-arrow" size={16} />
+            <ChevronDown className="modal-select-arrow" size={16} aria-hidden="true" />
           </div>
 
           {/* Detail Address */}

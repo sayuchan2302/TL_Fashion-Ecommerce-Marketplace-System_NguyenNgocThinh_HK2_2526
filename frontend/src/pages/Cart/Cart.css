@@ -400,6 +400,11 @@
   box-shadow: 0 0 0 3px rgba(47, 90, 207, 0.1);
 }
 
+.coupon-input:focus-visible {
+  border-color: var(--co-blue);
+  box-shadow: 0 0 0 3px rgba(47, 90, 207, 0.2);
+}
+
 .btn-apply {
   padding: 0 20px;
   background: var(--co-blue);
