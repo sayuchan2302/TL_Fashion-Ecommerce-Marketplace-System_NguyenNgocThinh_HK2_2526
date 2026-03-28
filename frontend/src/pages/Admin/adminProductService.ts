@@ -34,6 +34,7 @@ export interface AdminProductRecord {
 
 type ProductListener = () => void;
 const listeners = new Set<ProductListener>();
+let cachedAdminProducts: AdminProductRecord[] = [];
 
 const notifyListeners = () => {
   listeners.forEach((listener) => listener());
@@ -48,13 +49,17 @@ export const subscribeAdminProducts = (listener: ProductListener) => {
 
 export const listAdminProducts = async (): Promise<AdminProductRecord[]> => {
   try {
-    const data = await apiRequest<any>('/api/admin/products?size=100', {}, { auth: true });
-    return data.content;
+    const data = await apiRequest<{ content?: AdminProductRecord[] }>('/api/admin/products?size=100', {}, { auth: true });
+    const rows = Array.isArray(data?.content) ? data.content : [];
+    cachedAdminProducts = rows;
+    return rows;
   } catch (error) {
     console.error('Failed to list admin products:', error);
-    return [];
+    return cachedAdminProducts;
   }
 };
+
+export const listAdminProductsSnapshot = (): AdminProductRecord[] => cachedAdminProducts;
 
 export const getProductBySku = async (sku: string): Promise<AdminProductRecord | undefined> => {
   try {
@@ -85,12 +90,15 @@ export const updateProductPrice = async (sku: string, adjust: number): Promise<{
     notifyListeners();
     return { ok: true };
   } catch (error: any) {
-    return { ok: false, error: error.message || 'Lỗi hệ thống khi cập nhật giá' };
+    return { ok: false, error: error.message || 'Cannot update product price right now.' };
   }
 };
 
 export const applyVariantMatrix = async (sku: string, matrix: VariantRow[]): Promise<{ ok: boolean; error?: string }> => {
-  return { ok: false, error: 'Chức năng cập nhật ma trận biến thể chưa được hỗ trợ qua API này' };
+  return {
+    ok: false,
+    error: `Cannot sync variant matrix for SKU ${sku}. API support is not available yet (${matrix.length} rows).`,
+  };
 };
 
 export const adjustProductStock = async (params: {
@@ -102,9 +110,9 @@ export const adjustProductStock = async (params: {
 }): Promise<{ ok: boolean; error?: string }> => {
   try {
     const product = await getProductBySku(params.sku);
-    if (!product) return { ok: false, error: 'Sản phẩm không tồn tại' };
+    if (!product) return { ok: false, error: 'Product does not exist.' };
 
-    await apiRequest(`/api/admin/products/adjust-stock`, {
+    await apiRequest('/api/admin/products/adjust-stock', {
       method: 'POST',
       body: JSON.stringify({
         sku: params.sku,
@@ -113,10 +121,10 @@ export const adjustProductStock = async (params: {
         suggestedReason: params.reason,
       }),
     }, { auth: true });
-    
+
     notifyListeners();
     return { ok: true };
   } catch (error: any) {
-    return { ok: false, error: error.message || 'Lỗi hệ thống khi điều chỉnh tồn kho' };
+    return { ok: false, error: error.message || 'Cannot update product stock right now.' };
   }
 };

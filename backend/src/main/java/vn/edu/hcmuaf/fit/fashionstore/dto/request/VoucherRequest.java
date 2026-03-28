@@ -10,9 +10,12 @@ import vn.edu.hcmuaf.fit.fashionstore.entity.Voucher;
 
 import java.time.LocalDate;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 public class VoucherRequest {
+
+    private UUID storeId;
 
     @NotBlank
     private String name;

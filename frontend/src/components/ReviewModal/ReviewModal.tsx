@@ -51,23 +51,22 @@ const ReviewModal = ({ isOpen, onClose, product, existingReview }: ReviewModalPr
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const submission: ReviewSubmission = {
-        productId: product.productId,
-        productName: product.productName,
-        productImage: product.productImage,
-        orderId: product.orderId,
-        rating,
-        title: title || undefined,
-        content,
-        images: images.length > 0 ? images : undefined,
-      };
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    const submission: ReviewSubmission = {
+      productId: product.productId,
+      productName: product.productName,
+      productImage: product.productImage,
+      orderId: product.orderId,
+      rating,
+      title: title || undefined,
+      content,
+      images: images.length > 0 ? images : undefined,
+    };
 
-      reviewService.submitReview(submission);
-      addToast(CLIENT_TOAST_MESSAGES.review.pendingModeration, 'success');
-      setIsSubmitting(false);
-      onClose();
-    }, 800);
+    await reviewService.submitReview(submission);
+    addToast(CLIENT_TOAST_MESSAGES.review.pendingModeration, 'success');
+    setIsSubmitting(false);
+    onClose();
   };
 
   const handleStarClick = (star: number) => {

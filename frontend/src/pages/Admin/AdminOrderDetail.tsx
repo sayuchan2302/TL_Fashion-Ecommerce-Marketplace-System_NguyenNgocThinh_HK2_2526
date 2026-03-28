@@ -18,6 +18,7 @@ import {
   getAdminOrderByCode,
   subscribeAdminOrders,
   transitionAdminOrder,
+  updateAdminOrderTracking,
   type AdminOrderRecord,
 } from './adminOrderService';
 import { AdminStateBlock } from './AdminStateBlocks';
@@ -39,6 +40,7 @@ const AdminOrderDetailContent = ({ orderCode, routeId }: { orderCode: string; ro
   const [reasonNote, setReasonNote] = useState('');
   const [isEditingTracking, setIsEditingTracking] = useState(false);
   const [trackingInput, setTrackingInput] = useState('');
+  const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
 
   const fulfillment = order?.fulfillment || 'pending';
   const paymentStatus = order?.paymentStatus || 'unpaid';
@@ -148,6 +150,28 @@ const AdminOrderDetailContent = ({ orderCode, routeId }: { orderCode: string; ro
     link.remove();
     URL.revokeObjectURL(url);
     pushToast(ADMIN_DICTIONARY.messages.orderDetail.auditExported(order.code));
+  };
+
+  const saveTrackingNumber = async () => {
+    const normalizedTracking = trackingInput.trim();
+    if (!normalizedTracking) {
+      pushToast('Vui lòng nhập mã vận đơn.');
+      return;
+    }
+
+    setIsUpdatingTracking(true);
+    const result = await updateAdminOrderTracking(order.code, normalizedTracking);
+    setIsUpdatingTracking(false);
+
+    if (!result.ok || !result.order) {
+      pushToast(result.error || 'Không thể cập nhật mã vận đơn.');
+      return;
+    }
+
+    setOrder(result.order);
+    setIsEditingTracking(false);
+    setTrackingInput('');
+    pushToast(result.message || t.messages.trackingUpdated);
   };
 
   return (
@@ -270,13 +294,8 @@ const AdminOrderDetailContent = ({ orderCode, routeId }: { orderCode: string; ro
                     <button
                       className="admin-icon-btn subtle"
                       aria-label={t.updateTracking}
-                      onClick={() => {
-                        // TODO: Implement actual backend tracking update
-                        // sharedOrderStore.updateTracking(order.code, trackingInput.trim());
-                        // setOrder(getAdminOrderByCode(orderCode));
-                        setIsEditingTracking(false);
-                        pushToast('Tính năng cập nhật mã vận đơn qua API đang được xây dựng.');
-                      }}
+                      disabled={isUpdatingTracking || !trackingInput.trim()}
+                      onClick={saveTrackingNumber}
                     >
                       <Save size={14} />
                     </button>
@@ -287,7 +306,14 @@ const AdminOrderDetailContent = ({ orderCode, routeId }: { orderCode: string; ro
                     <button
                       className="admin-icon-btn subtle"
                       aria-label={ADMIN_DICTIONARY.actionTitles.copyTracking}
-                      onClick={() => navigator.clipboard?.writeText(order.tracking)}
+                      onClick={() => {
+                        if (!order.tracking) {
+                          pushToast('Đơn hàng chưa có mã vận đơn để sao chép.');
+                          return;
+                        }
+                        navigator.clipboard?.writeText(order.tracking);
+                        pushToast('Đã sao chép mã vận đơn.');
+                      }}
                     >
                       <Copy size={14} />
                     </button>

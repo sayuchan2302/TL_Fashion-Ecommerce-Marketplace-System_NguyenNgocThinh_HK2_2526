@@ -17,6 +17,7 @@ import vn.edu.hcmuaf.fit.fashionstore.repository.UserRepository;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -144,10 +145,10 @@ class OrderServiceTest {
                 .id(orderId)
                 .storeId(storeId)
                 .status(status)
-                .subtotal(100_000.0)
-                .shippingFee(20_000.0)
-                .discount(0.0)
-                .total(120_000.0)
+                .subtotal(new BigDecimal("100000"))
+                .shippingFee(new BigDecimal("20000"))
+                .discount(new BigDecimal("0"))
+                .total(new BigDecimal("120000"))
                 .paymentMethod(Order.PaymentMethod.COD)
                 .paymentStatus(Order.PaymentStatus.UNPAID)
                 .build();

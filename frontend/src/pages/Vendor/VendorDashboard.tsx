@@ -21,6 +21,7 @@ import VendorLayout from './VendorLayout';
 import { getVendorOrderStatusLabel, getVendorOrderStatusTone } from './vendorOrderPresentation';
 import { calculateCommission, formatCurrency } from '../../services/commissionService';
 import { vendorPortalService, type VendorDashboardData, type VendorOrderSummary } from '../../services/vendorPortalService';
+import { vendorVoucherService } from '../../services/vendorVoucherService';
 import { useToast } from '../../contexts/ToastContext';
 import { getUiErrorMessage } from '../../utils/errorMessage';
 
@@ -43,15 +44,22 @@ const VendorDashboard = () => {
   const [data, setData] = useState<VendorDashboardData>(initialData);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [runningVoucherCount, setRunningVoucherCount] = useState(0);
 
   useEffect(() => {
     let active = true;
 
     const load = async () => {
       try {
-        const next = await vendorPortalService.getDashboardData();
+        const [next, voucherResult] = await Promise.all([
+          vendorPortalService.getDashboardData(),
+          vendorVoucherService.list({ status: 'running', page: 1, size: 1 }),
+        ]);
         if (!active) return;
-        startTransition(() => setData(next));
+        startTransition(() => {
+          setData(next);
+          setRunningVoucherCount(voucherResult.counts.running);
+        });
       } catch (err: unknown) {
         if (!active) return;
         addToast(getUiErrorMessage(err, 'Không tải được bảng điều khiển gian hàng'), 'error');
@@ -116,9 +124,9 @@ const VendorDashboard = () => {
     },
     {
       label: 'Voucher đang chạy',
-      value: data.stats.totalProducts > 0 ? 3 : 0,
-      change: data.stats.totalProducts > 0 ? '+1' : '0',
-      tone: 'up',
+      value: runningVoucherCount,
+      change: `${runningVoucherCount}`,
+      tone: runningVoucherCount > 0 ? 'up' : 'down',
       icon: <TicketPercent size={18} />,
       to: '/vendor/promotions',
       cardTone: 'success',

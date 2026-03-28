@@ -39,9 +39,11 @@ interface FormErrors {
   note?: string;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const Checkout = () => {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { items, updateQuantity, removeFromCart, clearCart, groupedByStore } = useCart();
   const { addToast } = useToast();
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'zalopay' | 'momo' | 'vnpay'>('vnpay');
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +61,8 @@ const Checkout = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponError, setCouponError] = useState('');
   const [isCouponLoading, setIsCouponLoading] = useState(false);
-  const [availableCoupons] = useState(() => couponService.getAvailableCoupons());
+  const [isCouponsFetching, setIsCouponsFetching] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
 
   const addressLocation = useAddressLocation();
   const couponScrollRef = useRef<HTMLDivElement>(null);
@@ -84,6 +87,60 @@ const Checkout = () => {
     return () => el.removeEventListener('wheel', handleWheel);
   }, []);
 
+  const storeGroups = groupedByStore();
+  const checkoutStoreIds = Array.from(new Set(
+    storeGroups
+      .map((group) => group.storeId)
+      .filter((storeId) => UUID_PATTERN.test(storeId)),
+  )).sort();
+  const couponStoreKey = checkoutStoreIds.join(',');
+  const storeSubtotals = storeGroups.reduce<Record<string, number>>((acc, group) => {
+    acc[group.storeId] = group.subtotal;
+    return acc;
+  }, {});
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsCouponsFetching(true);
+
+    couponService.getAvailableCoupons(checkoutStoreIds)
+      .then((coupons) => {
+        if (!cancelled) {
+          setAvailableCoupons(coupons);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailableCoupons([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsCouponsFetching(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [couponStoreKey]);
+
+  useEffect(() => {
+    if (!appliedCoupon) {
+      return;
+    }
+
+    const stillAvailable = availableCoupons.some((coupon) => (
+      coupon.code === appliedCoupon.code
+      && (coupon.storeId || '') === (appliedCoupon.storeId || '')
+    ));
+
+    if (!stillAvailable) {
+      setAppliedCoupon(null);
+      setCouponError('Mã giảm giá đã không còn khả dụng cho giỏ hàng hiện tại');
+    }
+  }, [availableCoupons, appliedCoupon]);
+
   const handleQuantityChange = (cartId: string, delta: number) => {
     const item = items.find(i => i.cartId === cartId);
     if (item) {
@@ -96,27 +153,38 @@ const Checkout = () => {
     removeFromCart(cartId);
   };
 
-  const handleApplyCoupon = () => {
-    if (!couponInput.trim()) {
-      setCouponError('Vui lòng nhập mã giảm giá');
-      return;
-    }
-
+  const applyCouponCode = async (code: string) => {
     setIsCouponLoading(true);
     setCouponError('');
 
-    setTimeout(() => {
-      const result = couponService.validate(couponInput, subtotal);
-      setIsCouponLoading(false);
+    try {
+      const result = await couponService.validate(code, subtotal, {
+        storeIds: checkoutStoreIds,
+        storeSubtotals,
+        forceRefresh: true,
+      });
 
       if (result.valid && result.coupon) {
         setAppliedCoupon(result.coupon);
         setCouponInput('');
         addToast(`Áp dụng mã ${result.coupon.code} thành công!`, 'success');
-      } else {
-        setCouponError(result.error || 'Mã giảm giá không hợp lệ');
+        return;
       }
-    }, 500);
+
+      setCouponError(result.error || 'Mã giảm giá không hợp lệ');
+    } catch {
+      setCouponError('Không tải được voucher, vui lòng thử lại');
+    } finally {
+      setIsCouponLoading(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) {
+      setCouponError('Vui lòng nhập mã giảm giá');
+      return;
+    }
+    await applyCouponCode(couponInput);
   };
 
   const handleRemoveCoupon = () => {
@@ -125,21 +193,24 @@ const Checkout = () => {
     addToast('Đã xóa mã giảm giá', 'info');
   };
 
-  const handleSelectCoupon = (coupon: Coupon) => {
+  const handleSelectCoupon = async (coupon: Coupon) => {
     if (appliedCoupon?.code === coupon.code) {
       setAppliedCoupon(null);
       addToast('Đã bỏ chọn mã giảm giá', 'info');
     } else {
-      setAppliedCoupon(coupon);
-      addToast(`Áp dụng mã ${coupon.code} thành công!`, 'success');
+      await applyCouponCode(coupon.code);
     }
   };
 
-  // All cart items go to checkout — selection was done on Cart page
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingFee = subtotal > 200000 ? 0 : 30000;
+  const shippingFee = storeGroups.reduce((sum, group) => sum + group.shippingFee, 0);
+  const appliedCouponOrderValue = appliedCoupon
+    ? (appliedCoupon.storeId && Number.isFinite(storeSubtotals[appliedCoupon.storeId])
+      ? storeSubtotals[appliedCoupon.storeId]
+      : subtotal)
+    : subtotal;
   const discount = appliedCoupon
-    ? couponService.calculateDiscount(appliedCoupon, subtotal)
+    ? couponService.calculateDiscount(appliedCoupon, appliedCouponOrderValue)
     : 0;
   const total = subtotal + shippingFee - discount;
   const savings = discount;
@@ -246,6 +317,10 @@ const Checkout = () => {
           province: formValues.province,
           isDefault: false,
         });
+      }
+
+      if (appliedCoupon?.code) {
+        couponService.recordUsage(appliedCoupon.code);
       }
 
       clearCart();
@@ -583,7 +658,7 @@ const Checkout = () => {
 
                         <div className="unified-qty-price">
                           <div className="unified-qty-control">
-                            <button onClick={() => handleQuantityChange(item.cartId, -1)} disabled={item.quantity <= 1} aria-label="Giảm số lượng">−</button>
+                            <button onClick={() => handleQuantityChange(item.cartId, -1)} disabled={item.quantity <= 1} aria-label="Giảm số lượng">-</button>
                             <span>{item.quantity}</span>
                             <button onClick={() => handleQuantityChange(item.cartId, 1)} aria-label="Tăng số lượng">+</button>
                           </div>
@@ -601,7 +676,17 @@ const Checkout = () => {
 
                 {/* Coupon Tickets */}
                 <div className="coupon-ticket-scroll" ref={couponScrollRef}>
-                  {availableCoupons.map((coupon) => (
+                  {isCouponsFetching && (
+                    <div className="coupon-ticket">
+                      <div className="ticket-info">Đang tải voucher khả dụng...</div>
+                    </div>
+                  )}
+                  {!isCouponsFetching && availableCoupons.length === 0 && (
+                    <div className="coupon-ticket">
+                      <div className="ticket-info">Hiện chưa có voucher phù hợp cho giỏ hàng này.</div>
+                    </div>
+                  )}
+                  {!isCouponsFetching && availableCoupons.map((coupon) => (
                     <div
                       key={coupon.code}
                       className={`coupon-ticket ${appliedCoupon?.code === coupon.code ? 'coupon-selected' : ''}`}
@@ -784,3 +869,4 @@ const Checkout = () => {
 };
 
 export default Checkout;
+

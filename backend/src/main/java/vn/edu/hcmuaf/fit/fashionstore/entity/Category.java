@@ -43,9 +43,9 @@ public class Category extends BaseEntity {
 
     private Integer sortOrder;
 
-    @Column(columnDefinition = "boolean default true")
+    @Column(nullable = false)
     private Boolean isVisible = true;
 
-    @Column(columnDefinition = "boolean default false")
+    @Column(nullable = false)
     private Boolean showOnMenu = false;
 }

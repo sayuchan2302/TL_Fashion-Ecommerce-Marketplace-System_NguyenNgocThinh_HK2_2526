@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.hcmuaf.fit.fashionstore.entity.Voucher;
 
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,17 +35,76 @@ public interface VoucherRepository extends JpaRepository<Voucher, UUID> {
             Pageable pageable
     );
 
+    @Query("""
+            SELECT v FROM Voucher v
+            WHERE (:status IS NULL OR v.status = :status)
+              AND (
+                  COALESCE(:keyword, '') = ''
+                  OR LOWER(v.name) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+                  OR LOWER(v.code) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+                  OR LOWER(COALESCE(v.description, '')) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+              )
+            """)
+    Page<Voucher> searchAll(
+            @Param("status") Voucher.VoucherStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
+
     Optional<Voucher> findByIdAndStoreId(UUID id, UUID storeId);
 
     Optional<Voucher> findByStoreIdAndCode(UUID storeId, String code);
 
+    @Query("""
+            SELECT v FROM Voucher v
+            WHERE UPPER(v.code) = UPPER(:code)
+              AND v.storeId IN :storeIds
+            """)
+    List<Voucher> findByCodeAndStoreIds(
+            @Param("code") String code,
+            @Param("storeIds") Collection<UUID> storeIds
+    );
+
+    @Query("""
+            SELECT v FROM Voucher v
+            WHERE v.status = :status
+              AND v.storeId IN :storeIds
+              AND (v.startDate IS NULL OR v.startDate <= :today)
+              AND (v.endDate IS NULL OR v.endDate >= :today)
+              AND COALESCE(v.usedCount, 0) < COALESCE(v.totalIssued, 0)
+            ORDER BY v.endDate ASC, v.createdAt DESC
+            """)
+    List<Voucher> findPublicAvailableByStoreIds(
+            @Param("status") Voucher.VoucherStatus status,
+            @Param("storeIds") Collection<UUID> storeIds,
+            @Param("today") LocalDate today
+    );
+
+    @Query("""
+            SELECT v FROM Voucher v
+            WHERE v.status = :status
+              AND (v.startDate IS NULL OR v.startDate <= :today)
+              AND (v.endDate IS NULL OR v.endDate >= :today)
+              AND COALESCE(v.usedCount, 0) < COALESCE(v.totalIssued, 0)
+            ORDER BY v.endDate ASC, v.createdAt DESC
+            """)
+    List<Voucher> findPublicAvailable(
+            @Param("status") Voucher.VoucherStatus status,
+            @Param("today") LocalDate today
+    );
+
     long countByStoreId(UUID storeId);
 
     long countByStoreIdAndStatus(UUID storeId, Voucher.VoucherStatus status);
+
+    long countByStatus(Voucher.VoucherStatus status);
 
     @Query("""
             SELECT COALESCE(SUM(v.usedCount), 0) FROM Voucher v
             WHERE v.storeId = :storeId
             """)
     long sumUsedCountByStoreId(@Param("storeId") UUID storeId);
+
+    @Query("SELECT COALESCE(SUM(v.usedCount), 0) FROM Voucher v")
+    long sumUsedCount();
 }

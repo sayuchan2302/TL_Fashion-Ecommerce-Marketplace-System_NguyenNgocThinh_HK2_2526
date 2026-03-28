@@ -255,18 +255,21 @@ const AdminProducts = () => {
     setPendingStockAdjustment(null);
   };
 
-  const openDrawer = (product?: AdminProductRecord) => {
+  const openDrawer = async (product?: AdminProductRecord) => {
     const sku = product?.sku || MANAGED_PRODUCT_SKU;
-    const managed = getProductBySku(sku);
+    const managed = await getProductBySku(sku);
     if (managed) {
       setVariantRows(managed.variantMatrix);
       setStock(String(managed.stock));
-      setInventoryLogs(getProductInventoryLedger(sku, 6));
+      const logs = await getProductInventoryLedger(sku, 6);
+      setInventoryLogs(logs);
     }
     setShowDrawer(true);
   };
 
-  const handleAddProduct = () => openDrawer();
+  const handleAddProduct = () => {
+    void openDrawer();
+  };
   const closeDrawer = () => setShowDrawer(false);
 
   const handleSaveDrawer = () => {
@@ -277,18 +280,15 @@ const AdminProducts = () => {
   const openVariants = () => setShowVariants(true);
   const closeVariants = () => setShowVariants(false);
 
-  const handleVariantsSaved = (matrix: VariantRow[]) => {
-    const result = applyVariantMatrix({
-      sku: MANAGED_PRODUCT_SKU,
-      matrix,
-      actor: 'Admin',
-    });
+  const handleVariantsSaved = async (matrix: VariantRow[]) => {
+    const result = await applyVariantMatrix(MANAGED_PRODUCT_SKU, matrix);
     if (!result.ok) {
-      pushToast(result.error, 2200);
+      pushToast(result.error || 'Khong the dong bo bien the', 2200);
       return;
     }
     setVariantRows(matrix);
-    setInventoryLogs(getProductInventoryLedger(MANAGED_PRODUCT_SKU, 6));
+    const logs = await getProductInventoryLedger(MANAGED_PRODUCT_SKU, 6);
+    setInventoryLogs(logs);
     pushToast(ADMIN_DICTIONARY.messages.products.variantsSynced, 2000);
   };
 

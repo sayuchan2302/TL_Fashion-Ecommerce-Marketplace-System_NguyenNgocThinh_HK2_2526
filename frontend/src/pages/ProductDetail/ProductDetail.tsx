@@ -82,7 +82,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const productId = id || '';
-  const [reviews, setReviews] = useState<ClientReviewItem[]>(() => reviewService.getReviewsByProduct(productId));
+  const [reviews, setReviews] = useState<ClientReviewItem[]>([]);
 
   const relatedProducts = useMemo(() => {
     return productService.getRelated(productId, 4);
@@ -113,7 +113,8 @@ const ProductDetail = () => {
           setSelectedColor(defaultVariant?.color || fetched.colors?.[0] || '');
           setSelectedSize(defaultVariant?.size || '');
         }
-        setReviews(reviewService.getReviewsByProduct(productId));
+        const productReviews = await reviewService.getReviewsByProduct(productId);
+        setReviews(productReviews);
         setIsLoading(false);
       })();
     }, 300);
@@ -125,7 +126,7 @@ const ProductDetail = () => {
   }, [productId]);
 
   // ── Review submission handler ─────────────────────────────────────────────
-  const handleSubmitReview = (e: React.FormEvent) => {
+  const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (reviewRating === 0) {
       addToast('Vui lòng chọn số sao đánh giá.', 'error');
@@ -136,8 +137,9 @@ const ProductDetail = () => {
       return;
     }
     setSubmitting(true);
-    setTimeout(() => {
-      reviewService.submitReview({
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await reviewService.submitReview({
+        storeId: product?.storeId,
         productId,
         productName: product?.name,
         productImage: product?.image,
@@ -150,7 +152,6 @@ const ProductDetail = () => {
       setReviewRating(0);
       setReviewContent('');
       addToast('Đánh giá đã được gửi, chờ phê duyệt.', 'success');
-    }, 600);
   };
 
   // ── Average rating ────────────────────────────────────────────────────────

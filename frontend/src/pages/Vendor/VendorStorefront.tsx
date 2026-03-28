@@ -8,7 +8,7 @@ import { getUiErrorMessage } from '../../utils/errorMessage';
 import { AdminStateBlock } from '../Admin/AdminStateBlocks';
 
 const defaultSettings: VendorSettingsData = {
-  storeInfo: { name: '', description: '', logo: '', contactEmail: '', phone: '', address: '' },
+  storeInfo: { name: '', slug: '', description: '', logo: '', contactEmail: '', phone: '', address: '' },
   bankInfo: { bankName: '', accountNumber: '', accountHolder: '', verified: false },
   notifications: { newOrder: true, orderStatusChange: true, lowStock: true, payoutComplete: true, promotions: false },
   shipping: { ghn: true, ghtk: true, express: false, warehouseAddress: '', warehouseContact: '', warehousePhone: '' },
@@ -75,7 +75,7 @@ const VendorStorefront = () => {
       breadcrumbs={['Kênh Người Bán', 'Gian hàng']}
       actions={(
         <>
-          <a className="admin-ghost-btn" href={`/store/${settings.storeInfo.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'my-store'}`}>
+          <a className="admin-ghost-btn" href={`/store/${settings.storeInfo.slug || 'my-store'}`}>
             <ExternalLink size={16} />
             Xem trang công khai
           </a>

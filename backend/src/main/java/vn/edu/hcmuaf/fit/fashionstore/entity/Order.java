@@ -2,6 +2,7 @@ package vn.edu.hcmuaf.fit.fashionstore.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -70,6 +71,7 @@ public class Order extends BaseEntity {
     @JoinColumn(name = "parent_order_id")
     private Order parentOrder;
 
+    @Builder.Default
     @OneToMany(mappedBy = "parentOrder", cascade = CascadeType.ALL)
     private List<Order> subOrders = new ArrayList<>();
 
@@ -85,6 +87,7 @@ public class Order extends BaseEntity {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 

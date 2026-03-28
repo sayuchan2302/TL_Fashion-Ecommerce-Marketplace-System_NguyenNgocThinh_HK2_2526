@@ -60,23 +60,35 @@ public class ProductService {
 
     // ─── Public Methods (No tenant filtering) ──────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<Product> findAll() {
-        return productRepository.findAllPublicProducts();
+        List<Product> products = productRepository.findAllPublicProducts();
+        products.forEach(this::initializeForSerialization);
+        return products;
     }
 
+    @Transactional(readOnly = true)
     public Product findById(UUID id) {
-        return productRepository.findPublicById(id)
+        Product product = productRepository.findPublicById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        initializeForSerialization(product);
+        return product;
     }
 
+    @Transactional(readOnly = true)
     public Product findByIdIncludingInactive(UUID id) {
-        return productRepository.findById(id)
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        initializeForSerialization(product);
+        return product;
     }
 
+    @Transactional(readOnly = true)
     public Product findBySlug(String slug) {
-        return productRepository.findPublicBySlug(slug)
+        Product product = productRepository.findPublicBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        initializeForSerialization(product);
+        return product;
     }
 
     // ─── Vendor-scoped Methods (Multi-tenant) ──────────────────────────────────
@@ -84,28 +96,39 @@ public class ProductService {
     /**
      * Find all products for a specific store (vendor's view)
      */
+    @Transactional(readOnly = true)
     public Page<Product> findByStoreId(UUID storeId, Pageable pageable) {
-        return productRepository.findByStoreId(storeId, pageable);
+        Page<Product> page = productRepository.findByStoreId(storeId, pageable);
+        page.getContent().forEach(this::initializeForSerialization);
+        return page;
     }
 
     /**
      * Find active products for a store (public storefront)
      */
+    @Transactional(readOnly = true)
     public Page<Product> findActiveByStoreId(UUID storeId, Pageable pageable) {
-        return productRepository.findActiveByStoreId(storeId, pageable);
+        Page<Product> page = productRepository.findActiveByStoreId(storeId, pageable);
+        page.getContent().forEach(this::initializeForSerialization);
+        return page;
     }
 
     /**
      * Find active products by store identifier (UUID or slug)
      */
+    @Transactional(readOnly = true)
     public Page<Product> findActiveByStoreIdentifier(String identifier, Pageable pageable) {
         try {
             UUID storeId = UUID.fromString(identifier);
-            return productRepository.findActiveByStoreId(storeId, pageable);
+            Page<Product> page = productRepository.findActiveByStoreId(storeId, pageable);
+            page.getContent().forEach(this::initializeForSerialization);
+            return page;
         } catch (IllegalArgumentException ex) {
             Store store = storeRepository.findBySlug(identifier)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Store not found"));
-            return productRepository.findActiveByStoreId(store.getId(), pageable);
+            Page<Product> page = productRepository.findActiveByStoreId(store.getId(), pageable);
+            page.getContent().forEach(this::initializeForSerialization);
+            return page;
         }
     }
 
@@ -120,8 +143,29 @@ public class ProductService {
     /**
      * Search products within a store
      */
+    @Transactional(readOnly = true)
     public Page<Product> searchByStoreId(UUID storeId, String keyword, Pageable pageable) {
-        return productRepository.searchProductsByStore(storeId, keyword, pageable);
+        Page<Product> page = productRepository.searchProductsByStore(storeId, keyword, pageable);
+        page.getContent().forEach(this::initializeForSerialization);
+        return page;
+    }
+
+    private void initializeForSerialization(Product product) {
+        if (product == null) {
+            return;
+        }
+
+        if (product.getCategory() != null) {
+            product.getCategory().getName();
+        }
+
+        if (product.getImages() != null) {
+            product.getImages().size();
+        }
+
+        if (product.getVariants() != null) {
+            product.getVariants().size();
+        }
     }
 
     @Transactional(readOnly = true)

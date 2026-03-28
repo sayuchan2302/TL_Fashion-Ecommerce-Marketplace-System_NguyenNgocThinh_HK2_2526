@@ -10,6 +10,9 @@ export interface StoreProfile {
   rating: number;
   totalOrders: number;
   totalSales: number;
+  productCount?: number;
+  liveProductCount?: number;
+  responseRate?: number;
   isOfficial: boolean;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -156,6 +159,9 @@ interface BackendStoreResponse {
   totalSales?: number;
   totalOrders?: number;
   rating?: number;
+  productCount?: number;
+  liveProductCount?: number;
+  responseRate?: number;
   createdAt?: string;
 }
 
@@ -321,6 +327,9 @@ const mapBackendStore = (store: BackendStoreResponse): StoreProfile => ({
   rating: Number(store.rating || 0),
   totalOrders: Number(store.totalOrders || 0),
   totalSales: Number(store.totalSales || 0),
+  productCount: Number(store.productCount || 0),
+  liveProductCount: Number(store.liveProductCount || 0),
+  responseRate: Number(store.responseRate || 0),
   isOfficial: Number(store.commissionRate || 5) <= 3,
   status: store.status,
   approvalStatus: store.approvalStatus,
@@ -433,23 +442,13 @@ export const storeService = {
   },
 
   async getAdminStores(): Promise<StoreProfile[]> {
-    try {
-      const stores = await apiRequest<BackendStoreResponse[]>('/api/stores/admin', {}, { auth: true });
-      return stores.map(mapBackendStore);
-    } catch {
-      await delay(200);
-      return Object.values(mockStores);
-    }
+    const stores = await apiRequest<BackendStoreResponse[]>('/api/stores/admin', {}, { auth: true });
+    return stores.map(mapBackendStore);
   },
 
   async getPendingStores(): Promise<StoreProfile[]> {
-    try {
-      const stores = await apiRequest<BackendStoreResponse[]>('/api/stores/pending', {}, { auth: true });
-      return stores.map(mapBackendStore);
-    } catch {
-      await delay(200);
-      return Object.values(mockStores).filter((store) => store.approvalStatus === 'PENDING');
-    }
+    const stores = await apiRequest<BackendStoreResponse[]>('/api/stores/pending', {}, { auth: true });
+    return stores.map(mapBackendStore);
   },
 
   async getMyStore(): Promise<StoreProfile> {
@@ -485,64 +484,44 @@ export const storeService = {
   },
 
   async approveStore(storeId: string): Promise<ApproveStoreResponse> {
-    try {
-      const store = await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/approve`, {
-        method: 'POST',
-      }, { auth: true });
+    const store = await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/approve`, {
+      method: 'POST',
+    }, { auth: true });
 
-      return {
-        storeId: store.id,
-        status: 'APPROVED',
-      };
-    } catch {
-      await delay(300);
-      return { storeId, status: 'APPROVED' };
-    }
+    return {
+      storeId: store.id,
+      status: 'APPROVED',
+    };
   },
 
   async rejectStore(storeId: string, reason: string): Promise<{ status: 'REJECTED' }> {
-    try {
-      await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/reject`, {
-        method: 'POST',
-        body: JSON.stringify({ reason }),
-      }, { auth: true });
-      return { status: 'REJECTED' };
-    } catch {
-      await delay(250);
-      return { status: 'REJECTED' };
-    }
+    await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }, { auth: true });
+    return { status: 'REJECTED' };
   },
 
   async suspendStore(storeId: string): Promise<StoreLifecycleActionResponse> {
-    try {
-      const store = await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/suspend`, {
-        method: 'POST',
-      }, { auth: true });
+    const store = await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/suspend`, {
+      method: 'POST',
+    }, { auth: true });
 
-      return {
-        storeId: store.id,
-        status: store.status,
-      };
-    } catch {
-      await delay(250);
-      return { storeId, status: 'SUSPENDED' };
-    }
+    return {
+      storeId: store.id,
+      status: store.status,
+    };
   },
 
   async reactivateStore(storeId: string): Promise<StoreLifecycleActionResponse> {
-    try {
-      const store = await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/reactivate`, {
-        method: 'POST',
-      }, { auth: true });
+    const store = await apiRequest<BackendStoreResponse>(`/api/stores/${storeId}/reactivate`, {
+      method: 'POST',
+    }, { auth: true });
 
-      return {
-        storeId: store.id,
-        status: store.status,
-      };
-    } catch {
-      await delay(250);
-      return { storeId, status: 'ACTIVE' };
-    }
+    return {
+      storeId: store.id,
+      status: store.status,
+    };
   },
 
   async updateMyStore(payload: StoreUpdateRequest): Promise<StoreProfile> {

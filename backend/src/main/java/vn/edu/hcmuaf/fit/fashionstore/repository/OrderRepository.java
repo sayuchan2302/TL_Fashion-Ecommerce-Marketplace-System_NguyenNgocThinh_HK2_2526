@@ -111,4 +111,45 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      */
     @Query("SELECT COALESCE(SUM(o.commissionFee), 0) FROM Order o WHERE o.storeId = :storeId AND o.status = 'DELIVERED'")
     Double calculateCommissionByStoreId(@Param("storeId") UUID storeId);
+
+    long countByParentOrderIsNull();
+
+    long countByParentOrderIsNullAndStatus(Order.OrderStatus status);
+
+    @Query("""
+            SELECT COALESCE(SUM(o.total), 0) FROM Order o
+            WHERE o.parentOrder IS NULL
+              AND o.status = 'DELIVERED'
+            """)
+    BigDecimal calculateTotalDeliveredGmv();
+
+    @Query("""
+            SELECT COALESCE(SUM(o.commissionFee), 0) FROM Order o
+            WHERE o.parentOrder IS NULL
+              AND o.status = 'DELIVERED'
+            """)
+    BigDecimal calculateTotalDeliveredCommission();
+
+    @Query("""
+            SELECT o FROM Order o
+            WHERE o.parentOrder IS NULL
+              AND o.storeId IS NULL
+              AND o.status IN :statuses
+            ORDER BY o.createdAt ASC
+            """)
+    List<Order> findParentOrdersByStatusInOrderByCreatedAtAsc(
+            @Param("statuses") List<Order.OrderStatus> statuses,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT o FROM Order o
+            WHERE o.parentOrder IS NULL
+              AND o.createdAt >= :fromDate
+              AND o.createdAt < :toDate
+            """)
+    List<Order> findRootOrdersCreatedBetween(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate
+    );
 }

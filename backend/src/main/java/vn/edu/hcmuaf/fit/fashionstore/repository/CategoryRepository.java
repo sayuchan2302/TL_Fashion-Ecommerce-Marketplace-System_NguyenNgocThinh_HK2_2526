@@ -20,4 +20,6 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
     Page<Category> findByParentId(UUID parentId, Pageable pageable);
 
     boolean existsByParentId(UUID parentId);
+
+    long countByIsVisibleFalse();
 }

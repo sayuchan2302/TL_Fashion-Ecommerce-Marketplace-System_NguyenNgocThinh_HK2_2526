@@ -23,6 +23,8 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
@@ -39,11 +41,13 @@ public class OrderService {
     private final WalletService walletService;
     private final StoreRepository storeRepository;
     private final CouponRepository couponRepository;
+    private final VoucherRepository voucherRepository;
 
     public OrderService(OrderRepository orderRepository, UserRepository userRepository,
                         AddressRepository addressRepository, ProductRepository productRepository,
                         ProductVariantRepository productVariantRepository, WalletService walletService,
-                        StoreRepository storeRepository, CouponRepository couponRepository) {
+                        StoreRepository storeRepository, CouponRepository couponRepository,
+                        VoucherRepository voucherRepository) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.addressRepository = addressRepository;
@@ -52,6 +56,7 @@ public class OrderService {
         this.walletService = walletService;
         this.storeRepository = storeRepository;
         this.couponRepository = couponRepository;
+        this.voucherRepository = voucherRepository;
     }
 
     // Default commission rate (5%)
@@ -80,6 +85,25 @@ public class OrderService {
             List<PreparedOrderItem> items,
             BigDecimal subtotal
     ) {}
+
+    private record DiscountApplication(
+            String code,
+            BigDecimal totalDiscount,
+            Map<UUID, BigDecimal> storeDiscounts,
+            Coupon coupon,
+            Voucher voucher
+    ) {
+        static DiscountApplication none() {
+            return new DiscountApplication(null, BigDecimal.ZERO, Map.of(), null, null);
+        }
+
+        BigDecimal discountForStore(UUID storeId) {
+            if (storeId == null) {
+                return BigDecimal.ZERO;
+            }
+            return storeDiscounts.getOrDefault(storeId, BigDecimal.ZERO);
+        }
+    }
 
     // ─── Customer Methods ──────────────────────────────────────────────────────
 
@@ -316,33 +340,36 @@ public class OrderService {
         }
         List<PreparedOrderItem> preparedItems = prepareOrderItems(request.getItems());
         Map<UUID, StoreOrderGroup> groupedByStore = groupItemsByStore(preparedItems);
-
-        Coupon coupon = null;
-        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
-            coupon = couponRepository.findByCode(request.getCouponCode())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid coupon code"));
-            if (!coupon.isValid()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coupon is expired or fully used");
-            }
-        }
+        DiscountApplication discountApplication = resolveDiscountApplication(request.getCouponCode(), groupedByStore);
 
         if (groupedByStore.size() <= 1) {
             StoreOrderGroup onlyGroup = groupedByStore.values().stream().findFirst()
                     .orElseThrow(() -> new ResourceNotFoundException("Order must contain at least one valid store item"));
             
-            Order created = createStoreScopedOrder(user, address, request, paymentMethod, onlyGroup, null, coupon, BigDecimal.ZERO);
-            if (coupon != null) {
-                coupon.setUsedCount(coupon.getUsedCount() + 1);
-                couponRepository.save(coupon);
-            }
+            Order created = createStoreScopedOrder(
+                    user,
+                    address,
+                    request,
+                    paymentMethod,
+                    onlyGroup,
+                    null,
+                    discountApplication,
+                    discountApplication.discountForStore(onlyGroup.storeId())
+            );
+            incrementDiscountUsage(discountApplication);
             return toAdminOrderResponse(created);
         }
 
-        Order parent = createParentOrderWithSubOrders(user, address, request, paymentMethod, preparedItems, groupedByStore, coupon);
-        if (coupon != null) {
-            coupon.setUsedCount(coupon.getUsedCount() + 1);
-            couponRepository.save(coupon);
-        }
+        Order parent = createParentOrderWithSubOrders(
+                user,
+                address,
+                request,
+                paymentMethod,
+                preparedItems,
+                groupedByStore,
+                discountApplication
+        );
+        incrementDiscountUsage(discountApplication);
         return toAdminOrderResponse(parent);
     }
 
@@ -583,6 +610,30 @@ public class OrderService {
     }
 
     @Transactional
+    public AdminOrderResponse updateAdminOrderTracking(UUID orderId, String trackingNumber) {
+        Order order = findById(orderId);
+        if (order.isParentOrder()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot update tracking for parent marketplace order"
+            );
+        }
+        if (order.getStatus() == Order.OrderStatus.CANCELLED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot update tracking for cancelled order"
+            );
+        }
+
+        order.setTrackingNumber(normalizeRequiredText(trackingNumber, "Tracking number is required"));
+        Order saved = orderRepository.save(order);
+        if (saved.isSubOrder()) {
+            syncParentOrderStatus(saved.getParentOrder().getId());
+        }
+        return toAdminOrderResponse(saved);
+    }
+
+    @Transactional
     public VendorOrderDetailResponse updateVendorOrderTracking(UUID orderId, UUID storeId, String trackingNumber) {
         return toVendorOrderDetailResponse(updateTrackingForStore(orderId, storeId, trackingNumber));
     }
@@ -717,6 +768,197 @@ public class OrderService {
         return result;
     }
 
+    private DiscountApplication resolveDiscountApplication(
+            String rawCode,
+            Map<UUID, StoreOrderGroup> groupedByStore
+    ) {
+        String normalizedCode = normalizeDiscountCode(rawCode);
+        if (normalizedCode == null) {
+            return DiscountApplication.none();
+        }
+
+        DiscountApplication voucherDiscount = resolveVoucherDiscount(normalizedCode, groupedByStore);
+        if (voucherDiscount != null) {
+            return voucherDiscount;
+        }
+
+        DiscountApplication couponDiscount = resolveLegacyCouponDiscount(normalizedCode, groupedByStore);
+        if (couponDiscount != null) {
+            return couponDiscount;
+        }
+
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid coupon code");
+    }
+
+    private DiscountApplication resolveVoucherDiscount(
+            String normalizedCode,
+            Map<UUID, StoreOrderGroup> groupedByStore
+    ) {
+        if (groupedByStore.isEmpty()) {
+            return null;
+        }
+
+        List<Voucher> matchedVouchers = voucherRepository.findByCodeAndStoreIds(
+                normalizedCode,
+                groupedByStore.keySet()
+        );
+        if (matchedVouchers.isEmpty()) {
+            return null;
+        }
+        if (matchedVouchers.size() > 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Voucher code is duplicated across multiple stores in cart"
+            );
+        }
+
+        Voucher voucher = matchedVouchers.get(0);
+        StoreOrderGroup targetGroup = groupedByStore.get(voucher.getStoreId());
+        if (targetGroup == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher does not match cart stores");
+        }
+
+        validateVoucherForCheckout(voucher, targetGroup.subtotal());
+        BigDecimal discount = calculateVoucherDiscount(voucher, targetGroup.subtotal());
+        if (discount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher is not applicable for current order");
+        }
+
+        Map<UUID, BigDecimal> byStore = new LinkedHashMap<>();
+        byStore.put(targetGroup.storeId(), discount);
+        return new DiscountApplication(voucher.getCode(), discount, byStore, null, voucher);
+    }
+
+    private DiscountApplication resolveLegacyCouponDiscount(
+            String normalizedCode,
+            Map<UUID, StoreOrderGroup> groupedByStore
+    ) {
+        Coupon coupon = couponRepository.findByCode(normalizedCode).orElse(null);
+        if (coupon == null) {
+            return null;
+        }
+        if (!coupon.isValid()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coupon is expired or fully used");
+        }
+
+        BigDecimal subtotal = groupedByStore.values().stream()
+                .map(StoreOrderGroup::subtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal discount = BigDecimal.valueOf(coupon.calculateDiscount(subtotal.doubleValue()))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        if (discount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order does not meet coupon conditions");
+        }
+
+        Map<UUID, BigDecimal> byStore = allocateDiscountByStore(groupedByStore, discount);
+        return new DiscountApplication(coupon.getCode(), discount, byStore, coupon, null);
+    }
+
+    private void validateVoucherForCheckout(Voucher voucher, BigDecimal storeSubtotal) {
+        if (voucher.getStatus() != Voucher.VoucherStatus.RUNNING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher is not active");
+        }
+
+        LocalDate today = LocalDate.now();
+        if (voucher.getStartDate() != null && voucher.getStartDate().isAfter(today)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher is not active yet");
+        }
+        if (voucher.getEndDate() != null && voucher.getEndDate().isBefore(today)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher has expired");
+        }
+
+        int totalIssued = safeInt(voucher.getTotalIssued());
+        int usedCount = safeInt(voucher.getUsedCount());
+        if (totalIssued <= 0 || usedCount >= totalIssued) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Voucher usage limit has been reached");
+        }
+
+        BigDecimal minOrderValue = safeAmount(voucher.getMinOrderValue());
+        if (storeSubtotal.compareTo(minOrderValue) < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Order does not meet minimum value required for this voucher"
+            );
+        }
+    }
+
+    private BigDecimal calculateVoucherDiscount(Voucher voucher, BigDecimal orderValue) {
+        BigDecimal discountValue = safeAmount(voucher.getDiscountValue());
+        if (voucher.getDiscountType() == Voucher.DiscountType.PERCENT) {
+            return orderValue.multiply(discountValue)
+                    .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        }
+        return discountValue.min(orderValue).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private Map<UUID, BigDecimal> allocateDiscountByStore(
+            Map<UUID, StoreOrderGroup> groupedByStore,
+            BigDecimal totalDiscount
+    ) {
+        Map<UUID, BigDecimal> byStore = new LinkedHashMap<>();
+        if (groupedByStore.isEmpty() || totalDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+            return byStore;
+        }
+
+        BigDecimal subtotal = groupedByStore.values().stream()
+                .map(StoreOrderGroup::subtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (groupedByStore.size() == 1 || subtotal.compareTo(BigDecimal.ZERO) <= 0) {
+            StoreOrderGroup only = groupedByStore.values().iterator().next();
+            byStore.put(only.storeId(), totalDiscount);
+            return byStore;
+        }
+
+        BigDecimal allocated = BigDecimal.ZERO;
+        int index = 0;
+        int size = groupedByStore.size();
+        for (StoreOrderGroup group : groupedByStore.values()) {
+            index++;
+            BigDecimal value;
+            if (index == size) {
+                value = totalDiscount.subtract(allocated);
+            } else {
+                value = totalDiscount.multiply(group.subtotal())
+                        .divide(subtotal, 2, RoundingMode.HALF_UP);
+                allocated = allocated.add(value);
+            }
+            byStore.put(group.storeId(), value.max(BigDecimal.ZERO));
+        }
+        return byStore;
+    }
+
+    private void incrementDiscountUsage(DiscountApplication discountApplication) {
+        if (discountApplication.coupon() != null) {
+            Coupon coupon = discountApplication.coupon();
+            coupon.setUsedCount(safeInt(coupon.getUsedCount()) + 1);
+            couponRepository.save(coupon);
+        }
+
+        if (discountApplication.voucher() != null) {
+            Voucher voucher = discountApplication.voucher();
+            voucher.setUsedCount(safeInt(voucher.getUsedCount()) + 1);
+            voucherRepository.save(voucher);
+        }
+    }
+
+    private String normalizeDiscountCode(String rawCode) {
+        if (rawCode == null) {
+            return null;
+        }
+        String normalized = rawCode.trim().replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private int safeInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private BigDecimal safeAmount(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value.max(BigDecimal.ZERO);
+    }
+
     @Transactional(isolation = Isolation.SERIALIZABLE)
     private Order createParentOrderWithSubOrders(
             User user,
@@ -725,13 +967,13 @@ public class OrderService {
             Order.PaymentMethod paymentMethod,
             List<PreparedOrderItem> preparedItems,
             Map<UUID, StoreOrderGroup> groupedByStore,
-            Coupon coupon
+            DiscountApplication discountApplication
     ) {
         BigDecimal subtotal = preparedItems.stream().map(PreparedOrderItem::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal shippingFee = groupedByStore.values().stream().map(this::calculateShippingFee).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal commissionFee = groupedByStore.values().stream().map(this::calculateCommissionFee).reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        BigDecimal discount = coupon != null ? BigDecimal.valueOf(coupon.calculateDiscount(subtotal.doubleValue())) : BigDecimal.ZERO;
+
+        BigDecimal discount = discountApplication.totalDiscount();
         BigDecimal vendorPayout = subtotal.add(shippingFee).subtract(commissionFee).subtract(discount);
 
         Order parentOrder = Order.builder()
@@ -743,7 +985,7 @@ public class OrderService {
                 .subtotal(subtotal)
                 .shippingFee(shippingFee)
                 .discount(discount)
-                .couponCode(request.getCouponCode())
+                .couponCode(discountApplication.code())
                 .note(buildParentOrderNote(request.getNote(), groupedByStore.size()))
                 .commissionFee(commissionFee)
                 .vendorPayout(vendorPayout)
@@ -758,12 +1000,17 @@ public class OrderService {
         persistedParent = orderRepository.save(persistedParent);
 
         for (StoreOrderGroup group : groupedByStore.values()) {
-            // Calculate proportional discount for this specific vendor
-            BigDecimal storeDiscount = BigDecimal.ZERO;
-            if (discount.compareTo(BigDecimal.ZERO) > 0 && subtotal.compareTo(BigDecimal.ZERO) > 0) {
-                storeDiscount = discount.multiply(group.subtotal()).divide(subtotal, 2, java.math.RoundingMode.HALF_UP);
-            }
-            createStoreScopedOrder(user, address, request, paymentMethod, group, persistedParent, coupon, storeDiscount);
+            BigDecimal storeDiscount = discountApplication.discountForStore(group.storeId());
+            createStoreScopedOrder(
+                    user,
+                    address,
+                    request,
+                    paymentMethod,
+                    group,
+                    persistedParent,
+                    discountApplication,
+                    storeDiscount
+            );
         }
 
         return persistedParent;
@@ -776,18 +1023,12 @@ public class OrderService {
             Order.PaymentMethod paymentMethod,
             StoreOrderGroup group,
             Order parentOrder,
-            Coupon coupon,
+            DiscountApplication discountApplication,
             BigDecimal preCalculatedDiscount
     ) {
         BigDecimal shippingFee = calculateShippingFee(group);
         BigDecimal commissionFee = calculateCommissionFee(group);
-        
         BigDecimal discount = preCalculatedDiscount;
-        if (parentOrder == null && coupon != null) {
-            // For single-vendor orders, calculate discount strictly on their subtotal
-            discount = BigDecimal.valueOf(coupon.calculateDiscount(group.subtotal().doubleValue()));
-        }
-        
         BigDecimal vendorPayout = group.subtotal().add(shippingFee).subtract(commissionFee).subtract(discount);
 
         Order order = Order.builder()
@@ -799,7 +1040,7 @@ public class OrderService {
                 .subtotal(group.subtotal())
                 .shippingFee(shippingFee)
                 .discount(discount)
-                .couponCode(request.getCouponCode())
+                .couponCode(discountApplication.code())
                 .note(request.getNote())
                 .storeId(group.storeId())
                 .parentOrder(parentOrder)

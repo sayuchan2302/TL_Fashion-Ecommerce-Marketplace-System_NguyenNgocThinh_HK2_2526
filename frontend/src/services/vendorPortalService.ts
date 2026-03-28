@@ -195,6 +195,7 @@ export interface VendorTopProduct {
 export interface VendorSettingsData {
   storeInfo: {
     name: string;
+    slug: string;
     description: string;
     logo: string;
     contactEmail: string;
@@ -229,6 +230,7 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1521572163474-6864f9cf
 const DEFAULT_SETTINGS: VendorSettingsData = {
   storeInfo: {
     name: 'Fashion House',
+    slug: 'fashion-house',
     description: 'Tinh chinh trai nghiem cua hang, logistics va thong tin lien he tai day.',
     logo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=200&h=200&fit=crop',
     contactEmail: 'contact@fashionhouse.vn',
@@ -429,6 +431,7 @@ const buildDailySeries = (orders: VendorOrderSummary[], days = 7) => {
 const toVendorSettings = (store: StoreProfile): VendorSettingsData => ({
   storeInfo: {
     name: store.name || DEFAULT_SETTINGS.storeInfo.name,
+    slug: store.slug || DEFAULT_SETTINGS.storeInfo.slug,
     description: store.description || DEFAULT_SETTINGS.storeInfo.description,
     logo: store.logo || DEFAULT_SETTINGS.storeInfo.logo,
     contactEmail: store.contactEmail || DEFAULT_SETTINGS.storeInfo.contactEmail,
@@ -457,6 +460,15 @@ const toVendorSettings = (store: StoreProfile): VendorSettingsData => ({
     warehousePhone: store.warehousePhone || store.phone || '',
   },
 });
+
+const toCanonicalSlug = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 
 const validateSettingsBeforeSave = (payload: VendorSettingsData) => {
   const hasCarrier = payload.shipping.ghn || payload.shipping.ghtk || payload.shipping.express;
@@ -574,6 +586,7 @@ export const vendorPortalService = {
     validateSettingsBeforeSave(payload);
     const updatedStore = await storeService.updateMyStore({
       name: payload.storeInfo.name,
+      slug: toCanonicalSlug(payload.storeInfo.slug || payload.storeInfo.name),
       description: payload.storeInfo.description,
       logo: payload.storeInfo.logo,
       contactEmail: payload.storeInfo.contactEmail,

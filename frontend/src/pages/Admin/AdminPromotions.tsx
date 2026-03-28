@@ -1,5 +1,5 @@
 import './Admin.css';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Pencil, Pause, Play, X, Tag, Trash2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
@@ -11,25 +11,33 @@ import { useAdminViewState } from './useAdminViewState';
 import { useAdminToast } from './useAdminToast';
 import { PanelTabs } from '../../components/Panel/PanelPrimitives';
 import Drawer from '../../components/Drawer/Drawer';
-import { promotionStore, type Promotion, type PromotionStatus, type DiscountType } from '../../services/promotionStore';
+import {
+  adminPromotionService,
+  type AdminPromotionDiscountType,
+  type AdminPromotionRecord,
+  type AdminPromotionStatus,
+  type AdminPromotionUpsertInput,
+} from '../../services/adminPromotionService';
 import { promotionStatusClass, promotionStatusLabel } from './adminStatusMaps';
+import { storeService, type StoreProfile } from '../../services/storeService';
 
-const emptyPromotion: Promotion = {
-  id: '',
+interface PromotionFormState extends AdminPromotionUpsertInput {
+  id?: string;
+}
+
+const emptyPromotion = (): PromotionFormState => ({
+  storeId: '',
   name: '',
   code: '',
   description: '',
   discountType: 'percent',
   discountValue: 10,
-  maxDiscount: 100000,
-  minOrderValue: 500000,
-  userLimit: 1,
+  minOrderValue: 0,
   totalIssued: 1000,
-  usedCount: 0,
   startDate: '',
   endDate: '',
   status: 'paused',
-};
+});
 
 const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} ₫`;
 const formatDate = (value: string) => {
@@ -38,31 +46,54 @@ const formatDate = (value: string) => {
   return date.toLocaleDateString('vi-VN');
 };
 
-const deriveStatus = (promotion: Promotion): PromotionStatus => {
-  if (promotion.status === 'paused') return 'paused';
+const normalizeCode = (value: string) => value.trim().replace(/\s+/g, '').toUpperCase();
+
+const deriveStatus = (promotion: AdminPromotionRecord): 'running' | 'paused' | 'expired' => {
   const endDate = new Date(promotion.endDate);
-  if (Number.isNaN(endDate.getTime())) return 'paused';
-  endDate.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return endDate < today ? 'expired' : 'running';
+  if (!Number.isNaN(endDate.getTime())) {
+    endDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (endDate < today) {
+      return 'expired';
+    }
+  }
+
+  if (promotion.status === 'running') return 'running';
+  return 'paused';
 };
 
-const validateForm = (form: Promotion, rows: Promotion[], editingId: string | null) => {
+const validateForm = (
+  form: PromotionFormState,
+  rows: AdminPromotionRecord[],
+  editingId: string | null,
+) => {
+  if (!form.storeId) return 'Vui lòng chọn gian hàng áp dụng.';
   if (!form.name.trim()) return 'Tên chiến dịch không được để trống.';
   if (!form.code.trim()) return 'Mã voucher không được để trống.';
   if (!/^[A-Z0-9-]{4,24}$/.test(form.code)) return 'Mã chỉ gồm chữ hoa, số và dấu gạch ngang.';
-  if (rows.some((item) => item.code === form.code && item.id !== editingId)) return 'Mã voucher đã tồn tại.';
+  if (
+    rows.some(
+      (item) =>
+        item.storeId === form.storeId &&
+        normalizeCode(item.code) === normalizeCode(form.code) &&
+        item.id !== editingId,
+    )
+  ) {
+    return 'Mã voucher đã tồn tại trong gian hàng đã chọn.';
+  }
   if (form.discountValue <= 0) return 'Giá trị giảm phải lớn hơn 0.';
-  if (form.discountType === 'percent' && form.discountValue > 100) return 'Phần trăm giảm không được vượt 100%.';
-  if (form.maxDiscount <= 0) return 'Mức giảm tối đa phải lớn hơn 0.';
-  if (form.minOrderValue <= 0) return 'Giá trị đơn tối thiểu phải lớn hơn 0.';
+  if (form.discountType === 'percent' && form.discountValue > 100) {
+    return 'Phần trăm giảm không được vượt 100%.';
+  }
+  if (form.minOrderValue < 0) return 'Giá trị đơn tối thiểu không hợp lệ.';
+  if (form.totalIssued < 1) return 'Tổng số lượng phát hành phải lớn hơn 0.';
   if (!form.startDate || !form.endDate) return 'Hãy chọn đầy đủ lịch chiến dịch.';
   if (new Date(form.endDate) < new Date(form.startDate)) return 'Ngày kết thúc phải sau ngày bắt đầu.';
   return null;
 };
 
-const discountTypeLabel = (type: DiscountType) => (type === 'percent' ? 'Giảm %' : 'Giảm tiền');
+const discountTypeLabel = (type: AdminPromotionDiscountType) => (type === 'percent' ? 'Giảm %' : 'Giảm tiền');
 
 const AdminPromotions = () => {
   const view = useAdminViewState({
@@ -71,13 +102,42 @@ const AdminPromotions = () => {
     validStatusKeys: ['all', 'running', 'paused', 'expired'],
     defaultStatus: 'all',
   });
-  const [rows, setRows] = useState<Promotion[]>(() => promotionStore.getAll());
+  const [rows, setRows] = useState<AdminPromotionRecord[]>([]);
+  const [stores, setStores] = useState<StoreProfile[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Promotion>(emptyPromotion);
+  const [form, setForm] = useState<PromotionFormState>(emptyPromotion());
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, pushToast } = useAdminToast();
+
+  const selectableStores = useMemo(
+    () => stores.filter((store) => store.approvalStatus === 'APPROVED'),
+    [stores],
+  );
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoadError(null);
+      const [promotionSnapshot, storeSnapshot] = await Promise.all([
+        adminPromotionService.list({ page: 1, size: 300 }),
+        storeService.getAdminStores(),
+      ]);
+      setRows(promotionSnapshot.items);
+      setStores(storeSnapshot);
+    } catch (error: any) {
+      setLoadError(error?.message || 'Không thể tải dữ liệu khuyến mãi.');
+    } finally {
+      setIsInitializing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const {
     search,
@@ -91,14 +151,14 @@ const AdminPromotions = () => {
     next,
     prev,
     setPage,
-  } = useAdminListState<Promotion>({
+  } = useAdminListState<AdminPromotionRecord>({
     items: rows,
     pageSize: 7,
     searchValue: view.search,
     onSearchChange: view.setSearch,
     pageValue: view.page,
     onPageChange: view.setPage,
-    getSearchText: (item) => `${item.name} ${item.code} ${item.description}`,
+    getSearchText: (item) => `${item.name} ${item.code} ${item.description} ${item.storeName}`,
     filterPredicate: (item) => view.status === 'all' || deriveStatus(item) === view.status,
     loadingDeps: [view.status],
   });
@@ -125,51 +185,97 @@ const AdminPromotions = () => {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyPromotion);
+    setForm({
+      ...emptyPromotion(),
+      storeId: selectableStores[0]?.id || '',
+    });
     setIsDrawerOpen(true);
   };
 
-  const openEdit = (promotion: Promotion) => {
+  const openEdit = (promotion: AdminPromotionRecord) => {
     setEditingId(promotion.id);
-    setForm({ ...promotion, status: promotion.status === 'expired' ? 'running' : promotion.status });
+    setForm({
+      id: promotion.id,
+      storeId: promotion.storeId,
+      name: promotion.name,
+      code: promotion.code,
+      description: promotion.description,
+      discountType: promotion.discountType,
+      discountValue: promotion.discountValue,
+      minOrderValue: promotion.minOrderValue,
+      totalIssued: promotion.totalIssued,
+      startDate: promotion.startDate,
+      endDate: promotion.endDate,
+      status: promotion.status,
+    });
     setIsDrawerOpen(true);
   };
 
-  const savePromotion = () => {
+  const savePromotion = async () => {
     const error = validateForm(form, rows, editingId);
     if (error) {
       pushToast(error);
       return;
     }
-    if (editingId) {
-      const updated = { ...form, id: editingId };
-      setRows((prev) => prev.map((item) => (item.id === editingId ? updated : item)));
-      promotionStore.update(updated);
-      pushToast('Đã cập nhật chiến dịch toàn sàn.');
-    } else {
-      const created = { ...form, id: `pr-${Date.now()}` };
-      setRows((prev) => [created, ...prev]);
-      promotionStore.add(created);
-      pushToast('Đã tạo chiến dịch toàn sàn.');
+
+    try {
+      setIsSubmitting(true);
+      if (editingId) {
+        await adminPromotionService.update(editingId, form);
+        pushToast('Đã cập nhật chiến dịch.');
+      } else {
+        await adminPromotionService.create(form);
+        pushToast('Đã tạo chiến dịch mới.');
+      }
+      setIsDrawerOpen(false);
+      await loadData();
+    } catch (err: any) {
+      pushToast(err?.message || 'Không thể lưu chiến dịch.');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsDrawerOpen(false);
   };
 
-  const togglePause = (promotion: Promotion) => {
-    const nextStatus: PromotionStatus = promotion.status === 'paused' ? 'running' : 'paused';
-    const updated = { ...promotion, status: nextStatus };
-    setRows((prev) => prev.map((item) => (item.id === promotion.id ? updated : item)));
-    promotionStore.update(updated);
+  const togglePause = async (promotion: AdminPromotionRecord) => {
+    const nextStatus: AdminPromotionStatus = promotion.status === 'running' ? 'paused' : 'running';
+    try {
+      await adminPromotionService.updateStatus(promotion.id, nextStatus);
+      pushToast(nextStatus === 'paused' ? 'Đã tạm dừng chiến dịch.' : 'Đã kích hoạt lại chiến dịch.');
+      await loadData();
+    } catch (error: any) {
+      pushToast(error?.message || 'Không thể cập nhật trạng thái chiến dịch.');
+    }
   };
 
-  const deleteSelected = () => {
+  const pauseSelected = async () => {
+    const selectedRows = rows.filter((row) => selected.has(row.id));
+    const eligible = selectedRows.filter((row) => row.status === 'running');
+    if (eligible.length === 0) {
+      pushToast('Không có chiến dịch nào hợp lệ để tạm dừng.');
+      return;
+    }
+
+    try {
+      await Promise.all(eligible.map((row) => adminPromotionService.updateStatus(row.id, 'paused')));
+      setSelected(new Set());
+      pushToast(`Đã tạm dừng ${eligible.length} chiến dịch.`);
+      await loadData();
+    } catch (error: any) {
+      pushToast(error?.message || 'Không thể cập nhật hàng loạt.');
+    }
+  };
+
+  const deleteSelected = async () => {
     if (!deleteIds?.length) return;
-    const idSet = new Set(deleteIds);
-    setRows((prev) => prev.filter((item) => !idSet.has(item.id)));
-    deleteIds.forEach((id) => promotionStore.remove(id));
-    setSelected(new Set());
-    setDeleteIds(null);
-    pushToast('Đã xóa chiến dịch khỏi hệ thống.');
+    try {
+      await Promise.all(deleteIds.map((id) => adminPromotionService.delete(id)));
+      setSelected(new Set());
+      setDeleteIds(null);
+      pushToast('Đã xóa chiến dịch khỏi hệ thống.');
+      await loadData();
+    } catch (error: any) {
+      pushToast(error?.message || 'Không thể xóa chiến dịch.');
+    }
   };
 
   return (
@@ -187,11 +293,11 @@ const AdminPromotions = () => {
               onChange={(e) => view.setSearch(e.target.value)}
             />
           </div>
-          <button className="admin-ghost-btn" onClick={() => pushToast('Bộ lọc campaign scope sẽ bổ sung sau.')}>
+          <button className="admin-ghost-btn" onClick={() => pushToast('Bộ lọc scope theo store sẽ bổ sung ở pha tiếp theo.')}>
             <Tag size={16} /> Phạm vi chiến dịch
           </button>
           <button className="admin-ghost-btn" onClick={resetView}>Đặt lại</button>
-          <button className="admin-primary-btn" onClick={openCreate}>
+          <button className="admin-primary-btn" onClick={openCreate} disabled={selectableStores.length === 0}>
             <Plus size={16} /> Tạo chiến dịch
           </button>
         </>
@@ -211,7 +317,7 @@ const AdminPromotions = () => {
         <div className="admin-stat-card warning" onClick={() => view.setStatus('paused')} style={{ cursor: 'pointer' }}>
           <div className="admin-stat-label">Tạm dừng</div>
           <div className="admin-stat-value">{stats.paused}</div>
-          <div className="admin-stat-sub">Chờ kích hoạt hoặc xem lại</div>
+          <div className="admin-stat-sub">Tạm ngưng hoặc draft</div>
         </div>
         <div className="admin-stat-card danger" onClick={() => view.setStatus('expired')} style={{ cursor: 'pointer' }}>
           <div className="admin-stat-label">Hết hạn</div>
@@ -238,24 +344,27 @@ const AdminPromotions = () => {
             {selected.size > 0 && (
               <div className="admin-actions">
                 <span className="admin-muted">{selected.size} đã chọn</span>
-                <button className="admin-ghost-btn" onClick={() => {
-                  const idSet = new Set(selected);
-                  const nextRows = rows.map((item) => (idSet.has(item.id) ? { ...item, status: 'paused' as PromotionStatus } : item));
-                  setRows(nextRows);
-                  nextRows.filter((item) => idSet.has(item.id)).forEach((item) => promotionStore.update(item));
-                  setSelected(new Set());
-                  pushToast('Đã tạm dừng chiến dịch đã chọn.');
-                }}>Tạm dừng</button>
+                <button className="admin-ghost-btn" onClick={() => void pauseSelected()}>Tạm dừng</button>
                 <button className="admin-ghost-btn danger" onClick={() => setDeleteIds(Array.from(selected))}>Xóa</button>
               </div>
             )}
-           
           </div>
-          {isLoading ? null : filteredItems.length === 0 ? (
+
+          {isInitializing ? (
+            <div className="admin-loading" style={{ padding: '3rem', textAlign: 'center' }}>Đang tải dữ liệu chiến dịch...</div>
+          ) : loadError && rows.length === 0 ? (
+            <AdminStateBlock
+              type="error"
+              title="Không thể tải chiến dịch"
+              description={loadError}
+              actionLabel="Thử lại"
+              onAction={() => void loadData()}
+            />
+          ) : isLoading ? null : filteredItems.length === 0 ? (
             <AdminStateBlock
               type={search.trim() ? 'search-empty' : 'empty'}
-              title={search.trim() ? 'Không tìm thấy chiến dịch phù hợp' : 'Chưa có chiến dịch toàn sàn'}
-              description={search.trim() ? 'Thử đổi từ khóa hoặc đặt lại bộ lọc.' : 'Chiến dịch mega sale và voucher toàn sàn sẽ hiển thị tại đây.'}
+              title={search.trim() ? 'Không tìm thấy chiến dịch phù hợp' : 'Chưa có chiến dịch'}
+              description={search.trim() ? 'Thử đổi từ khóa hoặc đặt lại bộ lọc.' : 'Các voucher toàn sàn sẽ hiển thị tại đây khi backend có dữ liệu.'}
               actionLabel="Đặt lại"
               onAction={resetView}
             />
@@ -299,11 +408,13 @@ const AdminPromotions = () => {
                     <div role="cell">
                       <p className="admin-bold promo-name">{promo.name}</p>
                       <p className="admin-muted promo-code">{promo.code}</p>
+                      <p className="admin-muted small">{promo.storeName || 'Store không xác định'}</p>
                     </div>
                     <div role="cell">{discountTypeLabel(promo.discountType)}</div>
                     <div role="cell">
-                      <p className="admin-bold">{promo.discountType === 'percent' ? `${promo.discountValue}%` : formatCurrency(promo.discountValue)}</p>
-                      <p className="admin-muted small">Giảm max {formatCurrency(promo.maxDiscount)}</p>
+                      <p className="admin-bold">
+                        {promo.discountType === 'percent' ? `${promo.discountValue}%` : formatCurrency(promo.discountValue)}
+                      </p>
                     </div>
                     <div role="cell">Đơn từ {formatCurrency(promo.minOrderValue)}</div>
                     <div role="cell">
@@ -314,7 +425,9 @@ const AdminPromotions = () => {
                     <div role="cell"><span className={`admin-pill ${promotionStatusClass(currentStatus)}`}>{promotionStatusLabel(currentStatus)}</span></div>
                     <div role="cell" className="admin-actions" onClick={(e) => e.stopPropagation()}>
                       <button className="admin-icon-btn subtle" onClick={() => openEdit(promo)}><Pencil size={16} /></button>
-                      <button className="admin-icon-btn subtle" onClick={() => togglePause(promo)}>{promo.status === 'paused' ? <Play size={16} /> : <Pause size={16} />}</button>
+                      <button className="admin-icon-btn subtle" onClick={() => void togglePause(promo)}>
+                        {promo.status === 'running' ? <Pause size={16} /> : <Play size={16} />}
+                      </button>
                       <button className="admin-icon-btn subtle danger-icon" onClick={() => setDeleteIds([promo.id])}><Trash2 size={16} /></button>
                     </div>
                   </motion.div>
@@ -347,7 +460,7 @@ const AdminPromotions = () => {
         confirmLabel="Xóa chiến dịch"
         danger
         onCancel={() => setDeleteIds(null)}
-        onConfirm={deleteSelected}
+        onConfirm={() => void deleteSelected()}
       />
 
       <Drawer open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} className="promo-drawer">
@@ -362,6 +475,15 @@ const AdminPromotions = () => {
           <section className="drawer-section">
             <h4>Thông tin</h4>
             <div className="form-grid">
+              <label className="form-field">
+                <span>Gian hàng áp dụng</span>
+                <select value={form.storeId} onChange={(e) => setForm((prev) => ({ ...prev, storeId: e.target.value }))}>
+                  <option value="">Chọn gian hàng</option>
+                  {selectableStores.map((store) => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </label>
               <label className="form-field">
                 <span>Tên chiến dịch</span>
                 <input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
@@ -381,7 +503,7 @@ const AdminPromotions = () => {
             <div className="form-grid">
               <label className="form-field">
                 <span>Loại giảm giá</span>
-                <select value={form.discountType} onChange={(e) => setForm((prev) => ({ ...prev, discountType: e.target.value as DiscountType }))}>
+                <select value={form.discountType} onChange={(e) => setForm((prev) => ({ ...prev, discountType: e.target.value as AdminPromotionDiscountType }))}>
                   <option value="percent">Giảm %</option>
                   <option value="fixed">Giảm tiền</option>
                 </select>
@@ -391,16 +513,8 @@ const AdminPromotions = () => {
                 <input type="number" value={form.discountValue} onChange={(e) => setForm((prev) => ({ ...prev, discountValue: Number(e.target.value) || 0 }))} />
               </label>
               <label className="form-field">
-                <span>Giảm tối đa</span>
-                <input type="number" value={form.maxDiscount} onChange={(e) => setForm((prev) => ({ ...prev, maxDiscount: Number(e.target.value) || 0 }))} />
-              </label>
-              <label className="form-field">
                 <span>Đơn tối thiểu</span>
                 <input type="number" value={form.minOrderValue} onChange={(e) => setForm((prev) => ({ ...prev, minOrderValue: Number(e.target.value) || 0 }))} />
-              </label>
-              <label className="form-field">
-                <span>Giới hạn người dùng</span>
-                <input type="number" value={form.userLimit} onChange={(e) => setForm((prev) => ({ ...prev, userLimit: Number(e.target.value) || 1 }))} />
               </label>
               <label className="form-field">
                 <span>Tổng số lượng phát hành</span>
@@ -416,9 +530,10 @@ const AdminPromotions = () => {
               </label>
               <label className="form-field">
                 <span>Trạng thái</span>
-                <select value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as PromotionStatus }))}>
+                <select value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as AdminPromotionStatus }))}>
                   <option value="running">Đang chạy</option>
                   <option value="paused">Tạm dừng</option>
+                  <option value="draft">Nháp</option>
                 </select>
               </label>
             </div>
@@ -426,7 +541,7 @@ const AdminPromotions = () => {
         </div>
         <div className="drawer-footer">
           <button className="admin-ghost-btn" onClick={() => setIsDrawerOpen(false)}>Hủy</button>
-          <button className="admin-primary-btn" onClick={savePromotion}>Lưu chiến dịch</button>
+          <button className="admin-primary-btn" onClick={() => void savePromotion()} disabled={isSubmitting}>Lưu chiến dịch</button>
         </div>
       </Drawer>
 

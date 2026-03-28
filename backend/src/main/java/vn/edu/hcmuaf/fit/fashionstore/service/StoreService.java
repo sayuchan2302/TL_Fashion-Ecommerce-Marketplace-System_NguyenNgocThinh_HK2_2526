@@ -4,8 +4,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.StoreRequest;
 import vn.edu.hcmuaf.fit.fashionstore.dto.response.StoreResponse;
+import vn.edu.hcmuaf.fit.fashionstore.entity.Product;
 import vn.edu.hcmuaf.fit.fashionstore.entity.Store;
 import vn.edu.hcmuaf.fit.fashionstore.entity.User;
+import vn.edu.hcmuaf.fit.fashionstore.repository.ProductRepository;
+import vn.edu.hcmuaf.fit.fashionstore.repository.ReviewRepository;
 import vn.edu.hcmuaf.fit.fashionstore.repository.StoreRepository;
 import vn.edu.hcmuaf.fit.fashionstore.repository.UserRepository;
 
@@ -21,10 +24,19 @@ public class StoreService {
 
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+    private final ReviewRepository reviewRepository;
 
-    public StoreService(StoreRepository storeRepository, UserRepository userRepository) {
+    public StoreService(
+            StoreRepository storeRepository,
+            UserRepository userRepository,
+            ProductRepository productRepository,
+            ReviewRepository reviewRepository
+    ) {
         this.storeRepository = storeRepository;
         this.userRepository = userRepository;
+        this.productRepository = productRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     private static final Pattern SLUG_PATTERN = Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
@@ -118,7 +130,7 @@ public class StoreService {
     public List<StoreResponse> getPendingStores() {
         return storeRepository.findByApprovalStatus(Store.ApprovalStatus.PENDING)
                 .stream()
-                .map(this::toResponse)
+                .map(store -> toResponse(store, true))
                 .collect(Collectors.toList());
     }
 
@@ -126,7 +138,7 @@ public class StoreService {
     public List<StoreResponse> getAllStoresForAdmin() {
         return storeRepository.findAll()
                 .stream()
-                .map(this::toResponse)
+                .map(store -> toResponse(store, true))
                 .collect(Collectors.toList());
     }
 
@@ -136,7 +148,7 @@ public class StoreService {
                 Store.ApprovalStatus.APPROVED,
                 Store.StoreStatus.ACTIVE
         ).stream()
-                .map(this::toResponse)
+                .map(store -> toResponse(store, false))
                 .collect(Collectors.toList());
     }
 
@@ -304,8 +316,29 @@ public class StoreService {
     }
 
     private StoreResponse toResponse(Store store) {
+        return toResponse(store, false);
+    }
+
+    private StoreResponse toResponse(Store store, boolean includeAggregates) {
         // Ensure owner is initialized within transactional context
         User owner = store.getOwner();
+        Integer productCount = null;
+        Integer liveProductCount = null;
+        Integer responseRate = null;
+
+        if (includeAggregates) {
+            UUID storeId = store.getId();
+            long totalProducts = productRepository.countByStoreIdExcludingArchived(storeId);
+            long activeProducts = productRepository.countByStoreIdAndStatus(storeId, Product.ProductStatus.ACTIVE);
+            long totalReviews = reviewRepository.countByStoreId(storeId);
+            long repliedReviews = reviewRepository.countByStoreIdWithReply(storeId);
+
+            productCount = Math.toIntExact(totalProducts);
+            liveProductCount = Math.toIntExact(activeProducts);
+            responseRate = totalReviews == 0
+                    ? 0
+                    : (int) Math.round((repliedReviews * 100.0) / totalReviews);
+        }
 
         return StoreResponse.builder()
                 .id(store.getId())
@@ -344,6 +377,9 @@ public class StoreService {
                 .totalSales(store.getTotalSales())
                 .totalOrders(store.getTotalOrders())
                 .rating(store.getRating())
+                .productCount(productCount)
+                .liveProductCount(liveProductCount)
+                .responseRate(responseRate)
                 .createdAt(store.getCreatedAt())
                 .updatedAt(store.getUpdatedAt())
                 .build();

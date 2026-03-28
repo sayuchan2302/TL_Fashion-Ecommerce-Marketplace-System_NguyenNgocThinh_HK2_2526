@@ -5,6 +5,7 @@ import {
   type TransitionReasonCode,
 } from './orderWorkflow';
 import { type AdminOrderData } from './adminOrdersData';
+import { apiRequest } from '../../services/apiClient';
 
 type TransitionSource = 'orders_list' | 'order_detail';
 
@@ -20,6 +21,46 @@ interface AuditEntry {
   toPayment: PaymentStatus;
   reasonCode?: TransitionReasonCode;
   reasonNote?: string;
+}
+
+interface BackendAdminOrder {
+  id: string;
+  status?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  subtotal?: number;
+  shippingFee?: number;
+  discount?: number;
+  total?: number;
+  commissionFee?: number;
+  trackingNumber?: string;
+  carrier?: string;
+  note?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  storeName?: string;
+  customer?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  shippingAddress?: {
+    fullName?: string;
+    phone?: string;
+    address?: string;
+    ward?: string;
+    district?: string;
+    city?: string;
+  };
+  items?: Array<{
+    id: string;
+    name?: string;
+    productName?: string;
+    variant?: string;
+    quantity?: number;
+    price?: number;
+    image?: string;
+  }>;
 }
 
 export interface AdminOrderRecord extends AdminOrderData {
@@ -44,19 +85,19 @@ interface TransitionResult {
   order?: AdminOrderRecord;
 }
 
+interface TrackingUpdateResult {
+  ok: boolean;
+  error?: string;
+  message?: string;
+  order?: AdminOrderRecord;
+}
+
 interface BulkTransitionResult {
   updatedCodes: string[];
   skippedCodes: string[];
 }
 
-
-
-
-import { apiRequest } from '../../services/apiClient';
-
-// ── Real Backend API Calls ──────────────────
-
-const mapBackendToAdmin = (order: any): AdminOrderRecord => {
+const mapBackendToAdmin = (order: BackendAdminOrder): AdminOrderRecord => {
   const fulfillmentMap: Record<string, FulfillmentStatus> = {
     PENDING: 'pending',
     CONFIRMED: 'packing',
@@ -65,35 +106,63 @@ const mapBackendToAdmin = (order: any): AdminOrderRecord => {
     DELIVERED: 'done',
     CANCELLED: 'canceled',
   };
-  
+
+  const customerName = order.shippingAddress?.fullName || order.customer?.name || 'Khách hàng ẩn danh';
+
+  const toStableNumericId = (value: string) => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash);
+  };
+
   return {
     code: order.id,
-    customer: order.shippingAddress?.fullName || 'Khách hàng ẩn danh',
-    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(order.shippingAddress?.fullName || 'Anonymous')}&background=0EA5E9&color=fff`,
-    total: order.total?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) || '0 đ',
+    customer: customerName,
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=0EA5E9&color=fff`,
+    total: (order.total ?? 0).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }),
     storeName: order.storeName,
-    commissionRate: order.commissionRate,
-    paymentStatus: order.paymentStatus === 'PAID' ? 'paid' : order.paymentMethod === 'COD' ? 'cod_uncollected' : 'unpaid',
-    fulfillment: fulfillmentMap[order.status] || 'pending',
+    commissionRate: undefined,
+    paymentStatus:
+      order.paymentStatus === 'PAID'
+        ? 'paid'
+        : order.paymentMethod === 'COD'
+          ? 'cod_uncollected'
+          : 'unpaid',
+    fulfillment: fulfillmentMap[order.status || ''] || 'pending',
     shipMethod: order.carrier || 'Chưa rõ',
     tracking: order.trackingNumber || '',
-    date: order.createdAt,
+    date: order.createdAt || new Date().toISOString(),
     customerInfo: {
-      name: order.shippingAddress?.fullName || '',
-      phone: order.shippingAddress?.phone || '',
-      email: '',
+      name: customerName,
+      phone: order.shippingAddress?.phone || order.customer?.phone || '',
+      email: order.customer?.email || '',
     },
-    address: [order.shippingAddress?.address, order.shippingAddress?.ward, order.shippingAddress?.district, order.shippingAddress?.city].filter(Boolean).join(', '),
+    address: [
+      order.shippingAddress?.address,
+      order.shippingAddress?.ward,
+      order.shippingAddress?.district,
+      order.shippingAddress?.city,
+    ]
+      .filter(Boolean)
+      .join(', '),
     note: order.note || '',
     paymentMethod: order.paymentMethod || 'COD',
-    items: ((order.items as any[]) || []).map((item: any) => ({
-      id: item.id,
+    items: (order.items || []).map((item) => ({
+      id: toStableNumericId(item.id),
       name: item.name || item.productName || 'Sản phẩm',
       color: '',
       size: item.variant || '',
       qty: item.quantity || 1,
       price: item.price || 0,
-      image: item.image || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=120&fit=crop',
+      image:
+        item.image ||
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=120&fit=crop',
     })),
     pricing: {
       subtotal: order.subtotal || 0,
@@ -103,14 +172,14 @@ const mapBackendToAdmin = (order: any): AdminOrderRecord => {
     },
     timeline: [],
     version: 1,
-    updatedAt: order.updatedAt || order.createdAt,
-    auditLog: []
+    updatedAt: order.updatedAt || order.createdAt || new Date().toISOString(),
+    auditLog: [],
   };
 };
 
 export const listAdminOrders = async (): Promise<AdminOrderRecord[]> => {
   try {
-    const data = await apiRequest<unknown[]>('/api/orders/admin/all', {}, { auth: true });
+    const data = await apiRequest<BackendAdminOrder[]>('/api/orders/admin/all', {}, { auth: true });
     return (data || []).map(mapBackendToAdmin);
   } catch (error) {
     console.error('Failed to fetch admin orders', error);
@@ -120,7 +189,7 @@ export const listAdminOrders = async (): Promise<AdminOrderRecord[]> => {
 
 export const getAdminOrderByCode = async (code: string): Promise<AdminOrderRecord | null> => {
   try {
-    const data = await apiRequest(`/api/orders/${code}`, {}, { auth: true });
+    const data = await apiRequest<BackendAdminOrder>(`/api/orders/${code}`, {}, { auth: true });
     return mapBackendToAdmin(data);
   } catch (error) {
     console.error('Failed to fetch admin order detail', error);
@@ -128,9 +197,33 @@ export const getAdminOrderByCode = async (code: string): Promise<AdminOrderRecor
   }
 };
 
-// Polling placeholder if needed
+export const updateAdminOrderTracking = async (
+  code: string,
+  trackingNumber: string,
+): Promise<TrackingUpdateResult> => {
+  try {
+    const data = await apiRequest<BackendAdminOrder>(
+      `/api/orders/admin/${code}/tracking`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ trackingNumber }),
+      },
+      { auth: true },
+    );
+
+    return {
+      ok: true,
+      order: mapBackendToAdmin(data),
+      message: 'Đã cập nhật mã vận đơn.',
+    };
+  } catch (error: any) {
+    console.error('Failed to update tracking number', error);
+    return { ok: false, error: error.message || 'Không thể cập nhật mã vận đơn.' };
+  }
+};
+
 export const subscribeAdminOrders = (listener: () => void) => {
-  const interval = setInterval(listener, 15000); // Poll every 15s
+  const interval = setInterval(listener, 15000);
   return () => clearInterval(interval);
 };
 
@@ -143,17 +236,21 @@ export const transitionAdminOrder = async (input: TransitionInput): Promise<Tran
       done: 'DELIVERED',
       canceled: 'CANCELLED',
     };
-    
+
     const requestPayload = {
       status: statusMap[input.nextFulfillment],
-      reason: input.reasonNote || 'Admin cập nhật'
+      reason: input.reasonNote || 'Admin cập nhật',
     };
-    
-    const data = await apiRequest(`/api/orders/admin/${input.code}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify(requestPayload)
-    }, { auth: true });
-    
+
+    const data = await apiRequest<BackendAdminOrder>(
+      `/api/orders/admin/${input.code}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(requestPayload),
+      },
+      { auth: true },
+    );
+
     return {
       ok: true,
       order: mapBackendToAdmin(data),
@@ -165,16 +262,19 @@ export const transitionAdminOrder = async (input: TransitionInput): Promise<Tran
   }
 };
 
-export const bulkTransitionToPacking = async (codes: string[], actor: string): Promise<BulkTransitionResult> => {
+export const bulkTransitionToPacking = async (
+  codes: string[],
+  actor: string,
+): Promise<BulkTransitionResult> => {
   const updatedCodes: string[] = [];
   const skippedCodes: string[] = [];
-  
+
   for (const code of codes) {
     const result = await transitionAdminOrder({
       code,
       nextFulfillment: 'packing',
       actor,
-      source: 'orders_list'
+      source: 'orders_list',
     });
     if (result.ok) {
       updatedCodes.push(code);
@@ -182,7 +282,6 @@ export const bulkTransitionToPacking = async (codes: string[], actor: string): P
       skippedCodes.push(code);
     }
   }
-  
+
   return { updatedCodes, skippedCodes };
 };
-

@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, UUID> {
     Page<ReturnRequest> findByStatus(ReturnRequest.ReturnStatus status, Pageable pageable);
     Page<ReturnRequest> findByUserId(UUID userId, Pageable pageable);
+    long countByStatus(ReturnRequest.ReturnStatus status);
 }

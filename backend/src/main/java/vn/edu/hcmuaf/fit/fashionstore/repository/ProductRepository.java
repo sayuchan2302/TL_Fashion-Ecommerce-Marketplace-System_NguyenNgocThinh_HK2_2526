@@ -226,4 +226,14 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             @Param("lowStockThreshold") int lowStockThreshold,
             Pageable pageable
     );
+
+    @Query("""
+            SELECT c.id, COUNT(p)
+            FROM Product p
+            JOIN p.category c
+            WHERE p.status = 'ACTIVE'
+            GROUP BY c.id
+            ORDER BY COUNT(p) DESC
+            """)
+    List<Object[]> countActiveProductsByCategory(Pageable pageable);
 }

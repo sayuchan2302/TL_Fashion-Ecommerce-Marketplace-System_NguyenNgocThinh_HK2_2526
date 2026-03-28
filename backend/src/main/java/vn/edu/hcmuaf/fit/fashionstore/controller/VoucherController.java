@@ -25,6 +25,7 @@ import vn.edu.hcmuaf.fit.fashionstore.security.AuthContext;
 import vn.edu.hcmuaf.fit.fashionstore.security.AuthContext.UserContext;
 import vn.edu.hcmuaf.fit.fashionstore.service.VoucherService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -37,6 +38,12 @@ public class VoucherController {
     public VoucherController(VoucherService voucherService, AuthContext authContext) {
         this.voucherService = voucherService;
         this.authContext = authContext;
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<VoucherResponse>> listPublicVouchers(
+            @RequestParam(value = "storeId", required = false) List<UUID> storeIds) {
+        return ResponseEntity.ok(voucherService.listPublic(storeIds));
     }
 
     @GetMapping("/my-store")
@@ -98,6 +105,62 @@ public class VoucherController {
         UserContext ctx = authContext.requireVendor(authHeader);
         UUID storeId = authContext.resolveStoreId(ctx, null);
         voucherService.delete(storeId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/admin")
+    public ResponseEntity<VoucherListResponse> listAdminVouchers(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(value = "status", required = false) Voucher.VoucherStatus status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        authContext.requireAdmin(authHeader);
+        Pageable pageable = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
+        return ResponseEntity.ok(voucherService.listAdmin(status, keyword, pageable));
+    }
+
+    @GetMapping("/admin/{id}")
+    public ResponseEntity<VoucherResponse> getAdminVoucher(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id) {
+        authContext.requireAdmin(authHeader);
+        return ResponseEntity.ok(voucherService.getAdmin(id));
+    }
+
+    @PostMapping("/admin")
+    public ResponseEntity<VoucherResponse> createAdminVoucher(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody VoucherRequest request) {
+        UserContext ctx = authContext.requireAdmin(authHeader);
+        VoucherResponse response = voucherService.createAdmin(request, ctx.getEmail());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/admin/{id}")
+    public ResponseEntity<VoucherResponse> updateAdminVoucher(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id,
+            @Valid @RequestBody VoucherRequest request) {
+        UserContext ctx = authContext.requireAdmin(authHeader);
+        return ResponseEntity.ok(voucherService.updateAdmin(id, request, ctx.getEmail()));
+    }
+
+    @PatchMapping("/admin/{id}/status")
+    public ResponseEntity<VoucherResponse> updateAdminVoucherStatus(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id,
+            @Valid @RequestBody VoucherStatusUpdateRequest request) {
+        UserContext ctx = authContext.requireAdmin(authHeader);
+        return ResponseEntity.ok(voucherService.updateAdminStatus(id, request, ctx.getEmail()));
+    }
+
+    @DeleteMapping("/admin/{id}")
+    public ResponseEntity<Void> deleteAdminVoucher(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id) {
+        authContext.requireAdmin(authHeader);
+        voucherService.deleteAdmin(id);
         return ResponseEntity.noContent().build();
     }
 }

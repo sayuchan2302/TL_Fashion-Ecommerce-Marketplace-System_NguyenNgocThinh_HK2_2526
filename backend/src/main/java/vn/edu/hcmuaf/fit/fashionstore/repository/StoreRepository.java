@@ -33,6 +33,8 @@ public interface StoreRepository extends JpaRepository<Store, UUID> {
 
     List<Store> findByApprovalStatus(Store.ApprovalStatus status);
 
+    long countByApprovalStatus(Store.ApprovalStatus status);
+
     List<Store> findByStatus(Store.StoreStatus status);
 
     List<Store> findByApprovalStatusAndStatus(Store.ApprovalStatus approvalStatus, Store.StoreStatus status);

@@ -15,30 +15,34 @@ import {
   Zap,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from './AdminLayout';
+import { AdminStateBlock } from './AdminStateBlocks';
+import {
+  adminDashboardService,
+  type AdminDashboardParentOrder,
+  type AdminDashboardTopCategory,
+} from '../../services/adminDashboardService';
 
-const marketTrend = [1.9, 2.1, 2.4, 2.3, 2.8, 3.1, 3.4];
-const trendLabels = ['13/03', '14/03', '15/03', '16/03', '17/03', '18/03', '19/03'];
+const formatCurrency = (value: number) => `${(value || 0).toLocaleString('vi-VN')} ₫`;
 
-const parentOrders = [
-  { code: 'PARENT-10234', customer: 'Nguyễn Văn A', total: '3.250.000 ₫', issue: 'Xem xét tranh chấp', priority: 'high', waitTime: '58 phút', thumb: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=120&h=140&q=80' },
-  { code: 'PARENT-10233', customer: 'Trần Thị B', total: '1.780.000 ₫', issue: 'Chờ xác nhận vendor', priority: 'medium', waitTime: '24 phút', thumb: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=120&h=140&q=80' },
-  { code: 'PARENT-10232', customer: 'Lê Hữu C', total: '5.150.000 ₫', issue: 'Chờ giải ngân', priority: 'high', waitTime: '1 giờ 12 phút', thumb: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=120&h=140&q=80' },
-  { code: 'PARENT-10231', customer: 'Phạm Minh D', total: '950.000 ₫', issue: 'Chờ xác minh thanh toán', priority: 'low', waitTime: '12 phút', thumb: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=120&h=140&q=80' },
-];
+const formatShortDate = (isoDate: string) => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+};
 
-const governanceFeed = [
-  { id: 'gov-1', tone: 'danger', text: '4 đơn hàng cha cần xử lý tranh chấp', cta: 'Mở đơn hàng cha', to: '/admin/orders', icon: <ShieldAlert size={16} /> },
-  { id: 'gov-2', tone: 'warning', text: '7 gian hàng mới đang chờ duyệt onboarding', cta: 'Duyệt gian hàng', to: '/admin/stores', icon: <Store size={16} /> },
-  { id: 'gov-3', tone: 'info', text: 'Commission nhóm áo thun tăng mạnh từ chiến dịch Mega Sale', cta: 'Xem tài chính', to: '/admin/financials', icon: <WalletCards size={16} /> },
-];
-
-const taxonomyHighlights = [
-  { name: 'Thời trang Nam > Áo > Áo thun', sales: 1640, signal: 'Top GMV' },
-  { name: 'Thời trang Nữ > Váy > Váy liền', sales: 1280, signal: 'Top conversion' },
-  { name: 'Phụ kiện > Túi xách', sales: 940, signal: 'Top margin' },
-];
+const formatWaitTime = (minutes: number) => {
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    if (remainder === 0) {
+      return `${hours} giờ`;
+    }
+    return `${hours} giờ ${remainder} phút`;
+  }
+  return `${minutes} phút`;
+};
 
 const priorityTone = (priority: string) => {
   if (priority === 'high') return 'error';
@@ -52,26 +56,168 @@ const priorityLabel = (priority: string) => {
   return 'Theo dõi';
 };
 
-const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} ₫`;
+const buildSparkFromTrend = (series: number[]) => {
+  if (series.length === 0) {
+    return [1, 1, 1, 1, 1, 1, 1];
+  }
+  return series.map((value) => Math.max(1, value));
+};
 
 const Admin = () => {
-  const stats = useMemo(() => [
-    { label: 'GMV toàn hệ thống', value: formatCurrency(3_400_000_000), change: '+12%', icon: <DollarSign size={18} />, to: '/admin/financials', spark: [80, 82, 84, 88, 91, 95, 100] },
-    { label: 'Commission thu được', value: formatCurrency(168_000_000), change: '+9%', icon: <WalletCards size={18} />, to: '/admin/financials', spark: [52, 55, 58, 57, 60, 63, 67] },
-    { label: 'Đơn hàng', value: '124', change: '+18', icon: <Package size={18} />, to: '/admin/orders', spark: [20, 21, 22, 24, 26, 28, 31] },
-    { label: 'Chờ duyệt vendor', value: '7', change: '+2', icon: <Store size={18} />, to: '/admin/stores', spark: [2, 3, 4, 4, 5, 6, 7] },
-    { label: 'Tài khoản bị khóa', value: '3', change: '-1', icon: <Users size={18} />, to: '/admin/users', spark: [7, 6, 6, 5, 4, 4, 3] },
-    { label: 'Chiến dịch đang chạy', value: '2', change: '+1', icon: <TicketPercent size={18} />, to: '/admin/promotions', spark: [0, 1, 1, 1, 2, 2, 2] },
-  ], []);
+  const [dashboard, setDashboard] = useState<Awaited<ReturnType<typeof adminDashboardService.get>> | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const quickViews = useMemo(() => [
-    { label: 'Vendor onboarding chờ duyệt', count: 7, to: '/admin/stores' },
-    { label: 'Danh mục cần kiểm tra', count: 3, to: '/admin/categories' },
-    { label: 'Đơn tranh chấp cần xử lý', count: 4, to: '/admin/orders' },
-    { label: 'FAQ và bot script cần cập nhật', count: 5, to: '/admin/bot-ai' },
-  ], []);
+  const loadDashboard = async () => {
+    try {
+      setIsLoading(true);
+      setLoadError(null);
+      const data = await adminDashboardService.get();
+      setDashboard(data);
+    } catch (error: any) {
+      setLoadError(error?.message || 'Không thể tải dữ liệu dashboard.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const topSignalBase = Math.max(...taxonomyHighlights.map((item) => item.sales), 1);
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const trendSeries = useMemo(() => {
+    const trend = dashboard?.trend || [];
+    return {
+      gmv: trend.map((point) => Number(point.gmv || 0)),
+      commission: trend.map((point) => Number(point.commission || 0)),
+      labels: trend.map((point) => formatShortDate(point.date)),
+    };
+  }, [dashboard?.trend]);
+
+  const stats = useMemo(() => {
+    const metrics = dashboard?.metrics;
+    const gmvSpark = buildSparkFromTrend(trendSeries.gmv);
+    const commissionSpark = buildSparkFromTrend(trendSeries.commission);
+    return [
+      {
+        label: 'GMV đã giao thành công',
+        value: formatCurrency(Number(metrics?.gmvDelivered || 0)),
+        change: 'Live',
+        icon: <DollarSign size={18} />,
+        to: '/admin/financials',
+        spark: gmvSpark,
+      },
+      {
+        label: 'Commission đã ghi nhận',
+        value: formatCurrency(Number(metrics?.commissionDelivered || 0)),
+        change: 'Live',
+        icon: <WalletCards size={18} />,
+        to: '/admin/financials',
+        spark: commissionSpark,
+      },
+      {
+        label: 'Đơn hàng toàn sàn',
+        value: String(metrics?.totalOrders || 0),
+        change: 'Live',
+        icon: <Package size={18} />,
+        to: '/admin/orders',
+        spark: gmvSpark,
+      },
+      {
+        label: 'Chờ duyệt vendor',
+        value: String(metrics?.pendingStoreApprovals || 0),
+        change: 'Live',
+        icon: <Store size={18} />,
+        to: '/admin/stores',
+        spark: gmvSpark,
+      },
+      {
+        label: 'Tài khoản bị khóa',
+        value: String(metrics?.lockedUsers || 0),
+        change: 'Live',
+        icon: <Users size={18} />,
+        to: '/admin/users',
+        spark: commissionSpark,
+      },
+      {
+        label: 'Chiến dịch đang chạy',
+        value: String(metrics?.runningCampaigns || 0),
+        change: 'Live',
+        icon: <TicketPercent size={18} />,
+        to: '/admin/promotions',
+        spark: commissionSpark,
+      },
+    ];
+  }, [dashboard?.metrics, trendSeries.commission, trendSeries.gmv]);
+
+  const quickViews = useMemo(() => {
+    const quick = dashboard?.quickViews;
+    return [
+      { label: 'Vendor onboarding chờ duyệt', count: quick?.pendingStoreApprovals || 0, to: '/admin/stores' },
+      { label: 'Danh mục cần kiểm tra', count: quick?.categoriesNeedReview || 0, to: '/admin/categories' },
+      { label: 'Đơn hàng cha cần xử lý', count: quick?.parentOrdersNeedAttention || 0, to: '/admin/orders' },
+      { label: 'Yêu cầu đổi trả chờ xử lý', count: quick?.pendingReturns || 0, to: '/admin/returns' },
+    ];
+  }, [dashboard?.quickViews]);
+
+  const governanceFeed = useMemo(() => {
+    const quick = dashboard?.quickViews;
+    return [
+      {
+        id: 'gov-1',
+        tone: (quick?.parentOrdersNeedAttention || 0) > 0 ? 'danger' : 'info',
+        text: `${quick?.parentOrdersNeedAttention || 0} đơn hàng cha cần theo dõi SLA`,
+        cta: 'Mở đơn hàng cha',
+        to: '/admin/orders',
+        icon: <ShieldAlert size={16} />,
+      },
+      {
+        id: 'gov-2',
+        tone: (quick?.pendingStoreApprovals || 0) > 0 ? 'warning' : 'info',
+        text: `${quick?.pendingStoreApprovals || 0} gian hàng mới đang chờ duyệt`,
+        cta: 'Duyệt gian hàng',
+        to: '/admin/stores',
+        icon: <Store size={16} />,
+      },
+      {
+        id: 'gov-3',
+        tone: (quick?.pendingReturns || 0) > 0 ? 'warning' : 'info',
+        text: `${quick?.pendingReturns || 0} yêu cầu đổi trả cần điều phối`,
+        cta: 'Xem đổi trả',
+        to: '/admin/returns',
+        icon: <WalletCards size={16} />,
+      },
+    ];
+  }, [dashboard?.quickViews]);
+
+  const parentOrders: AdminDashboardParentOrder[] = dashboard?.parentOrders || [];
+  const topCategories: AdminDashboardTopCategory[] = dashboard?.topCategories || [];
+  const topSignalBase = Math.max(...topCategories.map((item) => item.productCount), 1);
+  const trendMax = Math.max(...trendSeries.gmv, 1);
+
+  if (isLoading && !dashboard) {
+    return (
+      <AdminLayout title="Tổng quan">
+        <div className="admin-loading" style={{ padding: '3rem', textAlign: 'center' }}>
+          Đang tải dashboard quản trị...
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (loadError && !dashboard) {
+    return (
+      <AdminLayout title="Tổng quan">
+        <AdminStateBlock
+          type="error"
+          title="Không thể tải dashboard"
+          description={loadError}
+          actionLabel="Thử lại"
+          onAction={loadDashboard}
+        />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout
@@ -104,7 +250,9 @@ const Admin = () => {
             </Link>
             <svg className="sparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
               <path
-                d={`M ${item.spark.map((v, i) => `${(i / (item.spark.length - 1)) * 100} ${30 - (v / Math.max(...item.spark)) * 26}`).join(' L ')}`}
+                d={`M ${item.spark
+                  .map((v, i) => `${(i / (item.spark.length - 1)) * 100} ${30 - (v / Math.max(...item.spark, 1)) * 26}`)
+                  .join(' L ')}`}
                 fill="none"
                 stroke="#3b82f6"
                 strokeWidth="2"
@@ -127,8 +275,8 @@ const Admin = () => {
 
       <motion.section className="admin-panel">
         <div className="admin-panel-head">
-          <h2>GMV và commission 7 ngày</h2>
-          <span className="admin-muted">Tổng quan marketplace</span>
+          <h2>GMV 7 ngày gần nhất</h2>
+          <span className="admin-muted">Dữ liệu đồng bộ theo backend</span>
         </div>
         <div className="area-chart-wrap">
           <svg className="area-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
@@ -139,11 +287,15 @@ const Admin = () => {
               </linearGradient>
             </defs>
             <path
-              d={`M 0 50 L ${marketTrend.map((v, i) => `${(i / (marketTrend.length - 1)) * 100} ${50 - (v / Math.max(...marketTrend)) * 44}`).join(' L ')} L 100 50 Z`}
+              d={`M 0 50 L ${trendSeries.gmv
+                .map((v, i) => `${(i / Math.max(trendSeries.gmv.length - 1, 1)) * 100} ${50 - (v / trendMax) * 44}`)
+                .join(' L ')} L 100 50 Z`}
               fill="url(#marketGmvGradient)"
             />
             <path
-              d={`M ${marketTrend.map((v, i) => `${(i / (marketTrend.length - 1)) * 100} ${50 - (v / Math.max(...marketTrend)) * 44}`).join(' L ')}`}
+              d={`M ${trendSeries.gmv
+                .map((v, i) => `${(i / Math.max(trendSeries.gmv.length - 1, 1)) * 100} ${50 - (v / trendMax) * 44}`)
+                .join(' L ')}`}
               fill="none"
               stroke="#0f172a"
               strokeWidth="1.6"
@@ -155,10 +307,10 @@ const Admin = () => {
           </svg>
           <div className="chart-axes">
             <span>Ngày</span>
-            <span>GMV / Commission</span>
+            <span>GMV</span>
           </div>
           <div className="chart-x-labels">
-            {trendLabels.map((label) => (
+            {trendSeries.labels.map((label) => (
               <span key={label}>{label}</span>
             ))}
           </div>
@@ -202,40 +354,51 @@ const Admin = () => {
           <h2>Đơn hàng cha cần xử lý</h2>
           <Link to="/admin/orders">Mở tất cả</Link>
         </div>
-        <div className="admin-table" role="table" aria-label="Đơn hàng cha cần xử lý">
-          <div className="admin-table-row admin-table-head recent-v2" role="row">
-            <div role="columnheader">Đơn hàng cha</div>
-            <div role="columnheader">Mức độ</div>
-            <div role="columnheader">Chờ xử lý</div>
-            <div role="columnheader">Tổng giá trị</div>
-            <div role="columnheader">Hành động</div>
-          </div>
-          {parentOrders.map((order) => (
-            <motion.div
-              className="admin-table-row recent-v2 recent-order-row"
-              role="row"
-              key={order.code}
-              whileHover={{ y: -1 }}
-            >
-              <div role="cell" className="admin-customer">
-                <img src={order.thumb} alt={order.customer} />
-                <div>
-                  <p className="admin-bold">{order.code}</p>
-                  <span>{order.customer}</span>
+        {parentOrders.length === 0 ? (
+          <AdminStateBlock
+            type="empty"
+            title="Không có đơn hàng cha đang chờ"
+            description="Các đơn hàng cha cần theo dõi SLA sẽ xuất hiện tại đây."
+          />
+        ) : (
+          <div className="admin-table" role="table" aria-label="Đơn hàng cha cần xử lý">
+            <div className="admin-table-row admin-table-head recent-v2" role="row">
+              <div role="columnheader">Đơn hàng cha</div>
+              <div role="columnheader">Mức độ</div>
+              <div role="columnheader">Chờ xử lý</div>
+              <div role="columnheader">Tổng giá trị</div>
+              <div role="columnheader">Hành động</div>
+            </div>
+            {parentOrders.map((order) => (
+              <motion.div
+                className="admin-table-row recent-v2 recent-order-row"
+                role="row"
+                key={order.id}
+                whileHover={{ y: -1 }}
+              >
+                <div role="cell" className="admin-customer">
+                  <img
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(order.customerName)}&background=0EA5E9&color=fff`}
+                    alt={order.customerName}
+                  />
+                  <div>
+                    <p className="admin-bold">{order.id.slice(0, 8).toUpperCase()}</p>
+                    <span>{order.customerName}</span>
+                  </div>
                 </div>
-              </div>
-              <div role="cell"><span className={`admin-pill ${priorityTone(order.priority)}`}>{priorityLabel(order.priority)}</span></div>
-              <div role="cell" className="wait-time-cell">{order.waitTime}</div>
-              <div role="cell">{order.total}</div>
-              <div role="cell" className="admin-actions compact">
-                <button className={`admin-ghost-btn small ${order.priority === 'high' ? 'primary-cta' : ''}`}>{order.issue}</button>
-                <Link to={`/admin/orders/${order.code}`} className="admin-icon-btn" aria-label="Xem chi tiet">
-                  <ChevronRight size={15} />
-                </Link>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                <div role="cell"><span className={`admin-pill ${priorityTone(order.priority)}`}>{priorityLabel(order.priority)}</span></div>
+                <div role="cell" className="wait-time-cell">{formatWaitTime(order.waitMinutes)}</div>
+                <div role="cell">{formatCurrency(order.total)}</div>
+                <div role="cell" className="admin-actions compact">
+                  <button className={`admin-ghost-btn small ${order.priority === 'high' ? 'primary-cta' : ''}`}>{order.issue}</button>
+                  <Link to={`/admin/orders/${order.id}`} className="admin-icon-btn" aria-label="Xem chi tiết">
+                    <ChevronRight size={15} />
+                  </Link>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </motion.section>
 
       <motion.section className="admin-panel">
@@ -243,21 +406,29 @@ const Admin = () => {
           <h2>Danh mục dẫn đầu hệ thống</h2>
           <Link to="/admin/categories">Mở danh mục</Link>
         </div>
-        <div className="top-products">
-          {taxonomyHighlights.map((item, idx) => (
-            <motion.div key={item.name} className="top-product" whileHover={{ y: -2 }}>
-              <div className="top-rank">Top {idx + 1}</div>
-              <div className="top-product-meta">
-                <p className="admin-bold">{item.name}</p>
-                <p className="admin-muted">{item.signal}</p>
-                <div className="top-product-bar">
-                  <span style={{ width: `${Math.round((item.sales / topSignalBase) * 100)}%` }} />
+        {topCategories.length === 0 ? (
+          <AdminStateBlock
+            type="empty"
+            title="Chưa có dữ liệu danh mục nổi bật"
+            description="Khi danh mục có đủ dữ liệu sản phẩm hoạt động, bảng xếp hạng sẽ hiển thị tại đây."
+          />
+        ) : (
+          <div className="top-products">
+            {topCategories.map((item, idx) => (
+              <motion.div key={item.categoryId} className="top-product" whileHover={{ y: -2 }}>
+                <div className="top-rank">Top {idx + 1}</div>
+                <div className="top-product-meta">
+                  <p className="admin-bold">{item.name}</p>
+                  <p className="admin-muted">{item.signal}</p>
+                  <div className="top-product-bar">
+                    <span style={{ width: `${Math.round((item.productCount / topSignalBase) * 100)}%` }} />
+                  </div>
+                  <p className="admin-muted stock-note">{item.productCount} sản phẩm active</p>
                 </div>
-                <p className="admin-muted stock-note">{item.sales} tín hiệu</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </motion.section>
     </AdminLayout>
   );

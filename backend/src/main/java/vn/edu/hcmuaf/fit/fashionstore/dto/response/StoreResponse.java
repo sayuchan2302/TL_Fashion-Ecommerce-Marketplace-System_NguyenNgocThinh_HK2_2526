@@ -87,6 +87,12 @@ public class StoreResponse {
 
     private Double rating;
 
+    private Integer productCount;
+
+    private Integer liveProductCount;
+
+    private Integer responseRate;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

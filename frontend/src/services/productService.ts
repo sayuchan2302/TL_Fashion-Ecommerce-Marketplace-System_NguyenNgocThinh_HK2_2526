@@ -1,6 +1,10 @@
 import { apiRequest } from './apiClient';
 import type { Product, ProductVariant, ProductStatusType } from '../types';
-import { listAdminProducts, type AdminProductRecord } from '../pages/Admin/adminProductService';
+import {
+  listAdminProducts,
+  listAdminProductsSnapshot,
+  type AdminProductRecord,
+} from '../pages/Admin/adminProductService';
 
 const colorHexMatch = (selected: string, productColor: string): boolean => {
   const normalize = (c: string) => c.toLowerCase().trim();
@@ -121,7 +125,8 @@ const mapAdminProductToClient = (record: AdminProductRecord, index: number): Pro
   };
 };
 
-const listFromAdmin = (): Product[] => listAdminProducts().map(mapAdminProductToClient);
+const listFromAdminSnapshot = (): Product[] => listAdminProductsSnapshot().map(mapAdminProductToClient);
+const loadFromAdmin = async (): Promise<Product[]> => (await listAdminProducts()).map(mapAdminProductToClient);
 
 const sortImages = (images?: BackendProductImage[]) =>
   [...(images || [])].sort((left, right) =>
@@ -267,7 +272,7 @@ const fetchPublicCatalog = async (): Promise<Product[]> => {
     cacheProducts(mapped);
     return mapped;
   } catch {
-    const fallback = listFromAdmin();
+    const fallback = await loadFromAdmin();
     cacheProducts(fallback);
     return fallback;
   }
@@ -282,7 +287,7 @@ export const productService = {
       return cached;
     }
 
-    const fallback = listFromAdmin();
+    const fallback = listFromAdminSnapshot();
     cacheProducts(fallback);
     return fallback;
   },

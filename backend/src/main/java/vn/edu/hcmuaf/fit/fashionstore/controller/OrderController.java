@@ -240,6 +240,17 @@ public class OrderController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found")));
     }
 
+    /**
+     * Update tracking number for any order (admin only)
+     */
+    @PatchMapping("/admin/{id}/tracking")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<AdminOrderResponse> updateOrderTracking(
+            @PathVariable UUID id,
+            @RequestBody TrackingUpdateRequest request) {
+        return ResponseEntity.ok(orderService.updateAdminOrderTracking(id, request.getTrackingNumber()));
+    }
+
     private Order.OrderStatus parseOrderStatus(String rawStatus) {
         if (rawStatus == null || rawStatus.isBlank()) {
             return null;

@@ -35,7 +35,7 @@ import { CLIENT_TOAST_MESSAGES } from '../../utils/clientMessages';
 import { notificationService } from '../../services/notificationService';
 import { addressService } from '../../services/addressService';
 import { orderService } from '../../services/orderService';
-import { couponService } from '../../services/couponService';
+import { couponService, type Coupon } from '../../services/couponService';
 import { calculateTier, TIER_CONFIG, getProgressToNextTier, getSpendRequiredForNextTier, getNextTier } from '../../utils/tierUtils';
 import { formatPrice } from '../../utils/formatters';
 import type { Address } from '../../types';
@@ -111,6 +111,7 @@ const Profile = () => {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const savedAddresses = activeTab === 'addresses' ? addressService.getAll() : [];
+  const [voucherWallet, setVoucherWallet] = useState<Coupon[]>([]);
 
   const refreshAddresses = () => {
     setAddressVersion((prev) => prev + 1);
@@ -133,7 +134,7 @@ const Profile = () => {
 
   const allOrders = orderService.list();
   const orders = activeTab === 'orders' ? allOrders : [];
-  const vouchers = activeTab === 'vouchers' ? couponService.getAvailableCoupons() : [];
+  const vouchers = activeTab === 'vouchers' ? voucherWallet : [];
   const selectedOrder = (() => {
     const orderId = searchParams.get('orderId') || selectedOrderId;
     return orderId ? allOrders.find((order) => order.id === orderId) || null : null;
@@ -198,6 +199,29 @@ const Profile = () => {
     const timer = setTimeout(() => setIsLoading(false), 600);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'vouchers') {
+      return;
+    }
+
+    let cancelled = false;
+    couponService.getAvailableCoupons()
+      .then((coupons) => {
+        if (!cancelled) {
+          setVoucherWallet(coupons);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setVoucherWallet([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     const anyModalOpen = isAccountModalOpen || isPasswordModalOpen || isAddressModalOpen || isReviewModalOpen || !!selectedOrder;

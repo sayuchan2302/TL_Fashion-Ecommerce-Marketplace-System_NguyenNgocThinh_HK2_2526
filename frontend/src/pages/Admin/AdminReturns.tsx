@@ -32,6 +32,13 @@ const AdminReturns = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [allReturns, setAllReturns] = useState<ReturnRequest[]>([]);
+  const [tabCounts, setTabCounts] = useState({
+    all: 0,
+    pending: 0,
+    approved: 0,
+    completed: 0,
+    rejected: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [drawerItem, setDrawerItem] = useState<ReturnRequest | null>(null);
   const [drawerNote, setDrawerNote] = useState('');
@@ -49,13 +56,27 @@ const AdminReturns = () => {
     const load = async () => {
       try {
         setIsLoading(true);
-        const res = await returnService.listAdmin({
-          status: statusFilter || undefined,
-          page: 0,
-          size: PAGE_SIZE,
-        });
+        const [res, allRes, pendingRes, approvedRes, completedRes, rejectedRes] = await Promise.all([
+          returnService.listAdmin({
+            status: statusFilter || undefined,
+            page: 0,
+            size: PAGE_SIZE,
+          }),
+          returnService.listAdmin({ page: 0, size: 1 }),
+          returnService.listAdmin({ status: 'PENDING', page: 0, size: 1 }),
+          returnService.listAdmin({ status: 'APPROVED', page: 0, size: 1 }),
+          returnService.listAdmin({ status: 'COMPLETED', page: 0, size: 1 }),
+          returnService.listAdmin({ status: 'REJECTED', page: 0, size: 1 }),
+        ]);
         if (!active) return;
         setAllReturns(res.content);
+        setTabCounts({
+          all: allRes.totalElements,
+          pending: pendingRes.totalElements,
+          approved: approvedRes.totalElements,
+          completed: completedRes.totalElements,
+          rejected: rejectedRes.totalElements,
+        });
       } catch {
         if (active) pushToast('Không tải được danh sách đối trả');
       } finally {
@@ -77,14 +98,6 @@ const AdminReturns = () => {
   }, [allReturns, searchQuery]);
 
   const pagedItems = filteredItems;
-
-  const tabCounts = useMemo(() => ({
-    all: allReturns.length,
-    pending: allReturns.filter((r) => r.status === 'PENDING').length,
-    approved: allReturns.filter((r) => r.status === 'APPROVED').length,
-    completed: allReturns.filter((r) => r.status === 'COMPLETED').length,
-    rejected: allReturns.filter((r) => r.status === 'REJECTED').length,
-  }), [allReturns]);
 
   const toggleAll = (checked: boolean) => {
     setSelected(checked ? new Set(pagedItems.map((r) => r.id)) : new Set());

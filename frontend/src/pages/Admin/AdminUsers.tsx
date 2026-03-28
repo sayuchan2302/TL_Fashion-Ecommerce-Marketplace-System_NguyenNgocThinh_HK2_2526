@@ -1,5 +1,5 @@
 import './AdminUsers.css';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Ban, CheckCircle2, Eye, Link2, Search, Shield, ShieldCheck, UserRound, X } from 'lucide-react';
 import AdminLayout from './AdminLayout';
@@ -7,25 +7,20 @@ import AdminConfirmDialog from './AdminConfirmDialog';
 import { AdminStateBlock } from './AdminStateBlocks';
 import { PanelStatsGrid, PanelTabs } from '../../components/Panel/PanelPrimitives';
 import { useToast } from '../../contexts/ToastContext';
+import { adminUserService, type AdminUserRecord, type AdminUserRole, type AdminUserStatus } from '../../services/adminUserService';
+import { getUiErrorMessage } from '../../utils/errorMessage';
 import Drawer from '../../components/Drawer/Drawer';
 
-type UserRole = 'CUSTOMER' | 'VENDOR' | 'SUPER_ADMIN';
-type UserStatus = 'ACTIVE' | 'LOCKED' | 'PENDING_VENDOR';
 type UserFilter = 'all' | 'customer' | 'vendor' | 'admin' | 'locked';
+type UserRole = AdminUserRole;
+type UserStatus = AdminUserStatus;
+type UserRecord = AdminUserRecord & { note?: string };
 
-interface UserRecord {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  status: UserStatus;
-  createdAt: string;
-  storeName?: string;
-  totalOrders?: number;
-  totalSpent?: number;
-  note?: string;
-}
+type ConfirmState = {
+  mode: 'lock' | 'unlock';
+  ids: string[];
+  selectedItems: string[];
+};
 
 const USER_TABS: Array<{ key: UserFilter; label: string }> = [
   { key: 'all', label: 'Tất cả' },
@@ -34,88 +29,6 @@ const USER_TABS: Array<{ key: UserFilter; label: string }> = [
   { key: 'admin', label: 'Quản trị viên' },
   { key: 'locked', label: 'Đã khóa' },
 ];
-
-const INITIAL_USERS: UserRecord[] = [
-  {
-    id: 'user-001',
-    name: 'Nguyễn Minh Anh',
-    email: 'minhanh@test.local',
-    phone: '0909 112 233',
-    role: 'CUSTOMER',
-    status: 'ACTIVE',
-    createdAt: '2026-03-02T09:10:00',
-    totalOrders: 14,
-    totalSpent: 12850000,
-    note: 'Khách hàng thân thiết, không có tín hiệu rủi ro.',
-  },
-  {
-    id: 'user-002',
-    name: 'Fashion Hub Operator',
-    email: 'vendor@test.local',
-    phone: '0900 000 002',
-    role: 'VENDOR',
-    status: 'ACTIVE',
-    createdAt: '2026-03-06T14:25:00',
-    storeName: 'Fashion Hub',
-    totalOrders: 86,
-    totalSpent: 0,
-    note: 'Gian hàng đã duyệt, đang bán ổn định trên sàn.',
-  },
-  {
-    id: 'user-003',
-    name: 'Marketplace Admin',
-    email: 'admin@test.local',
-    phone: '0900 000 003',
-    role: 'SUPER_ADMIN',
-    status: 'ACTIVE',
-    createdAt: '2026-02-15T08:00:00',
-    note: 'Tài khoản điều hành hệ sinh thái.',
-  },
-  {
-    id: 'user-004',
-    name: 'Trần Bảo Ngọc',
-    email: 'baongoc@test.local',
-    phone: '0988 331 447',
-    role: 'CUSTOMER',
-    status: 'LOCKED',
-    createdAt: '2026-03-12T11:40:00',
-    totalOrders: 3,
-    totalSpent: 1240000,
-    note: 'Tài khoản bị khóa do phát hiện hành vi hoàn đơn bất thường.',
-  },
-  {
-    id: 'user-005',
-    name: 'Lê Hoàng Đức',
-    email: 'hoangduc@seller.local',
-    phone: '0933 881 776',
-    role: 'CUSTOMER',
-    status: 'PENDING_VENDOR',
-    createdAt: '2026-03-18T16:12:00',
-    storeName: 'Urban Layer',
-    totalOrders: 9,
-    totalSpent: 9340000,
-    note: 'Đã gửi hồ sơ mở gian hàng, đang chờ duyệt onboarding.',
-  },
-  {
-    id: 'user-006',
-    name: 'Phạm Tuấn Kiệt',
-    email: 'tuankiet@seller.local',
-    phone: '0911 222 119',
-    role: 'VENDOR',
-    status: 'LOCKED',
-    createdAt: '2026-01-19T10:22:00',
-    storeName: 'Street Mode',
-    totalOrders: 42,
-    totalSpent: 0,
-    note: 'Gian hàng tạm khóa do vi phạm chính sách vận hành.',
-  },
-];
-
-type ConfirmState = {
-  mode: 'lock' | 'unlock';
-  ids: string[];
-  selectedItems: string[];
-};
 
 const roleLabel = (role: UserRole) => {
   if (role === 'CUSTOMER') return 'Khách hàng';
@@ -141,9 +54,22 @@ const roleTone = (role: UserRole) => {
   return 'warning';
 };
 
+const canManageUser = (user: UserRecord) => user.role !== 'SUPER_ADMIN';
+
+const buildUserNote = (user: AdminUserRecord): string => {
+  if (user.role === 'SUPER_ADMIN') return 'Tài khoản quản trị hệ thống';
+  if (user.status === 'PENDING_VENDOR') return 'Đang chờ duyệt vendor onboarding';
+  if (user.role === 'VENDOR') return 'Tài khoản vận hành gian hàng';
+  return 'Tài khoản khách hàng';
+};
+
 const AdminUsers = () => {
   const { addToast } = useToast();
-  const [users, setUsers] = useState<UserRecord[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<UserFilter>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -151,6 +77,31 @@ const AdminUsers = () => {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 8;
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+        const data = await adminUserService.list();
+        if (!mounted) return;
+        setUsers((Array.isArray(data) ? data : []).map((user) => ({ ...user, note: buildUserNote(user) })));
+      } catch (error: unknown) {
+        if (!mounted) return;
+        setUsers([]);
+        setLoadError(getUiErrorMessage(error, 'Không tải được danh sách người dùng từ backend.'));
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    void loadUsers();
+    return () => {
+      mounted = false;
+    };
+  }, [reloadKey]);
 
   const filteredUsers = useMemo(() => {
     let next = users;
@@ -167,7 +118,7 @@ const AdminUsers = () => {
     if (search.trim()) {
       const query = search.trim().toLowerCase();
       next = next.filter((user) =>
-        `${user.name} ${user.email} ${user.phone} ${user.storeName || ''}`.toLowerCase().includes(query),
+        `${user.name} ${user.email} ${user.phone || ''} ${user.storeName || ''}`.toLowerCase().includes(query),
       );
     }
 
@@ -189,8 +140,6 @@ const AdminUsers = () => {
     return filteredUsers.slice(start, start + pageSize);
   }, [filteredUsers, safePage]);
 
-
-
   const resetCurrentView = () => {
     setSearch('');
     setActiveTab('all');
@@ -208,53 +157,53 @@ const AdminUsers = () => {
     if (items.length === 0) return;
     setConfirmState({
       mode,
-      ids,
+      ids: items.map((item) => item.id),
       selectedItems: items.map((item) => item.name),
     });
   };
 
-  const applyStatusChange = () => {
+  const lockableSelectedIds = useMemo(
+    () => Array.from(selected).filter((id) => {
+      const user = users.find((item) => item.id === id);
+      return Boolean(user && canManageUser(user) && user.status !== 'LOCKED');
+    }),
+    [selected, users],
+  );
+
+  const unlockableSelectedIds = useMemo(
+    () => Array.from(selected).filter((id) => {
+      const user = users.find((item) => item.id === id);
+      return Boolean(user && canManageUser(user) && user.status === 'LOCKED');
+    }),
+    [selected, users],
+  );
+
+  const applyStatusChange = async () => {
     if (!confirmState) return;
 
-    setUsers((prev) =>
-      prev.map((user) =>
-        confirmState.ids.includes(user.id)
-          ? {
-            ...user,
-            status:
-              confirmState.mode === 'lock'
-                ? 'LOCKED'
-                : user.role === 'CUSTOMER'
-                  ? 'ACTIVE'
-                  : user.status === 'PENDING_VENDOR'
-                    ? 'PENDING_VENDOR'
-                    : 'ACTIVE',
-          }
-          : user,
-      ),
-    );
-
-    if (detailUser && confirmState.ids.includes(detailUser.id)) {
-      setDetailUser((current) =>
-        current
-          ? {
-            ...current,
-            status:
-              confirmState.mode === 'lock'
-                ? 'LOCKED'
-                : current.role === 'CUSTOMER'
-                  ? 'ACTIVE'
-                  : current.status === 'PENDING_VENDOR'
-                    ? 'PENDING_VENDOR'
-                    : 'ACTIVE',
-          }
-          : null,
+    setActionLoading(true);
+    try {
+      const shouldBeActive = confirmState.mode === 'unlock';
+      const updated = await Promise.all(
+        confirmState.ids.map((id) => adminUserService.updateActive(id, shouldBeActive)),
       );
-    }
+      const updatedMap = new Map(updated.map((item) => [item.id, { ...item, note: buildUserNote(item) }]));
 
-    setSelected(new Set());
-    addToast(confirmState.mode === 'lock' ? 'Đã khóa tài khoản đã chọn' : 'Đã mở khóa tài khoản đã chọn', confirmState.mode === 'lock' ? 'info' : 'success');
-    setConfirmState(null);
+      setUsers((prev) => prev.map((row) => updatedMap.get(row.id) || row));
+      if (detailUser && updatedMap.has(detailUser.id)) {
+        setDetailUser(updatedMap.get(detailUser.id) || null);
+      }
+      setSelected(new Set());
+      setConfirmState(null);
+      addToast(
+        confirmState.mode === 'lock' ? 'Đã khóa tài khoản đã chọn' : 'Đã mở khóa tài khoản đã chọn',
+        'success',
+      );
+    } catch (error: unknown) {
+      addToast(getUiErrorMessage(error, 'Không thể cập nhật trạng thái tài khoản.'), 'error');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -287,7 +236,7 @@ const AdminUsers = () => {
           { key: 'all', label: 'Tổng tài khoản', value: counts.all, sub: 'Toàn bộ tài khoản đang theo dõi' },
           { key: 'customer', label: 'Khách hàng', value: counts.customer, sub: 'Tài khoản mua hàng trên sàn', tone: 'info', onClick: () => setActiveTab('customer') },
           { key: 'vendor', label: 'Người bán', value: counts.vendor, sub: 'Bao gồm vendor đang bán và đang chờ duyệt', tone: 'success', onClick: () => setActiveTab('vendor') },
-          { key: 'locked', label: 'Đã khóa', value: counts.locked, sub: 'Tài khoản cần theo dõi rủi ro', tone: counts.locked > 0 ? 'danger' : '', onClick: () => setActiveTab('locked') },
+          { key: 'locked', label: 'Đã khóa', value: counts.locked, sub: 'Tài khoản đang bị chặn đăng nhập', tone: counts.locked > 0 ? 'danger' : '', onClick: () => setActiveTab('locked') },
         ]}
       />
 
@@ -308,37 +257,40 @@ const AdminUsers = () => {
       <section className="admin-panels single">
         <div className="admin-panel">
           <div className="admin-panel-head">
-            <h2>Danh sách khách hàng</h2>
-            {selected.size > 0 && (() => {
-              const selectedUsers = users.filter((user) => selected.has(user.id));
-              const hasLocked = selectedUsers.some((user) => user.status === 'LOCKED');
-              const hasActive = selectedUsers.some((user) => user.status !== 'LOCKED');
-              return (
-                <div className="admin-actions">
-                  <span className="admin-muted">Đã chọn {selected.size} tài khoản</span>
-                  {hasActive && (
-                    <button
-                      className="admin-ghost-btn danger"
-                      onClick={() => openConfirm('lock', Array.from(selected).filter((id) => users.find((user) => user.id === id)?.status !== 'LOCKED'))}
-                    >
-                      Khóa đã chọn
-                    </button>
-                  )}
-                  {hasLocked && (
-                    <button
-                      className="admin-ghost-btn"
-                      onClick={() => openConfirm('unlock', Array.from(selected).filter((id) => users.find((user) => user.id === id)?.status === 'LOCKED'))}
-                    >
-                      Mở khóa đã chọn
-                    </button>
-                  )}
-                  <button className="admin-ghost-btn" onClick={() => setSelected(new Set())}>Bỏ chọn</button>
-                </div>
-              );
-            })()}
+            <h2>Danh sách người dùng</h2>
+            {selected.size > 0 && (
+              <div className="admin-actions">
+                <span className="admin-muted">Đã chọn {selected.size} tài khoản</span>
+                {lockableSelectedIds.length > 0 && (
+                  <button className="admin-ghost-btn danger" onClick={() => openConfirm('lock', lockableSelectedIds)}>
+                    Khóa đã chọn
+                  </button>
+                )}
+                {unlockableSelectedIds.length > 0 && (
+                  <button className="admin-ghost-btn" onClick={() => openConfirm('unlock', unlockableSelectedIds)}>
+                    Mở khóa đã chọn
+                  </button>
+                )}
+                <button className="admin-ghost-btn" onClick={() => setSelected(new Set())}>Bỏ chọn</button>
+              </div>
+            )}
           </div>
 
-          {filteredUsers.length === 0 ? (
+          {loading ? (
+            <AdminStateBlock
+              type="empty"
+              title="Đang tải danh sách người dùng"
+              description="Hệ thống đang đồng bộ dữ liệu từ backend."
+            />
+          ) : loadError ? (
+            <AdminStateBlock
+              type="empty"
+              title="Không tải được dữ liệu người dùng"
+              description={loadError}
+              actionLabel="Thử lại"
+              onAction={() => setReloadKey((key) => key + 1)}
+            />
+          ) : filteredUsers.length === 0 ? (
             <AdminStateBlock
               type={search.trim() ? 'search-empty' : 'empty'}
               title={search.trim() ? 'Không tìm thấy người dùng phù hợp' : 'Chưa có dữ liệu người dùng'}
@@ -361,9 +313,9 @@ const AdminUsers = () => {
                       onChange={(event) => setSelected(event.target.checked ? new Set(filteredUsers.map((item) => item.id)) : new Set())}
                     />
                   </div>
-                  <div role="columnheader">Khách hàng</div>
+                  <div role="columnheader">Tài khoản</div>
                   <div role="columnheader">Vai trò</div>
-                  <div role="columnheader">Gian hàng / hoạt động</div>
+                  <div role="columnheader">Phạm vi</div>
                   <div role="columnheader">Ngày tham gia</div>
                   <div role="columnheader">Trạng thái</div>
                   <div role="columnheader">Hành động</div>
@@ -392,12 +344,12 @@ const AdminUsers = () => {
                     </div>
                     <div role="cell" className="user-cell">
                       <div className="user-avatar">
-                        <span>{user.name.charAt(0).toUpperCase()}</span>
+                        <span>{(user.name || user.email || 'U').charAt(0).toUpperCase()}</span>
                       </div>
                       <div className="user-copy">
-                        <div className="admin-bold">{user.name}</div>
+                        <div className="admin-bold">{user.name || 'Chưa cập nhật tên'}</div>
                         <div className="admin-muted small">{user.email}</div>
-                        <div className="admin-muted small">{user.phone}</div>
+                        <div className="admin-muted small">{user.phone || 'Chưa có số điện thoại'}</div>
                       </div>
                     </div>
                     <div role="cell">
@@ -405,16 +357,16 @@ const AdminUsers = () => {
                     </div>
                     <div role="cell">
                       <div className="admin-bold">
-                        {user.storeName || (user.role === 'CUSTOMER' ? `${user.totalOrders || 0} đơn hàng` : 'Điều hành hệ thống')}
+                        {user.storeName || (user.role === 'SUPER_ADMIN' ? 'Toàn bộ marketplace' : 'Tài khoản người dùng')}
                       </div>
                       <div className="admin-muted small">
-                        {user.role === 'CUSTOMER'
-                          ? `${(user.totalSpent || 0).toLocaleString('vi-VN')} ₫ đã chi`
-                          : user.status === 'PENDING_VENDOR'
-                            ? 'Đang chờ duyệt onboarding'
-                            : user.role === 'VENDOR'
-                              ? 'Tài khoản vận hành gian hàng'
-                              : 'Toàn quyền quản trị'}
+                        {user.status === 'PENDING_VENDOR'
+                          ? 'Đang chờ duyệt onboarding'
+                          : user.role === 'VENDOR'
+                            ? 'Đã gắn quyền người bán'
+                            : user.role === 'SUPER_ADMIN'
+                              ? 'Toàn quyền quản trị'
+                              : 'Phạm vi mua hàng'}
                       </div>
                     </div>
                     <div role="cell">{new Date(user.createdAt).toLocaleDateString('vi-VN')}</div>
@@ -430,25 +382,27 @@ const AdminUsers = () => {
                       >
                         <Eye size={16} />
                       </button>
-                      {user.status === 'LOCKED' ? (
-                        <button
-                          className="admin-icon-btn subtle"
-                          title="Mở khóa tài khoản"
-                          aria-label="Mở khóa tài khoản"
-                          onClick={() => openConfirm('unlock', [user.id])}
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      ) : (
-                        <button
-                          className="admin-icon-btn subtle danger-icon"
-                          title="Khóa tài khoản"
-                          aria-label="Khóa tài khoản"
-                          onClick={() => openConfirm('lock', [user.id])}
-                        >
-                          <Ban size={16} />
-                        </button>
-                      )}
+                      {canManageUser(user)
+                        ? (user.status === 'LOCKED' ? (
+                            <button
+                              className="admin-icon-btn subtle"
+                              title="Mở khóa tài khoản"
+                              aria-label="Mở khóa tài khoản"
+                              onClick={() => openConfirm('unlock', [user.id])}
+                            >
+                              <CheckCircle2 size={16} />
+                            </button>
+                          ) : (
+                            <button
+                              className="admin-icon-btn subtle danger-icon"
+                              title="Khóa tài khoản"
+                              aria-label="Khóa tài khoản"
+                              onClick={() => openConfirm('lock', [user.id])}
+                            >
+                              <Ban size={16} />
+                            </button>
+                          ))
+                        : null}
                     </div>
                   </motion.div>
                 ))}
@@ -478,15 +432,18 @@ const AdminUsers = () => {
         title={confirmState?.mode === 'lock' ? 'Khóa tài khoản người dùng' : 'Mở khóa tài khoản người dùng'}
         description={
           confirmState?.mode === 'lock'
-            ? 'Tài khoản sẽ bị chặn khỏi các hành vi mua hàng, bán hàng hoặc đăng nhập quản trị cho đến khi operator mở khóa lại.'
-            : 'Tài khoản sẽ được phục hồi quyền truy cập theo đúng vai trò hiện tại trên hệ thống.'
+            ? 'Tài khoản sẽ bị chặn đăng nhập cho đến khi được mở khóa lại.'
+            : 'Tài khoản sẽ được phục hồi quyền đăng nhập theo vai trò hiện tại.'
         }
         selectedItems={confirmState?.selectedItems}
         selectedNoun="tài khoản"
-        confirmLabel={confirmState?.mode === 'lock' ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}
+        confirmLabel={actionLoading ? 'Đang xử lý...' : confirmState?.mode === 'lock' ? 'Xác nhận khóa' : 'Xác nhận mở khóa'}
         danger={confirmState?.mode === 'lock'}
         onCancel={() => setConfirmState(null)}
-        onConfirm={applyStatusChange}
+        onConfirm={() => {
+          if (actionLoading) return;
+          void applyStatusChange();
+        }}
       />
 
       <Drawer open={Boolean(detailUser)} onClose={() => setDetailUser(null)} className="user-drawer">
@@ -495,7 +452,7 @@ const AdminUsers = () => {
             <div className="drawer-header">
               <div>
                 <p className="drawer-eyebrow">Hồ sơ người dùng</p>
-                <h3>{detailUser.name}</h3>
+                <h3>{detailUser.name || detailUser.email}</h3>
               </div>
               <button className="admin-icon-btn" onClick={() => setDetailUser(null)} aria-label="Đóng hồ sơ người dùng">
                 <X size={16} />
@@ -507,10 +464,10 @@ const AdminUsers = () => {
                 <h4>Tổng quan tài khoản</h4>
                 <div className="user-drawer-hero">
                   <div className="user-avatar large">
-                    <span>{detailUser.name.charAt(0).toUpperCase()}</span>
+                    <span>{(detailUser.name || detailUser.email || 'U').charAt(0).toUpperCase()}</span>
                   </div>
                   <div>
-                    <div className="admin-bold">{detailUser.name}</div>
+                    <div className="admin-bold">{detailUser.name || 'Chưa cập nhật tên'}</div>
                     <div className="admin-muted">{detailUser.email}</div>
                   </div>
                   <span className={`admin-pill ${statusTone(detailUser.status)}`}>{statusLabel(detailUser.status)}</span>
@@ -526,7 +483,7 @@ const AdminUsers = () => {
                   </div>
                   <div className="admin-card-row">
                     <span className="admin-bold">Điện thoại</span>
-                    <span className="admin-muted">{detailUser.phone}</span>
+                    <span className="admin-muted">{detailUser.phone || 'Chưa có số điện thoại'}</span>
                   </div>
                   <div className="admin-card-row">
                     <span className="admin-bold">Ngày tham gia</span>
@@ -536,10 +493,10 @@ const AdminUsers = () => {
                     <span className="admin-bold">Phạm vi</span>
                     <span className="admin-muted">
                       {detailUser.role === 'VENDOR'
-                        ? detailUser.storeName || 'Chưa gắn gian hàng'
+                        ? detailUser.storeName || 'Chưa gán gian hàng'
                         : detailUser.role === 'SUPER_ADMIN'
                           ? 'Toàn bộ marketplace'
-                          : `${detailUser.totalOrders || 0} đơn hàng`}
+                          : 'Mua sắm trên marketplace'}
                     </span>
                   </div>
                   {detailUser.storeName && (
@@ -555,15 +512,15 @@ const AdminUsers = () => {
                 <h4>Tín hiệu nghiệp vụ</h4>
                 <div className="user-signal-grid user-signal-grid-compact">
                   <div className="user-signal-card">
-                    <span className="admin-muted small">Khách hàng</span>
-                    <strong>{detailUser.totalOrders || 0} đơn</strong>
+                    <span className="admin-muted small">Đăng nhập</span>
+                    <strong>{detailUser.status === 'LOCKED' ? 'Bị chặn' : 'Cho phép'}</strong>
                   </div>
                   <div className="user-signal-card">
-                    <span className="admin-muted small">Chi tiêu</span>
-                    <strong>{(detailUser.totalSpent || 0).toLocaleString('vi-VN')} ₫</strong>
+                    <span className="admin-muted small">Store status</span>
+                    <strong>{detailUser.storeApprovalStatus || '-'}</strong>
                   </div>
                   <div className="user-signal-card">
-                    <span className="admin-muted small">Trạng thái</span>
+                    <span className="admin-muted small">Account status</span>
                     <strong>{statusLabel(detailUser.status)}</strong>
                   </div>
                 </div>
@@ -579,17 +536,19 @@ const AdminUsers = () => {
 
             <div className="drawer-footer">
               <button className="admin-ghost-btn" onClick={() => setDetailUser(null)}>Đóng</button>
-              {detailUser.status === 'LOCKED' ? (
-                <button className="admin-primary-btn" onClick={() => openConfirm('unlock', [detailUser.id])}>
-                  <ShieldCheck size={14} />
-                  Mở khóa tài khoản
-                </button>
-              ) : (
-                <button className="admin-ghost-btn danger" onClick={() => openConfirm('lock', [detailUser.id])}>
-                  <Shield size={14} />
-                  Khóa tài khoản
-                </button>
-              )}
+              {canManageUser(detailUser)
+                ? (detailUser.status === 'LOCKED' ? (
+                    <button className="admin-primary-btn" onClick={() => openConfirm('unlock', [detailUser.id])}>
+                      <ShieldCheck size={14} />
+                      Mở khóa tài khoản
+                    </button>
+                  ) : (
+                    <button className="admin-ghost-btn danger" onClick={() => openConfirm('lock', [detailUser.id])}>
+                      <Shield size={14} />
+                      Khóa tài khoản
+                    </button>
+                  ))
+                : <span className="admin-muted small">Tài khoản SUPER_ADMIN không thể bị khóa.</span>}
             </div>
           </>
         ) : null}

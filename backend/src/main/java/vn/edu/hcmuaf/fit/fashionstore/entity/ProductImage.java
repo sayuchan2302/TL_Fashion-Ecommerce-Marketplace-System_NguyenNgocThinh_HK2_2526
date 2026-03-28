@@ -1,5 +1,6 @@
 package vn.edu.hcmuaf.fit.fashionstore.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "product_images")
 public class ProductImage extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;

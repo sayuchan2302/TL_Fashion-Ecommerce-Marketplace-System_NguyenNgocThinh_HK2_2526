@@ -13,6 +13,8 @@ import java.util.UUID;
 @Builder
 public class VoucherResponse {
     private UUID id;
+    private UUID storeId;
+    private String storeName;
     private String name;
     private String code;
     private String description;
