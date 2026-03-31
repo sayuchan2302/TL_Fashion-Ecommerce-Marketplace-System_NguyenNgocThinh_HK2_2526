@@ -31,6 +31,34 @@ type TabKey = typeof TABS[number]['key'];
 
 const PAGE_SIZE = 20;
 
+const reasonLabel: Record<string, string> = {
+  SIZE: 'Không đúng kích cỡ',
+  DEFECT: 'Lỗi sản phẩm',
+  CHANGE: 'Muốn đổi sản phẩm',
+  OTHER: 'Lý do khác',
+};
+
+const resolutionLabel: Record<string, string> = {
+  EXCHANGE: 'Đổi sản phẩm',
+  REFUND: 'Hoàn tiền',
+};
+
+const formatVnd = (value: number) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0);
+
+const formatDateTime = (value?: string) => {
+  if (!value) return 'Chưa cập nhật';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Chưa cập nhật';
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const AdminReturns = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,6 +82,16 @@ const AdminReturns = () => {
         : activeTab === 'completed' ? 'COMPLETED'
           : activeTab === 'rejected' ? 'REJECTED'
             : null;
+
+  const drawerItemCount = useMemo(
+    () => (drawerItem ? drawerItem.items.reduce((sum, item) => sum + Math.max(0, item.quantity), 0) : 0),
+    [drawerItem],
+  );
+
+  const drawerRefundTotal = useMemo(
+    () => (drawerItem ? drawerItem.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0) : 0),
+    [drawerItem],
+  );
 
   useEffect(() => {
     let active = true;
@@ -238,45 +276,104 @@ const AdminReturns = () => {
       <Drawer open={Boolean(drawerItem)} onClose={() => { setDrawerItem(null); setDrawerNote(''); }}>
         {drawerItem ? (
           <>
-            <div className="drawer-header">
+            <div className="drawer-header returns-drawer-header">
               <div>
                 <p className="drawer-eyebrow">Yêu cầu hoàn trả</p>
                 <h3>{toDisplayReturnCode(drawerItem.code)}</h3>
+                <div className="returns-drawer-status-line">
+                  <span className={statusConfig[drawerItem.status].pillClass}>{statusConfig[drawerItem.status].label}</span>
+                  <span className="admin-pill neutral">{resolutionLabel[drawerItem.resolution] || drawerItem.resolution}</span>
+                </div>
               </div>
               <button className="admin-icon-btn" onClick={() => { setDrawerItem(null); setDrawerNote(''); }}><X size={16} /></button>
             </div>
             <div className="drawer-body">
               <section className="drawer-section">
-                <h4>Thông tin yêu cầu</h4>
-                <div className="admin-card-list">
-                  <div className="admin-card-row"><span className="admin-bold">Đơn hàng</span><span className="admin-muted">{toDisplayOrderCode(drawerItem.orderCode)}</span></div>
-                  <div className="admin-card-row"><span className="admin-bold">Khách hàng</span><span className="admin-muted">{drawerItem.customerName}</span></div>
-                  <div className="admin-card-row"><span className="admin-bold">Trạng thái</span><span className={statusConfig[drawerItem.status].pillClass}>{statusConfig[drawerItem.status].label}</span></div>
-                  <div className="admin-card-row"><span className="admin-bold">Lý do</span><span className="admin-muted">{drawerItem.reason}</span></div>
+                <h4>Tổng quan yêu cầu</h4>
+                <div className="returns-meta-grid">
+                  <article className="returns-meta-card">
+                    <span className="returns-meta-label">Mã đơn</span>
+                    <strong>{toDisplayOrderCode(drawerItem.orderCode)}</strong>
+                  </article>
+                  <article className="returns-meta-card">
+                    <span className="returns-meta-label">Khách hàng</span>
+                    <strong>{drawerItem.customerName}</strong>
+                    <small className="admin-muted">{drawerItem.customerEmail || 'Chưa có email'}</small>
+                  </article>
+                  <article className="returns-meta-card">
+                    <span className="returns-meta-label">Gian hàng</span>
+                    <strong>{drawerItem.storeName || 'Chưa xác định'}</strong>
+                    <small className="admin-muted">{drawerItem.customerPhone || 'Chưa có SĐT khách'}</small>
+                  </article>
+                  <article className="returns-meta-card">
+                    <span className="returns-meta-label">Thời gian tạo</span>
+                    <strong>{formatDateTime(drawerItem.createdAt)}</strong>
+                    <small className="admin-muted">Cập nhật: {formatDateTime(drawerItem.updatedAt)}</small>
+                  </article>
+                </div>
+              </section>
+
+              <section className="drawer-section">
+                <h4>Lý do và ghi chú khách</h4>
+                <div className="returns-reason-box">
+                  <div className="admin-card-row">
+                    <span className="admin-bold">Lý do</span>
+                    <span className="admin-muted">{reasonLabel[drawerItem.reason] || drawerItem.reason}</span>
+                  </div>
+                  <div className="admin-card-row">
+                    <span className="admin-bold">Ghi chú khách</span>
+                    <span className="admin-muted">{drawerItem.note?.trim() || 'Không có ghi chú bổ sung'}</span>
+                  </div>
                 </div>
               </section>
 
               {drawerItem.items.length > 0 && (
                 <section className="drawer-section">
-                  <h4>Sản phẩm trả lại</h4>
+                  <h4>Sản phẩm trả lại ({drawerItemCount})</h4>
+                  <div className="returns-items-list">
                   {drawerItem.items.map((item) => (
-                    <div key={item.orderItemId} className="admin-card-row">
-                      <span className="admin-bold">{item.productName}</span>
-                      <span className="admin-muted">x{item.quantity}</span>
-                    </div>
+                    <article key={item.orderItemId} className="returns-item-card">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.productName} className="returns-item-image" />
+                      ) : (
+                        <div className="returns-item-image placeholder">SP</div>
+                      )}
+                      <div className="returns-item-content">
+                        <strong className="returns-item-name">{item.productName}</strong>
+                        <small className="admin-muted">{item.variantName || 'Biến thể mặc định'}</small>
+                        <div className="returns-item-meta">
+                          <span>x{item.quantity}</span>
+                          <span>{formatVnd(item.unitPrice)}</span>
+                          <span className="admin-bold">{formatVnd(item.unitPrice * item.quantity)}</span>
+                        </div>
+                      </div>
+                    </article>
                   ))}
+                  </div>
+                  <div className="returns-summary-row">
+                    <span className="admin-muted">Giá trị hoàn dự kiến</span>
+                    <strong>{formatVnd(drawerRefundTotal)}</strong>
+                  </div>
                 </section>
               )}
 
               <section className="drawer-section">
                 <h4>Ghi chú kiểm duyệt</h4>
-                <textarea
-                  value={drawerNote}
-                  onChange={(e) => setDrawerNote(e.target.value)}
-                  rows={3}
-                  placeholder="Nhập ghi chú nội bộ..."
-                  className="content-form-textarea"
-                />
+                <div className="returns-note-box">
+                  <p className="returns-note-label">Ghi chú hiện tại</p>
+                  <p className="returns-note-text">{drawerItem.adminNote?.trim() || 'Chưa có ghi chú kiểm duyệt'}</p>
+                </div>
+                <div className="returns-note-input-wrap">
+                  <label htmlFor="admin-return-note" className="returns-note-label">Cập nhật ghi chú mới</label>
+                  <textarea
+                    id="admin-return-note"
+                    value={drawerNote}
+                    onChange={(e) => setDrawerNote(e.target.value)}
+                    rows={4}
+                    placeholder="Nhập ghi chú nội bộ cho lần cập nhật trạng thái này..."
+                    className="returns-note-input"
+                  />
+                </div>
               </section>
             </div>
             <div className="drawer-footer">
