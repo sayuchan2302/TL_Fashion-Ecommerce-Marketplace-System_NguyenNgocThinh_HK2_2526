@@ -1,7 +1,7 @@
 import './AdminStores.css';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Ban, Check, Eye, Link2, RotateCcw, Search, Store, User, X } from 'lucide-react';
+import { Ban, Check, Eye, RotateCcw, Store, User, X } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import AdminConfirmDialog from './AdminConfirmDialog';
 import { AdminStateBlock } from './AdminStateBlocks';
@@ -156,11 +156,6 @@ const StoreApprovals = () => {
 
   const resetCurrentView = () => { setSearch(''); setActiveTab('all'); setSelected(new Set()); setPage(1); };
 
-  const shareCurrentView = async () => {
-    try { await navigator.clipboard.writeText(window.location.href); addToast('Đã sao chép bộ lọc hiện tại của gian hàng', 'success'); }
-    catch { addToast('Không thể sao chép liên kết bộ lọc', 'error'); }
-  };
-
   const openConfirm = (mode: ConfirmMode, ids: string[]) => {
     const items = stores.filter((store) => ids.includes(store.id));
     if (items.length === 0) return;
@@ -218,7 +213,6 @@ const StoreApprovals = () => {
     <AdminLayout
       title="Gian hàng"
       breadcrumbs={['Gian hàng', 'Quản lý gian hàng']}
-      actions={<><div className="admin-search"><Search size={16} /><input placeholder="Tìm theo tên gian hàng, slug, chủ sở hữu hoặc email liên hệ" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} /></div><button className="admin-ghost-btn" onClick={() => void shareCurrentView()}><Link2 size={16} />Chia sẻ bộ lọc</button></>}
     >
       <PanelStatsGrid items={[
         { key: 'all', label: 'Tổng gian hàng', value: counts.all, sub: 'Toàn bộ hồ sơ gian hàng trên sàn' },

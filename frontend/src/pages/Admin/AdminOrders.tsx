@@ -1,6 +1,6 @@
 import './Admin.css';
 import { Link } from 'react-router-dom';
-import { Filter, Search, Truck, Eye, Printer, Link2, CheckCircle2 } from 'lucide-react';
+import { Truck, Eye, Printer, CheckCircle2 } from 'lucide-react';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import AdminLayout from './AdminLayout';
@@ -163,15 +163,6 @@ const AdminOrders = () => {
     return unsubscribe;
   }, [fetchOrders]);
 
-  const shareCurrentView = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      pushToast(ADMIN_DICTIONARY.messages.viewCopied);
-    } catch {
-      pushToast(ADMIN_DICTIONARY.messages.copyFailed);
-    }
-  };
-
   const resetCurrentView = () => {
     setSelected(new Set());
     setActiveTab('all');
@@ -270,28 +261,6 @@ const AdminOrders = () => {
     <AdminLayout
       title="Đơn hàng"
       breadcrumbs={['Đơn hàng', 'Toàn cảnh điều hành']}
-      actions={
-        <>
-          <div className="admin-search">
-            <Search size={16} />
-            <input
-              placeholder="Tìm ORDER CODE, khách hàng hoặc sản phẩm"
-              aria-label="Tìm ORDER CODE, khách hàng hoặc sản phẩm"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
-          <button className="admin-ghost-btn" onClick={() => pushToast(ADMIN_DICTIONARY.messages.advancedFilterComingSoon)}>
-            <Filter size={16} /> {c.filter}
-          </button>
-          <button className="admin-ghost-btn" onClick={shareCurrentView}>
-            <Link2 size={16} /> {actions.shareView}
-          </button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>
-            {actions.resetView}
-          </button>
-        </>
-      }
     >
       <PanelStatsGrid
         items={[

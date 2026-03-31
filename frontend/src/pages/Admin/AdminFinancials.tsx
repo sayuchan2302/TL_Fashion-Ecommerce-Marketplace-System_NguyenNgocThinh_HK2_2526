@@ -1,7 +1,7 @@
 import './AdminFinancials.css';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpRight, CheckCircle2, Eye, Link2, Search, WalletCards, X } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Eye, WalletCards, X } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import AdminConfirmDialog from './AdminConfirmDialog';
 import { AdminStateBlock } from './AdminStateBlocks';
@@ -92,11 +92,6 @@ const AdminFinancials = () => {
     setPage(1);
   };
 
-  const shareCurrentView = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    addToast('Đã sao chép bộ lọc hiện tại của tài chính sàn', 'success');
-  };
-
   const openReleaseConfirm = (storeIds: string[]) => {
     const items = records.filter((record) => storeIds.includes(record.storeId) && record.balance > 0);
     if (items.length === 0) {
@@ -130,26 +125,6 @@ const AdminFinancials = () => {
     <AdminLayout
       title="Tài chính sàn"
       breadcrumbs={['Tài chính sàn', 'Đối soát và giải ngân']}
-      actions={(
-        <>
-          <div className="admin-search">
-            <Search size={16} />
-            <input
-              placeholder="Tìm theo kỳ đối soát, phạm vi hoặc mã đơn"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
-            <Link2 size={16} />
-            Chia sẻ bộ lọc
-          </button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>Đặt lại</button>
-        </>
-      )}
     >
       <PanelStatsGrid
         items={[

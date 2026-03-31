@@ -1,7 +1,7 @@
 import './AdminUsers.css';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Ban, CheckCircle2, Eye, Link2, Search, Shield, ShieldCheck, UserRound, X } from 'lucide-react';
+import { Ban, CheckCircle2, Eye, Shield, ShieldCheck, UserRound, X } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import AdminConfirmDialog from './AdminConfirmDialog';
 import { AdminStateBlock } from './AdminStateBlocks';
@@ -161,11 +161,6 @@ const AdminUsers = () => {
     setPage(1);
   };
 
-  const shareCurrentView = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    addToast('Đã sao chép bộ lọc hiện tại của người dùng', 'success');
-  };
-
   const openConfirm = (mode: 'lock' | 'unlock', ids: string[]) => {
     const items = users.filter((user) => ids.includes(user.id));
     if (items.length === 0) return;
@@ -224,26 +219,6 @@ const AdminUsers = () => {
     <AdminLayout
       title="Người dùng"
       breadcrumbs={['Người dùng', 'Khách hàng và người bán']}
-      actions={(
-        <>
-          <div className="admin-search">
-            <Search size={16} />
-            <input
-              placeholder="Tìm theo tên, email, số điện thoại hoặc tên gian hàng"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
-            <Link2 size={16} />
-            Chia sẻ bộ lọc
-          </button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>Đặt lại</button>
-        </>
-      )}
     >
       <PanelStatsGrid
         items={[

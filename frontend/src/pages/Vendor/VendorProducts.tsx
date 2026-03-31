@@ -1,7 +1,7 @@
 import './Vendor.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, FolderTree, Link2, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { Eye, EyeOff, FolderTree, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import VendorLayout from './VendorLayout';
 import { formatCurrency } from '../../services/commissionService';
@@ -23,7 +23,7 @@ import {
 import { useToast } from '../../contexts/ToastContext';
 import { getUiErrorMessage } from '../../utils/errorMessage';
 import Drawer from '../../components/Drawer/Drawer';
-import { copyTextToClipboard, normalizePositiveInteger } from './vendorHelpers';
+import { normalizePositiveInteger } from './vendorHelpers';
 
 type ProductTab = 'all' | 'active' | 'outOfStock' | 'draft';
 
@@ -116,7 +116,7 @@ const stripDiacritics = (value: string) =>
   value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/Ä'/g, 'd')
+    .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D');
 
 const toSkuToken = (value: string, fallback: string, maxLength = 10) => {
@@ -453,15 +453,6 @@ const VendorProducts = () => {
     setSearchParams(new URLSearchParams());
   };
 
-  const shareCurrentView = async () => {
-    const copied = await copyTextToClipboard(window.location.href);
-    if (copied) {
-      pushToast('Đã sao chép bộ lọc hiện tại của trang sản phẩm');
-      return;
-    }
-    addToast('Không thể sao chép bộ lọc', 'error');
-  };
-
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelected(new Set(products.map((product) => product.id)));
@@ -752,29 +743,10 @@ const VendorProducts = () => {
       title="Sản phẩm và tồn kho"
       breadcrumbs={['Kênh Người Bán', 'Kho']}
       actions={(
-        <>
-          <div className="admin-search">
-            <Search size={16} />
-            <input
-              placeholder="Tìm theo tên, SKU hoặc danh mục"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-          </div>
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
-            <Link2 size={16} />
-            Chia sẻ bộ lọc
-          </button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>Đặt lại</button>
-          <button
-            type="button"
-            className="admin-primary-btn vendor-admin-primary"
-            onClick={handleOpenCreateProductDrawer}
-          >
-            <Plus size={14} />
-            Thêm sản phẩm
-          </button>
-        </>
+        <button className="vendor-primary-btn" onClick={handleOpenCreateProductDrawer} disabled={working}>
+          <Plus size={16} style={{ marginRight: 6 }} />
+          Thêm sản phẩm
+        </button>
       )}
     >
       <PanelStatsGrid

@@ -1,6 +1,6 @@
 import './Admin.css';
 import { useEffect, useMemo, useState } from 'react';
-import { Search, X, Check, XCircle, Eye } from 'lucide-react';
+import { X, Check, XCircle, Eye } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { AdminStateBlock } from './AdminStateBlocks';
 import { useAdminToast } from './useAdminToast';
@@ -174,19 +174,6 @@ const AdminReturns = () => {
     <AdminLayout
       title="Hoàn đơn"
       breadcrumbs={['Đơn hàng', 'Quản lý hoàn trả']}
-      actions={(
-        <div className="admin-actions">
-          <div className="admin-search">
-            <Search size={16} />
-            <input
-              placeholder="Tìm theo mã yêu cầu, đơn hàng hoặc tên khách"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>Đặt lại</button>
-        </div>
-      )}
     >
       <PanelTabs
         items={TABS.map((tab) => ({

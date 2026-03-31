@@ -1,7 +1,7 @@
 import './Admin.css';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Pause, Play, X, Tag, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Pause, Play, X, Trash2 } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { AdminStateBlock } from './AdminStateBlocks';
 import AdminConfirmDialog from './AdminConfirmDialog';
@@ -285,24 +285,9 @@ const AdminPromotions = () => {
       title="Khuyến mãi"
       breadcrumbs={['Khuyến mãi', 'Chiến dịch điều hành']}
       actions={
-        <>
-          <div className="admin-search">
-            <Search size={16} />
-            <input
-              placeholder="Tìm chiến dịch, mã voucher hoặc mô tả"
-              aria-label="Tìm chiến dịch, mã voucher hoặc mô tả"
-              value={search}
-              onChange={(e) => view.setSearch(e.target.value)}
-            />
-          </div>
-          <button className="admin-ghost-btn" onClick={() => pushToast('Bộ lọc scope theo store sẽ bổ sung ở pha tiếp theo.')}>
-            <Tag size={16} /> Phạm vi chiến dịch
-          </button>
-          <button className="admin-ghost-btn" onClick={resetView}>Đặt lại</button>
-          <button className="admin-primary-btn" onClick={openCreate} disabled={selectableStores.length === 0}>
-            <Plus size={16} /> Tạo chiến dịch
-          </button>
-        </>
+        <button className="admin-primary-btn" onClick={openCreate} disabled={selectableStores.length === 0}>
+          <Plus size={16} /> Tạo Voucher
+        </button>
       }
     >
       <div className="admin-stats grid-4">

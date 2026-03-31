@@ -1,6 +1,6 @@
 import './Vendor.css';
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, ImagePlus, Save, ShieldCheck, Tag } from 'lucide-react';
+import { ImagePlus, Save, ShieldCheck, Tag } from 'lucide-react';
 import VendorLayout from './VendorLayout';
 import { vendorPortalService, type VendorSettingsData } from '../../services/vendorPortalService';
 import { useToast } from '../../contexts/ToastContext';
@@ -80,23 +80,10 @@ const VendorStorefront = () => {
       title="Gian hàng công khai và bộ mặt thương hiệu"
       breadcrumbs={['Kênh Người Bán', 'Gian hàng']}
       actions={(
-        <>
-          {settings.storeInfo.slug ? (
-            <a className="admin-ghost-btn" href={`/store/${settings.storeInfo.slug}`}>
-              <ExternalLink size={16} />
-              Xem trang công khai
-            </a>
-          ) : (
-            <button type="button" className="admin-ghost-btn" disabled title="Chưa có slug storefront">
-              <ExternalLink size={16} />
-              Chưa có đường dẫn công khai
-            </button>
-          )}
-          <button className="admin-primary-btn vendor-admin-primary" onClick={handleSave} disabled={saving}>
-            <Save size={16} />
-            {saving ? 'Đang lưu...' : 'Lưu gian hàng'}
-          </button>
-        </>
+        <button className="vendor-primary-btn" onClick={() => void handleSave()} disabled={saving || loading}>
+          <Save size={16} style={{ marginRight: 6 }} />
+          {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+        </button>
       )}
     >
       {loading ? (

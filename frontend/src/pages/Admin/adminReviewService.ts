@@ -15,6 +15,8 @@ export interface Review {
   date: string;
   status: ReviewStatus;
   reply: string | null;
+  replyAt?: string | null;
+  images?: string[];
   orderId?: string;
   orderCode?: string;
   version: number;

@@ -1,5 +1,5 @@
 import './Admin.css';
-import { Star, CheckCircle, EyeOff, Search, Filter, X, Trash2, Eye } from 'lucide-react';
+import { Star, CheckCircle, EyeOff, Trash2, Eye } from 'lucide-react';
 import AdminLayout from './AdminLayout';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -7,7 +7,12 @@ import { AdminStateBlock } from './AdminStateBlocks';
 import { useAdminListState } from './useAdminListState';
 import { useAdminViewState } from './useAdminViewState';
 import { useAdminToast } from './useAdminToast';
-import { PanelTabs } from '../../components/Panel/PanelPrimitives';
+import {
+  PanelDrawerFooter,
+  PanelDrawerHeader,
+  PanelDrawerSection,
+  PanelTabs,
+} from '../../components/Panel/PanelPrimitives';
 import { adminReviewService, type Review, type ReviewStatus } from './adminReviewService';
 import { ADMIN_VIEW_KEYS } from './adminListView';
 import AdminConfirmDialog from './AdminConfirmDialog';
@@ -44,6 +49,20 @@ const RatingStars = ({ rating, size = 14 }: { rating: number; size?: number }) =
 );
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+const formatDateTime = (iso?: string | null) => {
+  if (!iso) return 'Chưa có dữ liệu';
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return parsed.toLocaleString('vi-VN', {
+    hour12: false,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 const getInitials = (name: string) => {
   const parts = name.trim().split(' ');
@@ -180,19 +199,6 @@ const AdminReviews = () => {
     <AdminLayout
       title="Đánh giá"
       breadcrumbs={['Đánh giá', 'Kiểm duyệt']}
-      actions={
-        <>
-          <div className="admin-search">
-            <Search size={16} />
-            <input placeholder="Tìm đánh giá, khách hàng, sản phẩm hoặc nội dung" value={search} onChange={(e) => view.setSearch(e.target.value)} />
-          </div>
-          <button className="admin-ghost-btn" onClick={() => pushToast('Bộ lọc dispute signal sẽ bổ sung sau.')}>
-            <Filter size={16} />
-            Lọc
-          </button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>Đặt lại</button>
-        </>
-      }
     >
       <div className="admin-stats grid-4">
         <div className="admin-stat-card">
@@ -381,81 +387,115 @@ const AdminReviews = () => {
       <Drawer open={Boolean(drawerReview)} onClose={() => setDrawerReview(null)}>
         {drawerReview ? (
           <>
-            <div className="drawer-header">
-              <div>
-                <p className="drawer-eyebrow">Duyệt đánh giá</p>
-                <h3>{drawerReview.productName}</h3>
-              </div>
-              <button className="admin-icon-btn" onClick={() => { setDrawerReview(null); }} aria-label="Đóng">
-                <X size={16} />
-              </button>
-            </div>
-
+            <PanelDrawerHeader
+              eyebrow="Chi tiết đánh giá"
+              title={drawerReview.productName}
+              onClose={() => setDrawerReview(null)}
+              closeLabel="Đóng chi tiết đánh giá"
+            />
             <div className="drawer-body">
-              <section className="drawer-section">
-                <p className="admin-label" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Thông tin sản phẩm</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <img src={drawerReview.productImage} alt={drawerReview.productName} style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid #e2e8f0' }} />
-                  <div>
-                    <p className="admin-bold" style={{ margin: 0 }}>{drawerReview.productName}</p>
-                    <p className="admin-muted small" style={{ margin: 0 }}>Mã đơn hàng: #{toDisplayOrderCode(drawerReview.orderCode)}</p>
+              <PanelDrawerSection title="Tổng quan đánh giá">
+                <div className="review-drawer-product">
+                  <img
+                    src={drawerReview.productImage}
+                    alt={drawerReview.productName}
+                    className="review-drawer-product-image"
+                  />
+                  <div className="review-drawer-product-copy">
+                    <p className="review-drawer-product-name">{drawerReview.productName}</p>
+                    <p className="review-drawer-product-sub">Đơn hàng: #{toDisplayOrderCode(drawerReview.orderCode)}</p>
+                    <div className="review-drawer-pill-row">
+                      <ReviewStatusBadge status={drawerReview.status} />
+                      <span className={`admin-pill ${drawerReview.rating <= 3 ? 'pending' : 'success'}`}>
+                        {drawerReview.rating <= 3 ? 'Cần chăm sóc' : 'Ổn định'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </section>
-
-              <section className="drawer-section">
-                <p className="admin-label" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Phản hồi khách hàng</p>
-                <div className="admin-card-list">
-                  <div className="admin-card-row">
-                    <span className="admin-bold">{drawerReview.customerName}</span>
-                    <RatingStars rating={drawerReview.rating} size={16} />
+                <div className="review-drawer-meta-grid">
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Khách hàng</span>
+                    <span className="review-drawer-meta-value review-drawer-stacked">
+                      <strong>{drawerReview.customerName}</strong>
+                      <small>{drawerReview.customerEmail || 'Không có email'}</small>
+                    </span>
                   </div>
-                  <div className="admin-card-row">
-                    <span className="admin-muted small">{formatDate(drawerReview.date)}</span>
-                    <ReviewStatusBadge status={drawerReview.status} />
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Điểm đánh giá</span>
+                    <span className="review-drawer-meta-value">
+                      <RatingStars rating={drawerReview.rating} size={14} /> <strong>{drawerReview.rating}/5</strong>
+                    </span>
+                  </div>
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Thời gian đánh giá</span>
+                    <span className="review-drawer-meta-value">{formatDateTime(drawerReview.date)}</span>
+                  </div>
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Mã sản phẩm</span>
+                    <span className="review-drawer-meta-value review-drawer-code">{drawerReview.productId || 'Chưa có'}</span>
                   </div>
                 </div>
-              </section>
+              </PanelDrawerSection>
 
-              <section className="drawer-section">
-                <p className="admin-label" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Nội dung đánh giá</p>
-                <div className="admin-note">{drawerReview.content}</div>
-              </section>
+              <PanelDrawerSection title="Nội dung khách hàng">
+                <p className="review-drawer-content">{drawerReview.content || 'Khách hàng chưa để lại nội dung.'}</p>
+              </PanelDrawerSection>
 
-              <section className="drawer-section">
-                <p className="admin-label" style={{ textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Phản hồi từ người bán</p>
-                {drawerReview.reply ? (
-                  <div className="admin-note" style={{ background: '#eff6ff', color: '#1e40af' }}>{drawerReview.reply}</div>
+              <PanelDrawerSection title="Ảnh đính kèm">
+                {drawerReview.images && drawerReview.images.length > 0 ? (
+                  <div className="review-drawer-media-grid">
+                    {drawerReview.images.map((image, index) => (
+                      <a
+                        key={`${drawerReview.id}-${index}`}
+                        href={image}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="review-drawer-media-item"
+                      >
+                        <img src={image} alt={`Review media ${index + 1}`} />
+                      </a>
+                    ))}
+                  </div>
                 ) : (
-                  <p className="admin-muted small" style={{ fontStyle: 'italic' }}>Chưa có phản hồi từ shop. Admin chỉ theo dõi và kiểm duyệt, còn seller sẽ phản hồi ở panel riêng.</p>
+                  <p className="review-drawer-empty">Đánh giá này chưa có ảnh đính kèm.</p>
                 )}
-              </section>
+              </PanelDrawerSection>
 
-              <section className="drawer-section">
-                <div className="admin-actions" style={{ flexWrap: 'wrap' }}>
-                  {drawerReview.status === 'pending' && (
-                    <button className="admin-primary-btn" onClick={() => { handleApprove(drawerReview.id); setDrawerReview(null); }}>
-                      <CheckCircle size={15} />
-                      Duyệt
-                    </button>
-                  )}
-                  {drawerReview.status !== 'hidden' && (
-                    <button className="admin-ghost-btn" onClick={() => { handleHide(drawerReview.id); setDrawerReview(null); }}>
-                      <EyeOff size={15} />
-                      Ẩn
-                    </button>
-                  )}
-                  <button className="admin-ghost-btn danger" style={{ marginLeft: 'auto' }} onClick={() => setDeleteTarget({ ids: [drawerReview.id], names: [drawerReview.productName] })}>
-                    <Trash2 size={15} />
-                    Xóa
-                  </button>
-                </div>
-              </section>
+              <PanelDrawerSection title="Phản hồi từ người bán">
+                {drawerReview.reply ? (
+                  <div className="review-drawer-reply-box">
+                    <p className="review-drawer-reply-title">Đã phản hồi</p>
+                    <p>{drawerReview.reply}</p>
+                    <span className="review-drawer-reply-time">{formatDateTime(drawerReview.replyAt)}</span>
+                  </div>
+                ) : (
+                  <p className="review-drawer-empty">Shop chưa phản hồi đánh giá này.</p>
+                )}
+              </PanelDrawerSection>
             </div>
-
-            <div className="drawer-footer">
+            <PanelDrawerFooter>
               <button className="admin-ghost-btn" onClick={() => { setDrawerReview(null); }}>Đóng</button>
-            </div>
+              {drawerReview.status === 'pending' ? (
+                <button className="admin-primary-btn" onClick={() => { handleApprove(drawerReview.id); setDrawerReview(null); }}>
+                  <CheckCircle size={15} />
+                  Duyệt
+                </button>
+              ) : null}
+              {drawerReview.status !== 'hidden' ? (
+                <button className="admin-ghost-btn" onClick={() => { handleHide(drawerReview.id); setDrawerReview(null); }}>
+                  <EyeOff size={15} />
+                  Ẩn
+                </button>
+              ) : null}
+              <button
+                className="admin-ghost-btn danger"
+                style={{ marginLeft: 'auto' }}
+                onClick={() => setDeleteTarget({ ids: [drawerReview.id], names: [drawerReview.productName] })}
+              >
+                <Trash2 size={15} />
+                Xóa
+              </button>
+            </PanelDrawerFooter>
           </>
         ) : null}
       </Drawer>

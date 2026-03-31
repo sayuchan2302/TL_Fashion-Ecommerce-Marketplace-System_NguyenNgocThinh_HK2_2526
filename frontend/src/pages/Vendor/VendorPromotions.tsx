@@ -1,7 +1,7 @@
 import './Vendor.css';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link2, Pause, Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { Pause, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import VendorLayout from './VendorLayout';
 import {
@@ -9,7 +9,6 @@ import {
   PanelDrawerHeader,
   PanelDrawerSection,
   PanelFloatingBar,
-  PanelSearchField,
   PanelStatsGrid,
   PanelTableFooter,
   PanelTabs,
@@ -28,7 +27,7 @@ import {
   type VendorVoucherUpsertInput,
 } from '../../services/vendorVoucherService';
 import Drawer from '../../components/Drawer/Drawer';
-import { copyTextToClipboard, normalizePositiveInteger } from './vendorHelpers';
+import { normalizePositiveInteger } from './vendorHelpers';
 
 type VoucherTab = VendorVoucherStatusFilter;
 
@@ -400,14 +399,6 @@ const VendorPromotions = () => {
     setSearchParams(new URLSearchParams());
   };
 
-  const shareCurrentView = async () => {
-    const copied = await copyTextToClipboard(window.location.href);
-    addToast(
-      copied ? 'Đã sao chép bộ lọc hiện tại của voucher shop' : 'Không thể sao chép bộ lọc',
-      copied ? 'success' : 'error',
-    );
-  };
-
   const startRow = result.totalElements === 0 ? 0 : (currentPage - 1) * result.pageSize + 1;
   const endRow = result.totalElements === 0 ? 0 : Math.min(currentPage * result.pageSize, result.totalElements);
 
@@ -452,22 +443,10 @@ const VendorPromotions = () => {
       title="Voucher shop và doanh thu ưu đãi"
       breadcrumbs={['Kênh Người Bán', 'Ưu đãi cửa hàng']}
       actions={(
-        <>
-          <PanelSearchField
-            placeholder="Tìm tên voucher hoặc mã giảm giá"
-            value={searchInput}
-            onChange={setSearchInput}
-          />
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()} disabled={working}>
-            <Link2 size={16} />
-            Chia sẻ bộ lọc
-          </button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView} disabled={working}>Đặt lại</button>
-          <button className="admin-primary-btn vendor-admin-primary" onClick={openCreate} disabled={working}>
-            <Plus size={16} />
-            Tạo voucher
-          </button>
-        </>
+        <button className="admin-primary-btn vendor-admin-primary" onClick={openCreate} disabled={working}>
+          <Plus size={16} />
+          Tạo voucher
+        </button>
       )}
     >
       <PanelStatsGrid items={statItems} accentClassName="vendor-stat-button" />

@@ -178,15 +178,6 @@ const VendorDashboard = () => {
     <VendorLayout
       title="Dashboard"
       breadcrumbs={['Kênh Người Bán', 'Tổng quan']}
-      actions={(
-        <>
-          <Link to="/vendor/storefront" className="vendor-ghost-btn">Gian hàng công khai</Link>
-          <Link to="/vendor/products?action=add" className="vendor-primary-btn">
-            <Plus size={16} style={{ marginRight: 6 }} />
-            Thêm sản phẩm
-          </Link>
-        </>
-      )}
     >
       {loadError ? (
         <section className="admin-panels single">

@@ -1,7 +1,7 @@
 import './Vendor.css';
 import { startTransition, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Link2, ShieldCheck, Truck, XCircle, PackageCheck } from 'lucide-react';
+import { Eye, ShieldCheck, Truck, XCircle, PackageCheck } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import VendorLayout from './VendorLayout';
 import {
@@ -20,7 +20,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { getUiErrorMessage } from '../../utils/errorMessage';
 import { AdminStateBlock, AdminTableSkeleton } from '../Admin/AdminStateBlocks';
 import AdminConfirmDialog from '../Admin/AdminConfirmDialog';
-import { copyTextToClipboard, normalizePositiveInteger } from './vendorHelpers';
+import { normalizePositiveInteger } from './vendorHelpers';
 import {
   resolveDetailRouteKey,
   toDisplayOrderCode,
@@ -290,15 +290,6 @@ const VendorOrders = () => {
     setSelected(new Set());
     setSearchParams(new URLSearchParams());
   };
-
-  const shareCurrentView = async () => {
-    const copied = await copyTextToClipboard(window.location.href);
-    addToast(
-      copied ? 'Đã sao chép bộ lọc hiện tại của đơn hàng shop' : 'Không thể sao chép bộ lọc',
-      copied ? 'success' : 'error',
-    );
-  };
-
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelected(new Set(paginatedOrders.map((order) => order.id)));
@@ -439,14 +430,6 @@ const VendorOrders = () => {
     <VendorLayout
       title="Đơn hàng shop"
       breadcrumbs={['Kênh Người Bán', 'Đơn hàng']}
-      actions={(
-        <div className="admin-actions-inline">
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
-            <Link2 size={16} />
-            Sao chép bộ lọc
-          </button>
-        </div>
-      )}
     >
       <div className="admin-top-grid">
         <PanelStatsGrid items={statItems} />

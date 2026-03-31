@@ -204,7 +204,7 @@ const Admin = () => {
 
   if (isLoading && !dashboard) {
     return (
-      <AdminLayout title="Tổng quan">
+      <AdminLayout title="Dashboard">
         <div className="admin-loading" style={{ padding: '3rem', textAlign: 'center' }}>
           Đang tải dashboard quản trị...
         </div>
@@ -214,7 +214,7 @@ const Admin = () => {
 
   if (loadError && !dashboard) {
     return (
-      <AdminLayout title="Tổng quan">
+      <AdminLayout title="Dashboard">
         <AdminStateBlock
           type="error"
           title="Không thể tải dashboard"
@@ -227,15 +227,7 @@ const Admin = () => {
   }
 
   return (
-    <AdminLayout
-      title="Tổng quan"
-      actions={(
-        <>
-          <Link to="/admin/stores" className="admin-ghost-btn">Duyệt gian hàng</Link>
-          <Link to="/admin/categories" className="admin-primary-btn">Quản lý danh mục</Link>
-        </>
-      )}
-    >
+    <AdminLayout title="Dashboard">
       <section className="admin-stats grid-6">
         {stats.map((item) => (
           <motion.div

@@ -1,14 +1,13 @@
 import './Vendor.css';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Link2, MessageSquare, Star } from 'lucide-react';
+import { Eye, MessageSquare, Star } from 'lucide-react';
 import VendorLayout from './VendorLayout';
 import { PanelFloatingBar, PanelStatsGrid, PanelTabs } from '../../components/Panel/PanelPrimitives';
 import {
   PanelDrawerFooter,
   PanelDrawerHeader,
   PanelDrawerSection,
-  PanelSearchField,
 } from '../../components/Panel/PanelPrimitives';
 import { reviewService, type Review } from '../../services/reviewService';
 import { useToast } from '../../contexts/ToastContext';
@@ -16,7 +15,6 @@ import { AdminStateBlock } from '../Admin/AdminStateBlocks';
 import AdminConfirmDialog from '../Admin/AdminConfirmDialog';
 import Drawer from '../../components/Drawer/Drawer';
 import { getUiErrorMessage } from '../../utils/errorMessage';
-import { copyTextToClipboard } from './vendorHelpers';
 import { toDisplayOrderCode } from '../../utils/displayCode';
 
 const TABS = [
@@ -39,6 +37,32 @@ const RatingStars = ({ rating }: { rating: number }) => (
     ))}
   </div>
 );
+
+const formatDateTime = (value?: string) => {
+  if (!value) return 'Chưa có dữ liệu';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString('vi-VN', {
+    hour12: false,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const getModerationTone = (status?: Review['status']) => {
+  if (status === 'approved') return 'success';
+  if (status === 'hidden') return 'neutral';
+  return 'pending';
+};
+
+const getModerationLabel = (status?: Review['status']) => {
+  if (status === 'approved') return 'Đã duyệt';
+  if (status === 'hidden') return 'Đã ẩn';
+  return 'Chờ duyệt';
+};
 
 const VendorReviews = () => {
   const { addToast } = useToast();
@@ -109,14 +133,6 @@ const VendorReviews = () => {
     setQuery('');
     setActiveTab('all');
     setSelected(new Set());
-  };
-
-  const shareCurrentView = async () => {
-    const copied = await copyTextToClipboard(window.location.href);
-    addToast(
-      copied ? 'Đã sao chép bộ lọc hiện tại của đánh giá shop' : 'Không thể sao chép bộ lọc',
-      copied ? 'success' : 'error',
-    );
   };
 
   const submitReplies = async (ids: string[]) => {
@@ -237,20 +253,6 @@ const VendorReviews = () => {
     <VendorLayout
       title="Đánh giá, phản hồi và uy tín shop"
       breadcrumbs={['Kênh Người Bán', 'Đánh giá và phản hồi']}
-      actions={
-        <>
-          <PanelSearchField
-            placeholder="Tìm theo sản phẩm, nội dung hoặc mã đơn"
-            value={query}
-            onChange={setQuery}
-          />
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
-            <Link2 size={16} />
-            Chia sẻ bộ lọc
-          </button>
-          <button className="admin-ghost-btn" onClick={resetCurrentView}>Đặt lại</button>
-        </>
-      }
     >
       <PanelStatsGrid items={[...statItems]} accentClassName="vendor-stat-button" />
 
@@ -260,7 +262,6 @@ const VendorReviews = () => {
         onChange={(key) => setActiveTab(key as 'all' | 'need_reply' | 'negative')}
         accentClassName="vendor-active-tab"
       />
-
       <section className="admin-panels single">
         <div className="admin-panel">
           <div className="admin-panel-head">
@@ -422,26 +423,78 @@ const VendorReviews = () => {
               closeLabel="Đóng chi tiết đánh giá"
             />
             <div className="drawer-body">
-              <PanelDrawerSection title="Thông tin đánh giá">
-                <div className="admin-card-list">
-                  <div className="admin-card-row">
-                    <span className="admin-bold">Đơn hàng</span>
-                    <span className="admin-muted">#{toDisplayOrderCode(activeReview.orderCode)}</span>
+              <PanelDrawerSection title="Tổng quan đánh giá">
+                <div className="review-drawer-product">
+                  <img
+                    src={activeReview.productImage}
+                    alt={activeReview.productName}
+                    className="review-drawer-product-image"
+                  />
+                  <div className="review-drawer-product-copy">
+                    <p className="review-drawer-product-name">{activeReview.productName}</p>
+                    <p className="review-drawer-product-sub">Đơn hàng: #{toDisplayOrderCode(activeReview.orderCode)}</p>
+                    <div className="review-drawer-pill-row">
+                      <span className={`admin-pill ${getModerationTone(activeReview.status)}`}>
+                        {getModerationLabel(activeReview.status)}
+                      </span>
+                      <span className={`admin-pill ${activeReview.rating <= 3 ? 'pending' : 'success'}`}>
+                        {activeReview.rating <= 3 ? 'Cần chăm sóc' : 'Ổn định'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="admin-card-row">
-                    <span className="admin-bold">Số sao</span>
-                    <span><RatingStars rating={activeReview.rating} /></span>
+                </div>
+                <div className="review-drawer-meta-grid">
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Điểm đánh giá</span>
+                    <span className="review-drawer-meta-value">
+                      <RatingStars rating={activeReview.rating} /> <strong>{activeReview.rating}/5</strong>
+                    </span>
                   </div>
-                  <div className="admin-card-row">
-                    <span className="admin-bold">Nội dung</span>
-                    <span className="admin-muted">{activeReview.content}</span>
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Thời gian tạo</span>
+                    <span className="review-drawer-meta-value">{formatDateTime(activeReview.createdAt)}</span>
+                  </div>
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Cập nhật gần nhất</span>
+                    <span className="review-drawer-meta-value">{formatDateTime(activeReview.updatedAt || activeReview.createdAt)}</span>
+                  </div>
+                  <div className="review-drawer-meta-card">
+                    <span className="review-drawer-meta-label">Mã sản phẩm</span>
+                    <span className="review-drawer-meta-value review-drawer-code">{activeReview.productId || 'Chưa có'}</span>
                   </div>
                 </div>
               </PanelDrawerSection>
+
+              <PanelDrawerSection title="Nội dung khách hàng">
+                <p className="review-drawer-content">{activeReview.content || 'Khách hàng chưa để lại nội dung.'}</p>
+              </PanelDrawerSection>
+
+              <PanelDrawerSection title="Ảnh đính kèm">
+                {activeReview.images && activeReview.images.length > 0 ? (
+                  <div className="review-drawer-media-grid">
+                    {activeReview.images.map((image, index) => (
+                      <a
+                        key={`${activeReview.id}-${index}`}
+                        href={image}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="review-drawer-media-item"
+                      >
+                        <img src={image} alt={`Review media ${index + 1}`} />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="review-drawer-empty">Khách hàng chưa đính kèm hình ảnh.</p>
+                )}
+              </PanelDrawerSection>
+
               <PanelDrawerSection title="Phản hồi của shop">
                 {activeReview.shopReply ? (
-                  <div className="vendor-review-reply-box">
-                    <strong>Đã phản hồi:</strong> {activeReview.shopReply.content}
+                  <div className="review-drawer-reply-box">
+                    <p className="review-drawer-reply-title">Đã phản hồi</p>
+                    <p>{activeReview.shopReply.content}</p>
+                    <span className="review-drawer-reply-time">{formatDateTime(activeReview.shopReply.createdAt)}</span>
                   </div>
                 ) : canVendorReply ? (
                   <div className="form-grid">
@@ -458,7 +511,7 @@ const VendorReviews = () => {
                     </label>
                   </div>
                 ) : (
-                  <div className="vendor-review-reply-box">
+                  <div className="review-drawer-reply-box review-drawer-empty">
                     Bạn cần đăng nhập tài khoản người bán hợp lệ để gửi phản hồi đánh giá này.
                   </div>
                 )}

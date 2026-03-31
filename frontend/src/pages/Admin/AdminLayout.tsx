@@ -195,7 +195,7 @@ const AdminLayout = ({
         <div className="admin-content-inner">
           <div className="admin-topbar actions-row">
             {!hideTopbarTitle ? <h1>{title}</h1> : <div className="admin-topbar-title-spacer" />}
-            <div className="admin-topbar-actions">{actions}</div>
+            {actions ? <div className="admin-topbar-actions">{actions}</div> : null}
           </div>
           <PageTransition>{children}</PageTransition>
         </div>

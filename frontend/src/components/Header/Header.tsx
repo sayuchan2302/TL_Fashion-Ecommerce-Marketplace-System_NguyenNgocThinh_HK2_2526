@@ -301,14 +301,14 @@ const handleSearchSubmit = (query: string) => {
                       <div className="portal-switcher-label">Chuyển kênh</div>
                       {user?.role === 'VENDOR' && (
                         <button className="account-item portal-item" onClick={() => { navigate('/vendor/dashboard'); setIsAccountMenuOpen(false); }}>
-                          <span className="portal-icon">🏪</span>
+                          {/* <span className="portal-icon">🏪</span> */}
                           <span>Kênh Người Bán</span>
                           {!user?.isApprovedVendor && <span className="portal-badge pending">Chờ duyệt</span>}
                         </button>
                       )}
                       {user?.role === 'SUPER_ADMIN' && (
                         <button className="account-item portal-item" onClick={() => { navigate('/admin'); setIsAccountMenuOpen(false); }}>
-                          <span className="portal-icon">⚡</span>
+                          {/* <span className="portal-icon">⚡</span> */}
                           <span>Quản Trị Sàn</span>
                         </button>
                       )}
@@ -339,6 +339,15 @@ const handleSearchSubmit = (query: string) => {
             <Heart size={22} />
             {wishlistCount > 0 && <span className="icon-badge">{wishlistCount > 99 ? '99+' : wishlistCount}</span>}
           </button>
+          <button
+            ref={cartIconRef}
+            className={`icon-btn cart-btn ${isBouncing ? 'icon-bounce' : ''}`} 
+            aria-label="Giỏ hàng" 
+            onClick={() => navigate('/cart')}
+          >
+            <ShoppingCart size={22} />
+            {totalItems > 0 && <span className="icon-badge">{totalItems > 99 ? '99+' : totalItems}</span>}
+          </button>
           {isAuthenticated && (
             <button 
               className="icon-btn notification-btn" 
@@ -353,15 +362,7 @@ const handleSearchSubmit = (query: string) => {
             isOpen={isNotificationOpen} 
             onClose={() => setIsNotificationOpen(false)} 
           />
-          <button
-            ref={cartIconRef}
-            className={`icon-btn cart-btn ${isBouncing ? 'icon-bounce' : ''}`} 
-            aria-label="Giỏ hàng" 
-            onClick={() => navigate('/cart')}
-          >
-            <ShoppingCart size={22} />
-            {totalItems > 0 && <span className="icon-badge">{totalItems > 99 ? '99+' : totalItems}</span>}
-          </button>
+          
         </div>
         {/* Mobile Menu Button */}
           <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Menu">
