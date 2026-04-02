@@ -57,8 +57,8 @@ public class ReviewController {
             @RequestHeader("Authorization") String authHeader
     ) {
         AuthContext.UserContext ctx = authContext.fromAuthHeader(authHeader);
-        if (!ctx.isCustomer()) {
-            throw new ForbiddenException("Only customer accounts can view eligible review items");
+        if (!ctx.isCustomer() && !ctx.isVendor()) {
+            throw new ForbiddenException("Only customer or vendor accounts can view eligible review items");
         }
         return ResponseEntity.ok(reviewService.getEligibleCustomerReviews(ctx.getUserId()));
     }
@@ -70,8 +70,8 @@ public class ReviewController {
             @Valid @RequestBody ReviewRequestDTO request
     ) {
         AuthContext.UserContext ctx = authContext.fromAuthHeader(authHeader);
-        if (!ctx.isCustomer()) {
-            throw new ForbiddenException("Only customer accounts can submit reviews");
+        if (!ctx.isCustomer() && !ctx.isVendor()) {
+            throw new ForbiddenException("Only customer or vendor accounts can submit reviews");
         }
         return ResponseEntity.ok(reviewService.submitCustomerReview(ctx.getUserId(), request));
     }

@@ -192,18 +192,26 @@ const Profile = () => {
   };
 
   const loadReviews = useCallback(async () => {
+    setReviewsLoading(true);
+    setReviewsError(null);
     try {
-      setReviewsLoading(true);
-      setReviewsError(null);
-      const [eligible, mine] = await Promise.all([
+      const [eligibleResult, mineResult] = await Promise.allSettled([
         reviewService.getEligibleReviews(),
         reviewService.getReviews(),
       ]);
-      setPendingReviews(eligible.map(mapEligibleReview));
-      setCompletedReviews(mine);
+      setPendingReviews(
+        eligibleResult.status === 'fulfilled'
+          ? eligibleResult.value.map(mapEligibleReview)
+          : [],
+      );
+      setCompletedReviews(mineResult.status === 'fulfilled' ? mineResult.value : []);
+      if (eligibleResult.status === 'rejected' && mineResult.status === 'rejected') {
+        setReviewsError('Khong the tai danh sach danh gia.');
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Không thể tải danh sách đánh giá.';
-      setReviewsError(message);
+      void message;
+      setReviewsError('Khong the tai danh sach danh gia.');
       setPendingReviews([]);
       setCompletedReviews([]);
     } finally {
@@ -813,8 +821,12 @@ const Profile = () => {
             ) : null}
 
             {!reviewsLoading && reviewsError ? (
-              <div className="review-empty">
-                <p>{reviewsError}</p>
+              <div className="review-empty-state">
+                <EmptyState
+                  icon={<MessageSquare size={80} strokeWidth={1} />}
+                  title="Khong the tai danh gia"
+                  description={reviewsError}
+                />
               </div>
             ) : null}
 
@@ -845,7 +857,8 @@ const Profile = () => {
                     ))}
                   </div>
                 ) : !reviewsLoading && !reviewsError ? (
-                  <div className="review-empty">
+                  <div className="review-empty-state">
+                    <MessageSquare className="review-empty-icon" size={26} strokeWidth={1.8} />
                     <p>Không có sản phẩm nào chờ đánh giá</p>
                   </div>
                 ) : null}
@@ -892,7 +905,8 @@ const Profile = () => {
                     ))}
                   </div>
                 ) : !reviewsLoading && !reviewsError ? (
-                  <div className="review-empty">
+                  <div className="review-empty-state">
+                    <Star className="review-empty-icon" size={26} strokeWidth={1.8} />
                     <p>Bạn chưa có đánh giá nào</p>
                   </div>
                 ) : null}
@@ -1238,6 +1252,7 @@ const Profile = () => {
                   <input 
                     type={showOldPassword ? "text" : "password"}
                     className="modal-input pr-10" 
+                    placeholder="Mật khẩu cũ"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     autoComplete="current-password"

@@ -71,7 +71,7 @@ export interface StoreRegistrationRequest {
   shopName: string;
   brandName: string;
   slug: string;
-  category: string;
+  category?: string;
   address: string;
   city?: string;
   district?: string;

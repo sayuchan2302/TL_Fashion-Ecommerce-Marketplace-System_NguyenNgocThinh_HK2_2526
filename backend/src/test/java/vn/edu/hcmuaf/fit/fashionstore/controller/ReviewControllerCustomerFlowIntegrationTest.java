@@ -72,7 +72,7 @@ class ReviewControllerCustomerFlowIntegrationTest {
 
     @Test
     @org.junit.jupiter.api.Order(2)
-    void vendorCannotReadEligibleReviewItems() {
+    void vendorCanReadEligibleReviewItems() throws Exception {
         String vendorToken = loginAndExtractToken(VENDOR_EMAIL, TEST_PASSWORD);
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/reviews/my/eligible",
@@ -81,7 +81,9 @@ class ReviewControllerCustomerFlowIntegrationTest {
                 String.class
         );
 
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        JsonNode body = objectMapper.readTree(response.getBody());
+        assertTrue(body.isArray());
     }
 
     @Test

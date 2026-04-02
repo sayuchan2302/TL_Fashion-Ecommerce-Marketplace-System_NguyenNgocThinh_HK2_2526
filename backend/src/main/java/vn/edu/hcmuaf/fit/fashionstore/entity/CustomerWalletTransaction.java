@@ -9,6 +9,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,6 +28,8 @@ import java.util.UUID;
 @Table(name = "customer_wallet_transactions", indexes = {
         @Index(name = "idx_customer_wallet_tx_code", columnList = "transaction_code", unique = true),
         @Index(name = "idx_customer_wallet_tx_return", columnList = "return_request_id")
+}, uniqueConstraints = {
+        @UniqueConstraint(name = "uq_customer_wallet_tx_return_type", columnNames = {"return_request_id", "type"})
 })
 public class CustomerWalletTransaction extends BaseEntity {
 

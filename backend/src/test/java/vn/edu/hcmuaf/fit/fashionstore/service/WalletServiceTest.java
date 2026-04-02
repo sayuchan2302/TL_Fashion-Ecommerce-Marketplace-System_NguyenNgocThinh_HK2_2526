@@ -4,7 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import vn.edu.hcmuaf.fit.fashionstore.entity.CustomerWallet;
+import vn.edu.hcmuaf.fit.fashionstore.entity.CustomerWalletTransaction;
 import vn.edu.hcmuaf.fit.fashionstore.entity.Order;
+import vn.edu.hcmuaf.fit.fashionstore.entity.User;
 import vn.edu.hcmuaf.fit.fashionstore.entity.VendorWallet;
 import vn.edu.hcmuaf.fit.fashionstore.entity.WalletTransaction;
 import vn.edu.hcmuaf.fit.fashionstore.repository.CustomerWalletRepository;
@@ -140,6 +144,85 @@ class WalletServiceTest {
                         && orderId.equals(transaction.getOrderId())
                         && transaction.getAmount().compareTo(new BigDecimal("150000")) == 0
         ));
+    }
+
+    @Test
+    void creditVendorForOrderSkipsWalletMutationWhenDuplicateTransactionRaceOccurs() {
+        UUID orderId = UUID.randomUUID();
+        UUID storeId = UUID.randomUUID();
+
+        Order lockedOrder = Order.builder()
+                .id(orderId)
+                .orderCode("DH-260401-000011")
+                .storeId(storeId)
+                .vendorPayout(new BigDecimal("100000"))
+                .build();
+        VendorWallet wallet = VendorWallet.builder()
+                .storeId(storeId)
+                .balance(new BigDecimal("500000"))
+                .build();
+
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(lockedOrder));
+        when(walletTransactionRepository.existsByOrderIdAndType(orderId, WalletTransaction.TransactionType.CREDIT))
+                .thenReturn(false);
+        when(vendorWalletRepository.findByStoreId(storeId)).thenReturn(Optional.of(wallet));
+        when(walletTransactionRepository.save(any(WalletTransaction.class)))
+                .thenThrow(new DataIntegrityViolationException("uq_wallet_tx_order_type"));
+
+        walletService.creditVendorForOrder(lockedOrder);
+
+        assertEquals(0, wallet.getBalance().compareTo(new BigDecimal("500000")));
+        verify(vendorWalletRepository, never()).save(any(VendorWallet.class));
+    }
+
+    @Test
+    void refundToCustomerFromEscrowSkipsWalletAndOrderMutationWhenDuplicateTransactionRaceOccurs() {
+        UUID orderId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID returnRequestId = UUID.randomUUID();
+
+        User user = User.builder()
+                .id(userId)
+                .email("buyer@example.com")
+                .password("secret")
+                .name("Buyer")
+                .build();
+        Order lockedOrder = Order.builder()
+                .id(orderId)
+                .orderCode("DH-260401-000012")
+                .user(user)
+                .total(new BigDecimal("300000"))
+                .paymentStatus(Order.PaymentStatus.PAID)
+                .build();
+        CustomerWallet wallet = CustomerWallet.builder()
+                .userId(userId)
+                .balance(new BigDecimal("20000"))
+                .build();
+
+        when(orderRepository.findByIdForUpdate(orderId)).thenReturn(Optional.of(lockedOrder));
+        when(customerWalletTransactionRepository.existsByReturnRequestIdAndType(
+                returnRequestId,
+                CustomerWalletTransaction.TransactionType.CREDIT_REFUND
+        )).thenReturn(false);
+        when(customerWalletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
+        when(customerWalletTransactionRepository.sumAmountByOrderIdAndType(
+                orderId,
+                CustomerWalletTransaction.TransactionType.CREDIT_REFUND
+        )).thenReturn(BigDecimal.ZERO);
+        when(customerWalletTransactionRepository.save(any(CustomerWalletTransaction.class)))
+                .thenThrow(new DataIntegrityViolationException("uq_customer_wallet_tx_return_type"));
+
+        walletService.refundToCustomerFromEscrow(
+                returnRequestId,
+                lockedOrder,
+                new BigDecimal("100000"),
+                "Refund by return"
+        );
+
+        assertEquals(0, wallet.getBalance().compareTo(new BigDecimal("20000")));
+        assertEquals(Order.PaymentStatus.PAID, lockedOrder.getPaymentStatus());
+        verify(customerWalletRepository, never()).save(any(CustomerWallet.class));
+        verify(orderRepository, never()).save(any(Order.class));
     }
 
     private static final class FixedPublicCodeService extends PublicCodeService {

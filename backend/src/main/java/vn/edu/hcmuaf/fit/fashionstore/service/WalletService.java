@@ -1,5 +1,6 @@
 package vn.edu.hcmuaf.fit.fashionstore.service;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.hcmuaf.fit.fashionstore.entity.CustomerWallet;
@@ -21,6 +22,8 @@ import java.util.UUID;
 
 @Service
 public class WalletService {
+    private static final String UQ_WALLET_TX_ORDER_TYPE = "uq_wallet_tx_order_type";
+    private static final String UQ_CUSTOMER_WALLET_TX_RETURN_TYPE = "uq_customer_wallet_tx_return_type";
 
     private final OrderRepository orderRepository;
     private final VendorWalletRepository vendorWalletRepository;
@@ -71,10 +74,6 @@ public class WalletService {
             return;
         }
 
-        wallet.setBalance(wallet.getBalance().add(amount));
-        wallet.setLastUpdated(LocalDateTime.now());
-        vendorWalletRepository.save(wallet);
-
         WalletTransaction transaction = WalletTransaction.builder()
                 .transactionCode(publicCodeService.nextTransactionCode())
                 .wallet(wallet)
@@ -83,8 +82,19 @@ public class WalletService {
                 .type(WalletTransaction.TransactionType.CREDIT)
                 .description("Payout for Order " + (lockedOrder.getOrderCode() != null ? lockedOrder.getOrderCode() : lockedOrder.getId()))
                 .build();
-        
-        walletTransactionRepository.save(transaction);
+
+        try {
+            walletTransactionRepository.save(transaction);
+        } catch (DataIntegrityViolationException ex) {
+            if (isUniqueConstraintViolation(ex, UQ_WALLET_TX_ORDER_TYPE)) {
+                return;
+            }
+            throw ex;
+        }
+
+        wallet.setBalance(wallet.getBalance().add(amount));
+        wallet.setLastUpdated(LocalDateTime.now());
+        vendorWalletRepository.save(wallet);
     }
 
     @Transactional
@@ -122,10 +132,6 @@ public class WalletService {
             return;
         }
 
-        wallet.setBalance(wallet.getBalance().subtract(amount));
-        wallet.setLastUpdated(LocalDateTime.now());
-        vendorWalletRepository.save(wallet);
-
         WalletTransaction transaction = WalletTransaction.builder()
                 .transactionCode(publicCodeService.nextTransactionCode())
                 .wallet(wallet)
@@ -134,8 +140,19 @@ public class WalletService {
                 .type(WalletTransaction.TransactionType.DEBIT)
                 .description("Refund for Order " + (lockedOrder.getOrderCode() != null ? lockedOrder.getOrderCode() : lockedOrder.getId()))
                 .build();
-        
-        walletTransactionRepository.save(transaction);
+
+        try {
+            walletTransactionRepository.save(transaction);
+        } catch (DataIntegrityViolationException ex) {
+            if (isUniqueConstraintViolation(ex, UQ_WALLET_TX_ORDER_TYPE)) {
+                return;
+            }
+            throw ex;
+        }
+
+        wallet.setBalance(wallet.getBalance().subtract(amount));
+        wallet.setLastUpdated(LocalDateTime.now());
+        vendorWalletRepository.save(wallet);
     }
 
     private VendorWallet createWallet(UUID storeId) {
@@ -228,10 +245,6 @@ public class WalletService {
             throw new IllegalArgumentException("Refund amount exceeds escrow balance for this order");
         }
 
-        wallet.setBalance(wallet.getBalance().add(refundAmount));
-        wallet.setLastUpdated(LocalDateTime.now());
-        customerWalletRepository.save(wallet);
-
         CustomerWalletTransaction transaction = CustomerWalletTransaction.builder()
                 .transactionCode(publicCodeService.nextTransactionCode())
                 .wallet(wallet)
@@ -243,7 +256,18 @@ public class WalletService {
                         ? "Refund from escrow for Order " + (lockedOrder.getOrderCode() != null ? lockedOrder.getOrderCode() : lockedOrder.getId())
                         : reason.trim())
                 .build();
-        customerWalletTransactionRepository.save(transaction);
+        try {
+            customerWalletTransactionRepository.save(transaction);
+        } catch (DataIntegrityViolationException ex) {
+            if (isUniqueConstraintViolation(ex, UQ_CUSTOMER_WALLET_TX_RETURN_TYPE)) {
+                return;
+            }
+            throw ex;
+        }
+
+        wallet.setBalance(wallet.getBalance().add(refundAmount));
+        wallet.setLastUpdated(LocalDateTime.now());
+        customerWalletRepository.save(wallet);
 
         if (orderTotal.compareTo(BigDecimal.ZERO) > 0 && refundedAfter.compareTo(orderTotal) >= 0) {
             lockedOrder.setPaymentStatus(Order.PaymentStatus.REFUNDED);
@@ -259,5 +283,20 @@ public class WalletService {
                 .balance(BigDecimal.ZERO)
                 .lastUpdated(LocalDateTime.now())
                 .build());
+    }
+
+    private boolean isUniqueConstraintViolation(DataIntegrityViolationException ex, String constraintName) {
+        if (ex == null || constraintName == null || constraintName.isBlank()) {
+            return false;
+        }
+        Throwable current = ex;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase().contains(constraintName.toLowerCase())) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

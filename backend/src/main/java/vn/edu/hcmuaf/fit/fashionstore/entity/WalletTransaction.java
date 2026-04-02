@@ -16,9 +16,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "wallet_transactions", indexes = {
-        @Index(name = "idx_wallet_transactions_transaction_code", columnList = "transaction_code", unique = true)
-})
+@Table(
+        name = "wallet_transactions",
+        indexes = {
+                @Index(name = "idx_wallet_transactions_transaction_code", columnList = "transaction_code", unique = true)
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_wallet_tx_order_type", columnNames = {"order_id", "type"})
+        }
+)
 public class WalletTransaction extends BaseEntity {
 
     @Column(name = "transaction_code", length = 32, unique = true)

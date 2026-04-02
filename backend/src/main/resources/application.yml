@@ -44,6 +44,8 @@ app:
   migration:
     user-role:
       enabled: ${APP_MIGRATION_USER_ROLE_ENABLED:false}
+    wallet-idempotency:
+      enabled: ${APP_MIGRATION_WALLET_IDEMPOTENCY_ENABLED:true}
 
 springdoc:
   api-docs:

@@ -58,14 +58,14 @@ const MainLayout = () => {
   const location = useLocation();
   const isCheckout = location.pathname === '/checkout';
   const isAdmin = location.pathname.startsWith('/admin');
-  const isVendor = location.pathname.startsWith('/vendor/');
+  const isVendorPortal = location.pathname.startsWith('/vendor/') && !location.pathname.startsWith('/vendor/register');
 
   return (
     <>
-      {!isAdmin && !isVendor && <TopBar />}
-      {!isAdmin && !isVendor && <Header />}
+      {!isAdmin && !isVendorPortal && <TopBar />}
+      {!isAdmin && !isVendorPortal && <Header />}
       <Outlet />
-      {!isCheckout && !isAdmin && !isVendor && <Footer />}
+      {!isCheckout && !isAdmin && !isVendorPortal && <Footer />}
     </>
   );
 };
