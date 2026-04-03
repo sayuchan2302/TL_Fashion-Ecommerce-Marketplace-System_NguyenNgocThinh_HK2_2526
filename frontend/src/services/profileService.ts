@@ -14,6 +14,7 @@ interface BackendProfileResponse {
   height?: number | null;
   weight?: number | null;
   loyaltyPoints?: number | null;
+  followingStoreCount?: number | null;
   role?: UserRole;
   storeId?: string | null;
 }
@@ -29,6 +30,7 @@ export interface UserProfileRecord {
   height: number | null;
   weight: number | null;
   loyaltyPoints: number;
+  followingStoreCount: number;
   role?: UserRole;
   storeId?: string;
 }
@@ -58,6 +60,7 @@ const mapProfile = (payload: BackendProfileResponse): UserProfileRecord => ({
   height: typeof payload.height === 'number' ? payload.height : null,
   weight: typeof payload.weight === 'number' ? payload.weight : null,
   loyaltyPoints: typeof payload.loyaltyPoints === 'number' ? payload.loyaltyPoints : 0,
+  followingStoreCount: typeof payload.followingStoreCount === 'number' ? payload.followingStoreCount : 0,
   role: payload.role,
   storeId: payload.storeId || undefined,
 });

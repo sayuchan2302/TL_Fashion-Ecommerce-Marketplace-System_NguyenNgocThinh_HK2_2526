@@ -104,6 +104,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/stores/my-store").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/stores/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/stores/register").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/stores/*/follow").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/stores/*/follow").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/stores/*/approve").hasRole("SUPER_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/stores/*/reject").hasRole("SUPER_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/stores/*/suspend").hasRole("SUPER_ADMIN")

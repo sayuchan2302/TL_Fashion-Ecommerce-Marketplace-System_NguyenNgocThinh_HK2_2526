@@ -19,7 +19,8 @@ import {
   Star,
   Info,
   Trash,
-  Pencil
+  Pencil,
+  Store
 } from 'lucide-react';
 import AddressModal from './AddressModal';
 import EmptyState from '../../components/EmptyState/EmptyState';
@@ -37,6 +38,7 @@ import { reviewService, type EligibleReviewItem, type Review as CustomerReview }
 import { couponService, type Coupon } from '../../services/couponService';
 import { profileService, type UserProfileRecord } from '../../services/profileService';
 import { authService } from '../../services/authService';
+import { storeFollowService, type FollowedStoreItem } from '../../services/storeFollowService';
 import { calculateTier, TIER_CONFIG, getProgressToNextTier, getSpendRequiredForNextTier, getNextTier } from '../../utils/tierUtils';
 import { formatPrice } from '../../utils/formatters';
 import { resolveDetailRouteKey } from '../../utils/displayCode';
@@ -177,6 +179,10 @@ const Profile = () => {
   const [completedReviews, setCompletedReviews] = useState<CustomerReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [isFollowingModalOpen, setIsFollowingModalOpen] = useState(false);
+  const [followingStores, setFollowingStores] = useState<FollowedStoreItem[]>([]);
+  const [followingStoresLoading, setFollowingStoresLoading] = useState(false);
+  const [followingStoresError, setFollowingStoresError] = useState<string | null>(null);
 
   const handleOpenReviewModal = (product: PendingProduct) => {
     setReviewProduct(product);
@@ -189,6 +195,31 @@ const Profile = () => {
     if (activeTab === 'reviews') {
       void loadReviews();
     }
+  };
+
+  const closeFollowingModal = () => {
+    setIsFollowingModalOpen(false);
+    setFollowingStoresError(null);
+  };
+
+  const loadFollowingStores = useCallback(async () => {
+    try {
+      setFollowingStoresLoading(true);
+      setFollowingStoresError(null);
+      const rows = await storeFollowService.getMyFollowingStores();
+      setFollowingStores(rows);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Không thể tải danh sách theo dõi.';
+      setFollowingStoresError(message);
+      setFollowingStores([]);
+    } finally {
+      setFollowingStoresLoading(false);
+    }
+  }, []);
+
+  const handleOpenFollowingModal = () => {
+    setIsFollowingModalOpen(true);
+    void loadFollowingStores();
   };
 
   const loadReviews = useCallback(async () => {
@@ -316,6 +347,7 @@ const Profile = () => {
       avatar,
       totalSpent,
       points: loyaltyPoints,
+      followingStoreCount: profile?.followingStoreCount ?? 0,
     };
   }, [authUser, pointsFromOrders, profile, totalSpent]);
 
@@ -401,14 +433,19 @@ const Profile = () => {
   }, [authUser, isAccountModalOpen, profile]);
 
   useEffect(() => {
-    const anyModalOpen = isAccountModalOpen || isPasswordModalOpen || isAddressModalOpen || isReviewModalOpen;
+    const anyModalOpen =
+      isAccountModalOpen ||
+      isPasswordModalOpen ||
+      isAddressModalOpen ||
+      isReviewModalOpen ||
+      isFollowingModalOpen;
     if (anyModalOpen) {
       document.body.classList.add('modal-open');
     } else {
       document.body.classList.remove('modal-open');
     }
     return () => document.body.classList.remove('modal-open');
-  }, [isAccountModalOpen, isPasswordModalOpen, isAddressModalOpen, isReviewModalOpen]);
+  }, [isAccountModalOpen, isPasswordModalOpen, isAddressModalOpen, isReviewModalOpen, isFollowingModalOpen]);
 
   const handleLogout = () => {
     logout();
@@ -1031,6 +1068,16 @@ const Profile = () => {
                 <span className="stat-label">Điểm tích lũy</span>
                 <span className="stat-value points">{user.points.toLocaleString('vi-VN')} điểm</span>
               </div>
+              <div className="loyalty-stat">
+                <span className="stat-label">Shop đang theo dõi</span>
+                <button
+                  type="button"
+                  className="stat-value loyalty-following-trigger"
+                  onClick={handleOpenFollowingModal}
+                >
+                  {user.followingStoreCount.toLocaleString('vi-VN')}
+                </button>
+              </div>
             </div>
           </div>
           {nextTier && (
@@ -1300,6 +1347,69 @@ const Profile = () => {
                   {isChangingPassword ? 'ĐANG CẬP NHẬT...' : 'CẬP NHẬT MẬT KHẨU'}
                 </button>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isFollowingModalOpen && (
+        <div className="profile-modal-overlay" onClick={closeFollowingModal}>
+          <div className="profile-modal modal-sm profile-following-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="profile-modal-header">
+              <div>
+                <p className="profile-modal-eyebrow">Theo dõi</p>
+                <h2>Shop bạn đang theo dõi</h2>
+              </div>
+              <button className="profile-modal-close" onClick={closeFollowingModal} aria-label="Đóng">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="profile-modal-body">
+              {followingStoresLoading ? (
+                <p className="account-meta">Đang tải danh sách shop...</p>
+              ) : null}
+              {!followingStoresLoading && followingStoresError ? (
+                <p className="account-meta">{followingStoresError}</p>
+              ) : null}
+              {!followingStoresLoading && !followingStoresError && followingStores.length === 0 ? (
+                <div className="profile-following-empty">
+                  <Store size={28} />
+                  <p>Bạn chưa theo dõi shop nào</p>
+                </div>
+              ) : null}
+              {!followingStoresLoading && !followingStoresError && followingStores.length > 0 ? (
+                <div className="profile-following-list">
+                  {followingStores.map((storeItem) => (
+                    <Link
+                      key={storeItem.storeId}
+                      to={storeItem.storeSlug ? `/store/${encodeURIComponent(storeItem.storeSlug)}` : '#'}
+                      className="profile-following-item"
+                      onClick={closeFollowingModal}
+                    >
+                      <div className="profile-following-logo">
+                        {storeItem.storeLogo ? (
+                          <img src={storeItem.storeLogo} alt={storeItem.storeName} loading="lazy" />
+                        ) : (
+                          <span>{(storeItem.storeName.charAt(0) || 'S').toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="profile-following-content">
+                        <p className="profile-following-name">{storeItem.storeName}</p>
+                        <p className="profile-following-meta">
+                          {storeItem.followerCount.toLocaleString('vi-VN')} người theo dõi
+                        </p>
+                        <p className="profile-following-meta">
+                          Theo dõi từ{' '}
+                          {storeItem.followedAt
+                            ? new Date(storeItem.followedAt).toLocaleDateString('vi-VN')
+                            : 'gần đây'}
+                        </p>
+                      </div>
+                      <ChevronRight size={16} />
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

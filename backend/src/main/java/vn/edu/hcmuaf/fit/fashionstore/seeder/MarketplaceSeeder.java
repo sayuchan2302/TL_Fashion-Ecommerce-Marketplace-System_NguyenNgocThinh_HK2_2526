@@ -175,7 +175,7 @@ public class MarketplaceSeeder implements ApplicationRunner {
 
         // Level 3 - Nam > Áo
         Category menAoThun = createCategory("Áo thun nam", "men-ao-thun", "Áo thun nam.", namAo, 1);
-        createCategory("Áo polo nam", "men-ao-polo", "Áo polo nam.", namAo, 2);
+        Category menAoPolo = createCategory("Áo polo nam", "men-ao-polo", "Áo polo nam.", namAo, 2);
         createCategory("Áo sơ mi nam", "men-ao-so-mi", "Áo sơ mi nam.", namAo, 3);
         createCategory("Áo hoodie nam", "men-ao-hoodie", "Áo hoodie nam.", namAo, 4);
         createCategory("Áo len nam", "men-ao-len", "Áo len nam.", namAo, 5);
@@ -183,7 +183,7 @@ public class MarketplaceSeeder implements ApplicationRunner {
         // Level 3 - Nam > Quần
         Category menQuanJeans = createCategory("Quần jeans nam", "men-quan-jeans", "Quần jeans nam.", namQuan, 1);
         createCategory("Quần tây nam", "men-quan-tay", "Quần tây nam.", namQuan, 2);
-        createCategory("Quần kaki nam", "men-quan-kaki", "Quần kaki nam.", namQuan, 3);
+        Category menQuanKaki = createCategory("Quần kaki nam", "men-quan-kaki", "Quần kaki nam.", namQuan, 3);
         createCategory("Quần short nam", "men-quan-short", "Quần short nam.", namQuan, 4);
         createCategory("Quần jogger nam", "men-quan-jogger", "Quần jogger nam.", namQuan, 5);
 
@@ -200,7 +200,7 @@ public class MarketplaceSeeder implements ApplicationRunner {
         // Level 3 - Nữ > Áo
         createCategory("Áo thun nữ", "women-ao-thun", "Áo thun nữ.", nuAo, 1);
         createCategory("Áo kiểu nữ", "women-ao-kieu", "Áo kiểu nữ.", nuAo, 2);
-        createCategory("Áo sơ mi nữ", "women-ao-so-mi", "Áo sơ mi nữ.", nuAo, 3);
+        Category womenAoSoMi = createCategory("Áo sơ mi nữ", "women-ao-so-mi", "Áo sơ mi nữ.", nuAo, 3);
         createCategory("Áo croptop nữ", "women-ao-croptop", "Áo croptop nữ.", nuAo, 4);
         Category womenAoKhoac = createCategory("Áo khoác nữ", "women-ao-khoac", "Áo khoác nữ.", nuAo, 5);
 
@@ -211,7 +211,7 @@ public class MarketplaceSeeder implements ApplicationRunner {
         createCategory("Váy maxi nữ", "women-vay-maxi", "Váy maxi nữ.", nuVayDam, 4);
 
         // Level 3 - Nữ > Quần
-        createCategory("Quần jeans nữ", "women-quan-jeans", "Quần jeans nữ.", nuQuan, 1);
+        Category womenQuanJeans = createCategory("Quần jeans nữ", "women-quan-jeans", "Quần jeans nữ.", nuQuan, 1);
         createCategory("Quần short nữ", "women-quan-short", "Quần short nữ.", nuQuan, 2);
         createCategory("Quần tây nữ", "women-quan-tay", "Quần tây nữ.", nuQuan, 3);
         createCategory("Quần legging nữ", "women-quan-legging", "Quần legging nữ.", nuQuan, 4);
@@ -229,8 +229,8 @@ public class MarketplaceSeeder implements ApplicationRunner {
         // Level 3 - Phụ kiện
         createCategory("Túi xách", "tui-xach", "Túi xách.", pkTuiVaVi, 1);
         Category accessoryTuiDeoCheo = createCategory("Túi đeo chéo", "tui-deo-cheo", "Túi đeo chéo.", pkTuiVaVi, 2);
-        createCategory("Balo", "balo", "Balo.", pkTuiVaVi, 3);
-        createCategory("Ví", "vi", "Ví.", pkTuiVaVi, 4);
+        Category accessoryBalo = createCategory("Balo", "balo", "Balo.", pkTuiVaVi, 3);
+        Category accessoryVi = createCategory("Ví", "vi", "Ví.", pkTuiVaVi, 4);
 
         createCategory("Nón mũ", "non-mu", "Nón mũ.", pkThoiTrang, 1);
         createCategory("Thắt lưng", "that-lung", "Thắt lưng.", pkThoiTrang, 2);
@@ -288,6 +288,110 @@ public class MarketplaceSeeder implements ApplicationRunner {
         ProductVariant blazerDenL = createVariant(blazerNu, "BINH-BLAZER-BLK-L", "Đen", "L", 18, new BigDecimal("15000"), true);
         ProductVariant tuiDenFree = createVariant(tuiDaMem, "BINH-BAG-CRS-BLK-F", "Đen", "Free", 64, BigDecimal.ZERO, true);
         createVariant(sanPhamNhap, "DUYET-TEE-DRF-WHT-M", "Trắng", "M", 12, BigDecimal.ZERO, true);
+
+        // Additional products for vendor testing (listing, filter, pagination, inventory states)
+        Product aoPoloAirFlex = createProduct(
+                storeAn, menAoPolo, "Ao polo air flex", "ao-polo-air-flex",
+                new BigDecimal("329000"), new BigDecimal("279000"), Product.Gender.MALE, Product.ProductStatus.ACTIVE,
+                true, "Cotton pique", "Slim fit", "Ao polo chat lieu thoang khi, phu hop di lam va di choi.",
+                "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f", "Ao polo air flex"
+        );
+        Product aoThunOversize = createProduct(
+                storeAn, menAoThun, "Ao thun oversize street", "ao-thun-oversize-street",
+                new BigDecimal("289000"), new BigDecimal("239000"), Product.Gender.UNISEX, Product.ProductStatus.ACTIVE,
+                false, "Cotton 2 chieu", "Oversize", "Form rong thoai mai, phoi do linh hoat.",
+                "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c", "Ao thun oversize street"
+        );
+        Product quanKakiFlex = createProduct(
+                storeAn, menQuanKaki, "Quan kaki flex tapered", "quan-kaki-flex-tapered",
+                new BigDecimal("499000"), new BigDecimal("419000"), Product.Gender.MALE, Product.ProductStatus.ACTIVE,
+                false, "Kaki co gian", "Tapered", "Quan kaki de mac, de phoi voi ao polo va so mi.",
+                "https://images.unsplash.com/photo-1473966968600-fa801b869a1a", "Quan kaki flex tapered"
+        );
+        Product quanJeansStraight = createProduct(
+                storeAn, menQuanJeans, "Quan jeans straight dark", "quan-jeans-straight-dark",
+                new BigDecimal("539000"), new BigDecimal("459000"), Product.Gender.MALE, Product.ProductStatus.ACTIVE,
+                false, "Denim 12oz", "Straight", "Mau denim dam, hop phong cach toi gian.",
+                "https://images.unsplash.com/photo-1475180098004-ca77a66827be", "Quan jeans straight dark"
+        );
+        Product aoPoloSeasonOld = createProduct(
+                storeAn, menAoPolo, "Ao polo old season", "ao-polo-old-season",
+                new BigDecimal("299000"), new BigDecimal("199000"), Product.Gender.MALE, Product.ProductStatus.INACTIVE,
+                false, "Cotton blend", "Regular", "Mau cu de test trang thai inactive tren dashboard vendor.",
+                "https://images.unsplash.com/photo-1562157873-818bc0726f68", "Ao polo old season"
+        );
+
+        Product aoSoMiLuaNu = createProduct(
+                storeBinh, womenAoSoMi, "Ao so mi lua basic", "ao-so-mi-lua-basic",
+                new BigDecimal("459000"), new BigDecimal("389000"), Product.Gender.FEMALE, Product.ProductStatus.ACTIVE,
+                true, "Lua mem", "Regular", "Ao so mi thanh lich cho moi truong cong so.",
+                "https://images.unsplash.com/photo-1524504388940-b1c1722653e1", "Ao so mi lua basic"
+        );
+        Product quanJeansBaggyNu = createProduct(
+                storeBinh, womenQuanJeans, "Quan jeans baggy nu", "quan-jeans-baggy-nu",
+                new BigDecimal("499000"), new BigDecimal("429000"), Product.Gender.FEMALE, Product.ProductStatus.ACTIVE,
+                false, "Denim mem", "Baggy", "Form baggy de mac, phu hop phong cach tre trung.",
+                "https://images.unsplash.com/photo-1541099649105-f69ad21f3246", "Quan jeans baggy nu"
+        );
+        Product damLinen = createProduct(
+                storeBinh, womenVayLien, "Dam linen canh tien", "dam-linen-canh-tien",
+                new BigDecimal("629000"), new BigDecimal("549000"), Product.Gender.FEMALE, Product.ProductStatus.ACTIVE,
+                false, "Linen", "A-line", "Dam chat lieu linen nhe, mac mat trong mua he.",
+                "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f", "Dam linen canh tien"
+        );
+        Product aoCardigan = createProduct(
+                storeBinh, womenAoKhoac, "Ao cardigan knit", "ao-cardigan-knit",
+                new BigDecimal("559000"), new BigDecimal("489000"), Product.Gender.FEMALE, Product.ProductStatus.ACTIVE,
+                false, "Knit", "Regular", "Ao khoac mong nhe, phoi cung vay va quan jeans.",
+                "https://images.unsplash.com/photo-1445205170230-053b83016050", "Ao cardigan knit"
+        );
+        Product tuiMiniCross = createProduct(
+                storeBinh, accessoryTuiDeoCheo, "Tui mini crossbody", "tui-mini-crossbody",
+                new BigDecimal("429000"), new BigDecimal("359000"), Product.Gender.UNISEX, Product.ProductStatus.ACTIVE,
+                false, "PU leather", "Crossbody", "Tui mini gon nhe, phu hop di choi va di cafe.",
+                "https://images.unsplash.com/photo-1584917865442-de89df76afd3", "Tui mini crossbody"
+        );
+        Product baloUrban = createProduct(
+                storeBinh, accessoryBalo, "Balo urban daily", "balo-urban-daily",
+                new BigDecimal("639000"), new BigDecimal("559000"), Product.Gender.UNISEX, Product.ProductStatus.ACTIVE,
+                false, "Canvas", "Daily", "Balo dung laptop 14 inch, nhieu ngan tien loi.",
+                "https://images.unsplash.com/photo-1491637639811-60e2756cc1c7", "Balo urban daily"
+        );
+        Product viSlim = createProduct(
+                storeBinh, accessoryVi, "Vi slim da mem", "vi-slim-da-mem",
+                new BigDecimal("329000"), new BigDecimal("279000"), Product.Gender.UNISEX, Product.ProductStatus.ACTIVE,
+                false, "PU leather", "Slim", "Vi mong gon, phu hop bo tui quan jean.",
+                "https://images.unsplash.com/photo-1627123424574-724758594e93", "Vi slim da mem"
+        );
+        Product damDraftSample = createProduct(
+                storeBinh, womenVayLien, "Dam sample pending", "dam-sample-pending",
+                new BigDecimal("399000"), BigDecimal.ZERO, Product.Gender.FEMALE, Product.ProductStatus.DRAFT,
+                false, "Cotton blend", "Regular", "San pham nhap de test trang thai draft cua vendor.",
+                "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc", "Dam sample pending"
+        );
+
+        createVariant(aoPoloAirFlex, "AN-POLO-AIR-BLK-M", "Den", "M", 45, BigDecimal.ZERO, true);
+        createVariant(aoPoloAirFlex, "AN-POLO-AIR-BLK-L", "Den", "L", 38, BigDecimal.ZERO, true);
+        createVariant(aoThunOversize, "AN-TEE-OVR-CRM-M", "Kem", "M", 60, BigDecimal.ZERO, true);
+        createVariant(aoThunOversize, "AN-TEE-OVR-CRM-L", "Kem", "L", 52, BigDecimal.ZERO, true);
+        createVariant(quanKakiFlex, "AN-KAKI-FLX-BEI-30", "Be", "30", 31, BigDecimal.ZERO, true);
+        createVariant(quanKakiFlex, "AN-KAKI-FLX-BEI-32", "Be", "32", 28, BigDecimal.ZERO, true);
+        createVariant(quanJeansStraight, "AN-JEAN-STR-IND-30", "Indigo", "30", 27, BigDecimal.ZERO, true);
+        createVariant(quanJeansStraight, "AN-JEAN-STR-IND-32", "Indigo", "32", 25, BigDecimal.ZERO, true);
+        createVariant(aoPoloSeasonOld, "AN-POLO-OLD-GRY-M", "Xam", "M", 10, BigDecimal.ZERO, true);
+
+        createVariant(aoSoMiLuaNu, "BINH-SHIRT-SIL-WHT-S", "Trang", "S", 35, BigDecimal.ZERO, true);
+        createVariant(aoSoMiLuaNu, "BINH-SHIRT-SIL-WHT-M", "Trang", "M", 29, BigDecimal.ZERO, true);
+        createVariant(quanJeansBaggyNu, "BINH-JEANS-BAG-BLU-S", "Xanh", "S", 24, BigDecimal.ZERO, true);
+        createVariant(quanJeansBaggyNu, "BINH-JEANS-BAG-BLU-M", "Xanh", "M", 22, BigDecimal.ZERO, true);
+        createVariant(damLinen, "BINH-DRESS-LIN-BEI-S", "Be", "S", 19, BigDecimal.ZERO, true);
+        createVariant(damLinen, "BINH-DRESS-LIN-BEI-M", "Be", "M", 17, BigDecimal.ZERO, true);
+        createVariant(aoCardigan, "BINH-CARDI-KNT-IVR-S", "Trang ngà", "S", 20, BigDecimal.ZERO, true);
+        createVariant(aoCardigan, "BINH-CARDI-KNT-IVR-M", "Trang ngà", "M", 18, BigDecimal.ZERO, true);
+        createVariant(tuiMiniCross, "BINH-BAG-MINI-BLK-F", "Den", "Free", 44, BigDecimal.ZERO, true);
+        createVariant(baloUrban, "BINH-BALO-URB-BLK-F", "Den", "Free", 26, BigDecimal.ZERO, true);
+        createVariant(viSlim, "BINH-WALLET-SLM-BRN-F", "Nau", "Free", 56, BigDecimal.ZERO, true);
+        createVariant(damDraftSample, "BINH-DRESS-SMP-BEI-M", "Be", "M", 14, BigDecimal.ZERO, true);
 
         Address addressMinh = createAddress(customerMinh, "Phạm Minh Khang", "0901000001", "TP. Hồ Chí Minh", "Quận 1", "Phường Bến Nghé", "18 Nguyễn Huệ", true, "Nhà riêng");
         Address addressLan = createAddress(customerLan, "Đỗ Ngọc Lan", "0901000002", "TP. Hồ Chí Minh", "Quận 3", "Phường Võ Thị Sáu", "212 Nam Kỳ Khởi Nghĩa", true, "Công ty");
@@ -503,6 +607,11 @@ public class MarketplaceSeeder implements ApplicationRunner {
         product.setSalePrice(salePrice);
         product.setGender(gender);
         product.setStatus(status);
+        boolean isPublicReady =
+                status == Product.ProductStatus.ACTIVE
+                        && store.getApprovalStatus() == Store.ApprovalStatus.APPROVED
+                        && store.getStatus() == Store.StoreStatus.ACTIVE;
+        product.setApprovalStatus(isPublicReady ? Product.ApprovalStatus.APPROVED : Product.ApprovalStatus.PENDING);
         product.setIsFeatured(featured);
         product.setMaterial(material);
         product.setFit(fit);

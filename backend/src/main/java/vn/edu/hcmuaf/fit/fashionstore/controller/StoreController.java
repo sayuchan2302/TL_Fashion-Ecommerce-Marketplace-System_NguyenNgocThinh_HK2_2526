@@ -4,8 +4,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.StoreRequest;
+import vn.edu.hcmuaf.fit.fashionstore.dto.response.StoreFollowResponse;
 import vn.edu.hcmuaf.fit.fashionstore.dto.response.StoreResponse;
+import vn.edu.hcmuaf.fit.fashionstore.security.AuthContext;
 import vn.edu.hcmuaf.fit.fashionstore.security.JwtService;
+import vn.edu.hcmuaf.fit.fashionstore.service.StoreFollowService;
 import vn.edu.hcmuaf.fit.fashionstore.service.StoreService;
 
 import java.util.List;
@@ -16,11 +19,20 @@ import java.util.UUID;
 public class StoreController {
 
     private final StoreService storeService;
+    private final StoreFollowService storeFollowService;
     private final JwtService jwtService;
+    private final AuthContext authContext;
 
-    public StoreController(StoreService storeService, JwtService jwtService) {
+    public StoreController(
+            StoreService storeService,
+            StoreFollowService storeFollowService,
+            JwtService jwtService,
+            AuthContext authContext
+    ) {
         this.storeService = storeService;
+        this.storeFollowService = storeFollowService;
         this.jwtService = jwtService;
+        this.authContext = authContext;
     }
 
     @PostMapping("/register")
@@ -47,6 +59,41 @@ public class StoreController {
     @GetMapping("/slug/{slug}")
     public ResponseEntity<StoreResponse> getStoreBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(storeService.getStoreBySlug(slug));
+    }
+
+    @GetMapping("/{id}/followers/count")
+    public ResponseEntity<StoreFollowResponse> getFollowerCount(@PathVariable UUID id) {
+        return ResponseEntity.ok(storeFollowService.getFollowState(id, null));
+    }
+
+    @GetMapping("/{id}/follow-status")
+    public ResponseEntity<StoreFollowResponse> getFollowStatus(
+            @PathVariable UUID id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+    ) {
+        UUID userId = null;
+        if (authHeader != null && !authHeader.isBlank()) {
+            userId = authContext.fromAuthHeader(authHeader).getUserId();
+        }
+        return ResponseEntity.ok(storeFollowService.getFollowState(id, userId));
+    }
+
+    @PostMapping("/{id}/follow")
+    public ResponseEntity<StoreFollowResponse> followStore(
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        UUID userId = authContext.fromAuthHeader(authHeader).getUserId();
+        return ResponseEntity.ok(storeFollowService.follow(id, userId));
+    }
+
+    @DeleteMapping("/{id}/follow")
+    public ResponseEntity<StoreFollowResponse> unfollowStore(
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        UUID userId = authContext.fromAuthHeader(authHeader).getUserId();
+        return ResponseEntity.ok(storeFollowService.unfollow(id, userId));
     }
 
     @GetMapping

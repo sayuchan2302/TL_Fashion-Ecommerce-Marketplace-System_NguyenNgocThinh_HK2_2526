@@ -120,7 +120,7 @@ public class StoreService {
                         Store.StoreStatus.ACTIVE
                 )
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found"));
-        return toResponse(store);
+        return toResponse(store, true);
     }
 
     @Transactional(readOnly = true)
@@ -131,7 +131,7 @@ public class StoreService {
                         Store.StoreStatus.ACTIVE
                 )
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found"));
-        return toResponse(store);
+        return toResponse(store, true);
     }
 
     @Transactional(readOnly = true)

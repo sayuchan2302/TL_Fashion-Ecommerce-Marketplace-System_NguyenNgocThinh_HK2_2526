@@ -8,27 +8,37 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.ChangePasswordRequest;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.UpdateUserProfileRequest;
+import vn.edu.hcmuaf.fit.fashionstore.dto.response.FollowedStoreResponse;
 import vn.edu.hcmuaf.fit.fashionstore.dto.response.UserProfileResponse;
+import vn.edu.hcmuaf.fit.fashionstore.entity.Store;
+import vn.edu.hcmuaf.fit.fashionstore.entity.StoreFollow;
 import vn.edu.hcmuaf.fit.fashionstore.entity.User;
 import vn.edu.hcmuaf.fit.fashionstore.exception.ResourceNotFoundException;
+import vn.edu.hcmuaf.fit.fashionstore.repository.StoreFollowRepository;
 import vn.edu.hcmuaf.fit.fashionstore.repository.UserRepository;
 import vn.edu.hcmuaf.fit.fashionstore.security.AuthContext;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserProfileService {
 
     private final UserRepository userRepository;
+    private final StoreFollowRepository storeFollowRepository;
     private final AuthContext authContext;
     private final PasswordEncoder passwordEncoder;
 
     public UserProfileService(
             UserRepository userRepository,
+            StoreFollowRepository storeFollowRepository,
             AuthContext authContext,
             PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
+        this.storeFollowRepository = storeFollowRepository;
         this.authContext = authContext;
         this.passwordEncoder = passwordEncoder;
     }
@@ -83,13 +93,66 @@ public class UserProfileService {
         userRepository.save(user);
     }
 
+    @Transactional(readOnly = true)
+    public List<FollowedStoreResponse> getMyFollowingStores(String authHeader) {
+        User user = getCurrentUser(authHeader);
+
+        List<StoreFollow> follows = storeFollowRepository.findPublicStoreFollowsByUserIdOrderByCreatedAtDesc(
+                user.getId(),
+                Store.ApprovalStatus.APPROVED,
+                Store.StoreStatus.ACTIVE
+        );
+        if (follows.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> storeIds = follows.stream()
+                .map(follow -> follow.getStore().getId())
+                .distinct()
+                .toList();
+
+        Map<UUID, Long> followerCountByStoreId = storeFollowRepository.countFollowersByStoreIds(storeIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        StoreFollowRepository.StoreFollowerCountProjection::getStoreId,
+                        StoreFollowRepository.StoreFollowerCountProjection::getFollowerCount,
+                        (left, right) -> left
+                ));
+
+        return follows.stream()
+                .map(follow -> toFollowedStoreResponse(follow, followerCountByStoreId))
+                .toList();
+    }
+
     private User getCurrentUser(String authHeader) {
         UUID userId = authContext.fromAuthHeader(authHeader).getUserId();
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
+    private FollowedStoreResponse toFollowedStoreResponse(StoreFollow follow, Map<UUID, Long> followerCountByStoreId) {
+        Store store = follow.getStore();
+        if (store == null || store.getId() == null) {
+            return FollowedStoreResponse.builder().build();
+        }
+
+        return FollowedStoreResponse.builder()
+                .storeId(store.getId())
+                .storeName(store.getName())
+                .storeSlug(store.getSlug())
+                .storeLogo(store.getLogo())
+                .rating(store.getRating() != null ? store.getRating() : 0.0)
+                .totalOrders(store.getTotalOrders() != null ? store.getTotalOrders() : 0)
+                .followerCount(followerCountByStoreId.getOrDefault(store.getId(), 0L))
+                .followedAt(follow.getCreatedAt())
+                .build();
+    }
+
     private UserProfileResponse toResponse(User user) {
+        long followingStoreCount = user.getId() == null
+                ? 0L
+                : storeFollowRepository.countByUserId(user.getId());
+
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -101,6 +164,7 @@ public class UserProfileService {
                 .height(user.getHeight())
                 .weight(user.getWeight())
                 .loyaltyPoints(user.getLoyaltyPoints() != null ? user.getLoyaltyPoints() : 0L)
+                .followingStoreCount(followingStoreCount)
                 .role(user.getRole())
                 .storeId(user.getStoreId())
                 .build();

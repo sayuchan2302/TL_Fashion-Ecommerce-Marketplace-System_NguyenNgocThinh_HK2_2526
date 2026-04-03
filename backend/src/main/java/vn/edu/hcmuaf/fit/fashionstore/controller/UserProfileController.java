@@ -10,8 +10,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.ChangePasswordRequest;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.UpdateUserProfileRequest;
+import vn.edu.hcmuaf.fit.fashionstore.dto.response.FollowedStoreResponse;
 import vn.edu.hcmuaf.fit.fashionstore.dto.response.UserProfileResponse;
 import vn.edu.hcmuaf.fit.fashionstore.service.UserProfileService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -26,6 +29,13 @@ public class UserProfileController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(@RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(userProfileService.getMyProfile(authHeader));
+    }
+
+    @GetMapping("/me/following-stores")
+    public ResponseEntity<List<FollowedStoreResponse>> getMyFollowingStores(
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(userProfileService.getMyFollowingStores(authHeader));
     }
 
     @PutMapping("/me")
@@ -45,4 +55,3 @@ public class UserProfileController {
         return ResponseEntity.noContent().build();
     }
 }
-

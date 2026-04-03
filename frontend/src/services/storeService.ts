@@ -45,6 +45,7 @@ export interface StoreProduct {
   id: number;
   sku: string;
   name: string;
+  slug?: string;
   price: number;
   originalPrice?: number;
   image: string;
@@ -54,6 +55,10 @@ export interface StoreProduct {
   stock: number;
   status: string;
   statusType: 'active' | 'low' | 'out';
+  soldCount?: number;
+  createdAt?: string;
+  categoryName?: string;
+  categorySlug?: string;
   storeId?: string;
   storeName?: string;
   storeSlug?: string;
@@ -176,9 +181,13 @@ interface BackendProduct {
   id: string;
   slug?: string;
   name?: string;
+  viewCount?: number;
+  soldCount?: number;
+  createdAt?: string;
   basePrice?: number;
   salePrice?: number;
   status?: string;
+  category?: { name?: string; slug?: string };
   images?: Array<{ url?: string }>;
   variants?: Array<{ sku?: string; color?: string; size?: string; stockQuantity?: number }>;
 }
@@ -243,6 +252,7 @@ const mapBackendProduct = (product: BackendProduct, store?: StoreProfile): Store
   return {
     id: Number(product.id.replace(/\D/g, '')) || Date.now(),
     sku: variants[0]?.sku || product.slug || product.id,
+    slug: product.slug,
     name: product.name || 'San pham',
     price,
     originalPrice,
@@ -252,6 +262,10 @@ const mapBackendProduct = (product: BackendProduct, store?: StoreProfile): Store
     stock,
     status: (product.status || 'ACTIVE').toLowerCase(),
     statusType: stock === 0 ? 'out' : stock < 10 ? 'low' : 'active',
+    soldCount: Math.max(0, Number(product.soldCount ?? product.viewCount ?? 0)),
+    createdAt: product.createdAt,
+    categoryName: product.category?.name || undefined,
+    categorySlug: product.category?.slug || undefined,
     storeId: store?.id,
     storeName: store?.name,
     storeSlug: store?.slug,

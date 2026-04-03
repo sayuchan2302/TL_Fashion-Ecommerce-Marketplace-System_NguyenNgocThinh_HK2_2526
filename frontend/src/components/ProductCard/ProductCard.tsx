@@ -25,11 +25,22 @@ interface ProductCardProps {
   storeName?: string;
   storeSlug?: string;
   isOfficialStore?: boolean;
+  staticMode?: boolean;
 }
 
 const DEFAULT_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 
-const ProductCard = ({ id, sku, name, price, originalPrice, image, badge, colors, sizes, backendId, storeId, storeName, storeSlug, isOfficialStore }: ProductCardProps) => {
+const areStringArraysEqual = (left?: string[], right?: string[]) => {
+  if (left === right) return true;
+  if (!left || !right) return !left && !right;
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return false;
+  }
+  return true;
+};
+
+const ProductCardInteractive = ({ id, sku, name, price, originalPrice, image, badge, colors, sizes, backendId, storeId, storeName, storeSlug, isOfficialStore }: ProductCardProps) => {
   const discount = originalPrice ? Math.round((1 - price / originalPrice) * 100) : 0;
   const { addToCart } = useCart();
   const { triggerAnimation } = useCartAnimation();
@@ -223,27 +234,92 @@ const ProductCard = ({ id, sku, name, price, originalPrice, image, badge, colors
         )}
       </div>
 
-      {/* Quick View Modal */}
-      <QuickViewModal
-        product={{
-          id: productRouteKey,
-          backendId,
-          sku,
-          name,
-          price,
-          originalPrice,
-          image,
-          colors,
-          sizes,
-          storeId,
-          storeName,
-          isOfficialStore,
-        }}
-        isOpen={isQuickViewOpen}
-        onClose={() => setIsQuickViewOpen(false)}
-/>
+      {/* Render modal only when opened to reduce per-card render cost */}
+      {isQuickViewOpen ? (
+        <QuickViewModal
+          product={{
+            id: productRouteKey,
+            backendId,
+            sku,
+            name,
+            price,
+            originalPrice,
+            image,
+            colors,
+            sizes,
+            storeId,
+            storeName,
+            isOfficialStore,
+          }}
+          isOpen={isQuickViewOpen}
+          onClose={() => setIsQuickViewOpen(false)}
+        />
+      ) : null}
     </div>
   );
+};
+
+const ProductCardDisplay = ({ id, name, price, originalPrice, image, badge, storeId, storeName, storeSlug }: ProductCardProps) => {
+  const productRouteKey = String(id);
+  const discount = originalPrice ? Math.round((1 - price / originalPrice) * 100) : 0;
+  const hasStoreSlug = isCanonicalStoreSlug(storeSlug);
+
+  return (
+    <div className="product-card">
+      <div className="product-image-container">
+        <Link to={`/product/${productRouteKey}`}>
+          <img
+            src={image}
+            alt={name}
+            className="product-image"
+            loading="lazy"
+            width={672}
+            height={990}
+          />
+          {badge && <span className={`product-badge ${badge === 'SALE' ? 'badge-sale' : ''}`}>{badge}</span>}
+          {!badge && discount > 0 ? <span className="product-badge badge-sale">-{discount}%</span> : null}
+        </Link>
+      </div>
+
+      <div className="product-info">
+        <Link to={`/product/${productRouteKey}`} className="product-name-link">
+          <h3 className="product-name">{name}</h3>
+        </Link>
+
+        <div className="product-prices">
+          <span className="current-price">{price.toLocaleString('vi-VN')}đ</span>
+          {originalPrice ? <span className="original-price">{originalPrice.toLocaleString('vi-VN')}đ</span> : null}
+        </div>
+
+        {(storeName || storeId) ? (
+          <div className="product-store-attribution">
+            <Store size={12} />
+            <span className="store-prefix">Bán bởi:</span>
+            {hasStoreSlug ? (
+              <Link
+                to={`/store/${storeSlug}`}
+                className="store-link"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span>{storeName || 'Người bán'}</span>
+              </Link>
+            ) : (
+              <span className="store-link is-disabled">
+                <span>{storeName || 'Người bán'}</span>
+              </span>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
+const ProductCard = (props: ProductCardProps) => {
+  if (props.staticMode) {
+    return <ProductCardDisplay {...props} />;
+  }
+  return <ProductCardInteractive {...props} />;
 };
 
 function arePropsEqual(prev: ProductCardProps, next: ProductCardProps) {
@@ -255,13 +331,14 @@ function arePropsEqual(prev: ProductCardProps, next: ProductCardProps) {
     prev.originalPrice === next.originalPrice &&
     prev.image === next.image &&
     prev.badge === next.badge &&
-    JSON.stringify(prev.colors) === JSON.stringify(next.colors) &&
-    JSON.stringify(prev.sizes) === JSON.stringify(next.sizes) &&
+    areStringArraysEqual(prev.colors, next.colors) &&
+    areStringArraysEqual(prev.sizes, next.sizes) &&
     prev.backendId === next.backendId &&
     prev.storeId === next.storeId &&
     prev.storeName === next.storeName &&
     prev.storeSlug === next.storeSlug &&
-    prev.isOfficialStore === next.isOfficialStore
+    prev.isOfficialStore === next.isOfficialStore &&
+    prev.staticMode === next.staticMode
   );
 }
 

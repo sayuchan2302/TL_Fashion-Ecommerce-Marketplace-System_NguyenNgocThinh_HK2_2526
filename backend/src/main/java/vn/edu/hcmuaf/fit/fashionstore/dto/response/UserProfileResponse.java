@@ -24,6 +24,7 @@ public class UserProfileResponse {
     private Integer height;
     private Integer weight;
     private Long loyaltyPoints;
+    private Long followingStoreCount;
     private User.Role role;
     private UUID storeId;
 }
