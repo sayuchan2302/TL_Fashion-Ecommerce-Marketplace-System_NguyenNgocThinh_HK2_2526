@@ -14,8 +14,13 @@ interface BackendVendorProduct {
   name?: string;
   slug?: string;
   description?: string;
+  highlights?: string;
+  material?: string;
+  careInstructions?: string;
   status?: string;
   visible?: boolean;
+  fit?: string;
+  gender?: string;
   categoryId?: string;
   categoryName?: string;
   basePrice?: number;
@@ -58,9 +63,14 @@ interface BackendProductRequest {
   name?: string;
   slug?: string;
   description?: string;
+  highlights?: string;
+  material?: string;
+  careInstructions?: string;
   categoryId?: string;
   basePrice?: number;
   salePrice?: number;
+  fit?: string;
+  gender?: string;
   status?: 'ACTIVE' | 'INACTIVE' | 'DRAFT' | 'ARCHIVED';
   sku?: string;
   stockQuantity?: number;
@@ -84,7 +94,14 @@ export interface VendorProductRecord {
   sku: string;
   category: string;
   categoryId?: string;
+  material: string;
+  highlights: string;
+  careInstructions: string;
+  fit?: string;
+  gender?: string;
   price: number;
+  basePrice?: number;
+  salePrice?: number;
   stock: number;
   sold: number;
   grossRevenue: number;
@@ -109,8 +126,15 @@ export interface VendorProductUpsertInput {
   sku: string;
   categoryId?: string;
   price: number;
+  basePrice?: number;
+  salePrice?: number;
   stock: number;
   description?: string;
+  highlights?: string;
+  material?: string;
+  careInstructions?: string;
+  fit?: string;
+  gender?: string;
   image?: string;
   visible: boolean;
   slug?: string;
@@ -230,7 +254,14 @@ const mapBackendProduct = (product: BackendVendorProduct): VendorProductRecord =
     sku: normalizeText(product.primarySku) || fallbackSku,
     category: normalizeText(product.categoryName) || 'Chưa phân loại',
     categoryId: product.categoryId,
+    material: normalizeText(product.material),
+    highlights: normalizeText(product.highlights),
+    careInstructions: normalizeText(product.careInstructions),
+    fit: normalizeText(product.fit),
+    gender: normalizeText(product.gender),
     price: Number(product.effectivePrice || product.salePrice || product.basePrice || 0),
+    basePrice: Number(product.basePrice || 0),
+    salePrice: Number(product.salePrice || 0),
     stock,
     sold: Number(product.soldCount || 0),
     grossRevenue: Number(product.grossRevenue || 0),
@@ -270,9 +301,14 @@ const toRequestPayload = (
     name: normalizedName,
     slug: normalizedSlug,
     description: normalizeText(input.description),
+    highlights: normalizeText(input.highlights),
+    material: normalizeText(input.material),
+    careInstructions: normalizeText(input.careInstructions),
     categoryId: isUuid(input.categoryId) ? input.categoryId : undefined,
-    basePrice: Math.max(0, Number(input.price || 0)),
-    salePrice: Math.max(0, Number(input.price || 0)),
+    basePrice: Math.max(0, Number(input.basePrice ?? input.price ?? 0)),
+    salePrice: Math.max(0, Number(input.salePrice ?? 0)),
+    fit: normalizeText(input.fit) || undefined,
+    gender: normalizeText(input.gender) || undefined,
     status: options?.forceStatus || (input.visible ? 'ACTIVE' : 'DRAFT'),
     sku: normalizedSku || undefined,
     stockQuantity: Math.max(0, Number(input.stock || 0)),

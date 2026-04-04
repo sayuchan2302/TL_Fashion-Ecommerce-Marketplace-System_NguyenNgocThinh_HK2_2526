@@ -271,7 +271,7 @@ const ProductDetail = () => {
 
         {/* Below the Fold */}
         <div className="pdp-bottom-section">
-          <ProductDescription />
+          <ProductDescription product={product} />
 
           {/* Reviews Section */}
           <div className="pdp-reviews-section">

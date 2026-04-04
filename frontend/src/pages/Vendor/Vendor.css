@@ -12,6 +12,16 @@
   --vendor-sidebar-w: 260px;
 }
 
+.vendor-order-detail-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vendor-order-detail-back-btn {
+  padding: 6px 10px;
+}
+
 .vendor-page {
   display: grid;
   grid-template-columns: var(--vendor-sidebar-w) 1fr;

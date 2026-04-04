@@ -1,6 +1,7 @@
 package vn.edu.hcmuaf.fit.fashionstore.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,6 +42,12 @@ public class Product extends BaseEntity {
     @Column(columnDefinition = "text")
     private String description;
 
+    @Column(columnDefinition = "text")
+    private String highlights;
+
+    @Column(name = "care_instructions", columnDefinition = "text")
+    private String careInstructions;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
@@ -73,10 +80,12 @@ public class Product extends BaseEntity {
     private Boolean isFeatured = false;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     @Builder.Default
     private List<ProductImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     @Builder.Default
     private List<ProductVariant> variants = new ArrayList<>();
 

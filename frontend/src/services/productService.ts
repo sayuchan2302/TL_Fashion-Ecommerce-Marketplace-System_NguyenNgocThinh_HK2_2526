@@ -58,6 +58,11 @@ interface BackendProduct {
   slug?: string;
   name?: string;
   description?: string;
+  highlights?: string;
+  material?: string;
+  fit?: string;
+  gender?: string;
+  careInstructions?: string;
   category?: BackendCategory;
   basePrice?: number;
   salePrice?: number;
@@ -185,6 +190,12 @@ const mapBackendProduct = (product: BackendProduct): Product => {
     backendId: product.id,
     sku: product.slug || product.id,
     name: product.name || 'Unnamed product',
+    description: product.description,
+    highlights: product.highlights,
+    material: product.material,
+    fit: product.fit,
+    gender: product.gender,
+    careInstructions: product.careInstructions,
     category: product.category?.name || 'Fashion',
     price: product.salePrice || product.basePrice || 0,
     originalPrice: product.basePrice || undefined,

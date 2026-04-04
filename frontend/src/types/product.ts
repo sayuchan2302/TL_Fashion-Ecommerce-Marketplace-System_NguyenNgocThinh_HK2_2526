@@ -14,6 +14,12 @@ export interface Product {
   id: number | string;
   sku: string;
   name: string;
+  description?: string;
+  highlights?: string;
+  material?: string;
+  fit?: string;
+  gender?: string;
+  careInstructions?: string;
   category?: string;
   price: number;
   originalPrice?: number;

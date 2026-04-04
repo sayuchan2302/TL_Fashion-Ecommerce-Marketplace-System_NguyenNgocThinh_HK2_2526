@@ -29,7 +29,6 @@ public final class ProductModerationSpecification {
         return (root, query, cb) -> {
             if (query != null && query.getResultType() != Long.class && query.getResultType() != long.class) {
                 root.fetch("category", jakarta.persistence.criteria.JoinType.LEFT);
-                root.fetch("images", jakarta.persistence.criteria.JoinType.LEFT);
                 query.distinct(true);
             }
 

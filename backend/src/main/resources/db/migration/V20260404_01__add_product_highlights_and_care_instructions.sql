@@ -1,0 +1,5 @@
+ALTER TABLE products
+ADD COLUMN IF NOT EXISTS highlights TEXT;
+
+ALTER TABLE products
+ADD COLUMN IF NOT EXISTS care_instructions TEXT;

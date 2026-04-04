@@ -19,6 +19,11 @@ public class VendorProductSummaryResponse {
     private String name;
     private String slug;
     private String description;
+    private String highlights;
+    private String material;
+    private String fit;
+    private String gender;
+    private String careInstructions;
     private String status;
     private Boolean visible;
     private UUID categoryId;

@@ -144,14 +144,18 @@ const VendorOrderDetail = () => {
 
   return (
     <VendorLayout
-      title={`Đơn hàng #${toDisplayOrderCode(order.code)}`}
-      breadcrumbs={['Kênh Người Bán', 'Đơn hàng', 'Chi tiết']}
-      actions={(
-        <div className="admin-actions">
-          <button className="admin-ghost-btn" onClick={() => navigate('/vendor/orders')}>
+      title={
+        <span className="vendor-order-detail-title">
+          <button className="admin-ghost-btn vendor-order-detail-back-btn" onClick={() => navigate('/vendor/orders')}>
             <ArrowLeft size={16} />
             Quay lại
           </button>
+          <span>{`Đơn hàng #${toDisplayOrderCode(order.code)}`}</span>
+        </span>
+      }
+      breadcrumbs={['Kênh Người Bán', 'Đơn hàng', 'Chi tiết']}
+      actions={(
+        <div className="admin-actions">
           <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
             <Link2 size={16} />
             Chia sẻ

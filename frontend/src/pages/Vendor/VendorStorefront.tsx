@@ -1,6 +1,6 @@
-import './Vendor.css';
+﻿import './Vendor.css';
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, ImagePlus, Save, ShieldCheck } from 'lucide-react';
+import { ImagePlus, Save, ShieldCheck } from 'lucide-react';
 import VendorLayout from './VendorLayout';
 import { vendorPortalService, type VendorSettingsData } from '../../services/vendorPortalService';
 import { storeService, type StoreProfile } from '../../services/storeService';
@@ -104,13 +104,6 @@ const resolveOperationalStatus = (store: StoreProfile | null) => {
   };
 };
 
-const toneToPillClass = (tone: 'success' | 'warning' | 'error' | 'neutral') => {
-  if (tone === 'success') return 'success';
-  if (tone === 'warning') return 'warning';
-  if (tone === 'error') return 'error';
-  return 'neutral';
-};
-
 const VendorStorefront = () => {
   const { addToast } = useToast();
   const [settings, setSettings] = useState<VendorSettingsData>(defaultSettings);
@@ -178,11 +171,9 @@ const VendorStorefront = () => {
   };
 
   const storefrontStatus = resolveStorefrontStatus(storeMeta);
-  const approvalStatus = resolveApprovalStatus(storeMeta);
-  const operationalStatus = resolveOperationalStatus(storeMeta);
+  resolveApprovalStatus(storeMeta);
+  resolveOperationalStatus(storeMeta);
   const storefrontPath = settings.storeInfo.slug ? `/store/${settings.storeInfo.slug}` : '/store/:slug';
-  const storefrontUrl =
-    typeof window !== 'undefined' && settings.storeInfo.slug ? `${window.location.origin}${storefrontPath}` : '';
 
   const storefrontChecklist = useMemo(() => {
     const hasValue = (value: string) => value.trim().length > 0;
@@ -254,7 +245,6 @@ const VendorStorefront = () => {
 
   const passedChecks = storefrontChecklist.filter((item) => item.ok).length;
   const isStorefrontReady = passedChecks === storefrontChecklist.length;
-  const readinessPercent = Math.round((passedChecks / storefrontChecklist.length) * 100);
 
   return (
     <VendorLayout
@@ -283,54 +273,6 @@ const VendorStorefront = () => {
         />
       ) : (
         <>
-          <section className="admin-panel storefront-hero-panel">
-            <div className="storefront-hero-head">
-              <div className="storefront-hero-copy">
-                <h2>Trung tâm vận hành gian hàng công khai</h2>
-                <p>
-                  Theo dõi nhanh trạng thái duyệt, vận hành và mức sẵn sàng công khai của gian hàng trên marketplace.
-                </p>
-              </div>
-              <div className="storefront-hero-chips">
-                <span className={`admin-pill ${toneToPillClass(approvalStatus.tone)}`}>
-                  Phê duyệt: {approvalStatus.label}
-                </span>
-                <span className={`admin-pill ${toneToPillClass(operationalStatus.tone)}`}>
-                  Vận hành: {operationalStatus.label}
-                </span>
-              </div>
-            </div>
-            <div className="storefront-hero-progress">
-              <div className="storefront-hero-progress-track">
-                <span style={{ width: `${readinessPercent}%` }} />
-              </div>
-              <div className="storefront-hero-progress-meta">
-                <strong>{readinessPercent}% điều kiện công khai</strong>
-                <span>
-                  {isStorefrontReady
-                    ? 'Gian hàng đã đủ điều kiện hiển thị cho khách mua.'
-                    : `Đạt ${passedChecks}/${storefrontChecklist.length} điều kiện vận hành.`}
-                </span>
-              </div>
-            </div>
-            <div className="storefront-hero-actions">
-              <a
-                href={storefrontUrl || '#'}
-                className={`admin-ghost-btn storefront-open-link ${storefrontUrl ? '' : 'is-disabled'}`}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(event) => {
-                  if (!storefrontUrl) event.preventDefault();
-                }}
-              >
-                <ExternalLink size={14} />
-                Mở gian hàng công khai
-              </a>
-              <span className={`admin-pill ${isStorefrontReady ? 'success' : 'warning'}`}>
-                {isStorefrontReady ? 'Sẵn sàng công khai' : 'Cần hoàn thiện thêm'}
-              </span>
-            </div>
-          </section>
 
           <div className="admin-stats grid-4">
             <div className="admin-stat-card">
@@ -360,9 +302,6 @@ const VendorStorefront = () => {
               <section className="admin-panel storefront-section-panel">
                 <div className="admin-panel-head">
                   <h2>Thiết lập thương hiệu</h2>
-                  <span className="admin-muted">
-                    Các thông tin này xuất hiện trên gian hàng công khai và điểm "Bán bởi".
-                  </span>
                 </div>
                 <div className="form-grid">
                   <label className="form-field full">
@@ -411,7 +350,6 @@ const VendorStorefront = () => {
               <section className="admin-panel storefront-section-panel">
                 <div className="admin-panel-head">
                   <h2>Thông tin công khai</h2>
-                  <span className="admin-muted">Dữ liệu này được hiển thị trực tiếp trên trang /store/:slug.</span>
                 </div>
                 <div className="form-grid">
                   <label className="form-field">
@@ -453,9 +391,6 @@ const VendorStorefront = () => {
               <section className="admin-panel storefront-section-panel">
                 <div className="admin-panel-head">
                   <h2>Luồng vận hành gian hàng</h2>
-                  <span className="admin-muted">
-                    Gian hàng chỉ hiển thị công khai khi đi qua đủ các bước vận hành bắt buộc.
-                  </span>
                 </div>
                 <div className="admin-card-list storefront-flow-list">
                   <div className="storefront-flow-step">
@@ -494,7 +429,6 @@ const VendorStorefront = () => {
               <section className="admin-panel storefront-section-panel">
                 <div className="admin-panel-head">
                   <h2>Xem trước gian hàng</h2>
-                  <span className="admin-muted">Mô phỏng giao diện trang shop công khai theo dữ liệu thực tế</span>
                 </div>
                 <div className="vendor-store-preview">
                   <div
@@ -543,7 +477,6 @@ const VendorStorefront = () => {
               <section className="admin-panel storefront-section-panel">
                 <div className="admin-panel-head">
                   <h2>Checklist vận hành</h2>
-                  <span className="admin-muted">Theo dõi điều kiện công khai theo đúng luồng business.</span>
                 </div>
                 {storeMeta?.approvalStatus === 'REJECTED' ? (
                   <p className="storefront-business-alert">
@@ -579,3 +512,4 @@ const VendorStorefront = () => {
 };
 
 export default VendorStorefront;
+

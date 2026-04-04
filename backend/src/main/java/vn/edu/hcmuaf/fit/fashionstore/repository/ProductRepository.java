@@ -113,7 +113,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Product> searchProducts(String keyword, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "images"})
+    @EntityGraph(attributePaths = {"category"})
     @Query("""
             SELECT p FROM Product p
             WHERE p.status = 'ACTIVE'
@@ -127,7 +127,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             """)
     Page<Product> findPublicMarketplaceProducts(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "images"})
+    @EntityGraph(attributePaths = {"category"})
     @Query("""
             SELECT p FROM Product p
             WHERE p.status = 'ACTIVE'
@@ -142,7 +142,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             """)
     Page<Product> findPublicFeaturedMarketplaceProducts(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "images"})
+    @EntityGraph(attributePaths = {"category"})
     @Query("""
             SELECT DISTINCT p FROM Product p
             WHERE p.status = 'ACTIVE'
@@ -165,7 +165,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"category", "images"})
+    @EntityGraph(attributePaths = {"category"})
     @Query("""
             SELECT DISTINCT p FROM Product p
             LEFT JOIN p.category c
@@ -225,7 +225,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
     Optional<Product> findByIdAndStoreId(UUID id, UUID storeId);
 
     @Override
-    @EntityGraph(attributePaths = {"category", "images"})
+    @EntityGraph(attributePaths = {"category"})
     Page<Product> findAll(org.springframework.data.jpa.domain.Specification<Product> spec, Pageable pageable);
 
     /**

@@ -17,6 +17,8 @@ public class ProductRequest {
     private String name;
     private String slug;
     private String description;
+    private String highlights;
+    private String careInstructions;
     private UUID categoryId;
     private BigDecimal basePrice;
     private BigDecimal salePrice;

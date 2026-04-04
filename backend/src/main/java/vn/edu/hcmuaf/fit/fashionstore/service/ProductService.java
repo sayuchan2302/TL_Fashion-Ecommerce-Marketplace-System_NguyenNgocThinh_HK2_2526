@@ -285,12 +285,16 @@ public class ProductService {
                 .slug(request.getSlug())
                 .storeId(storeId)  // Set store ownership
                 .description(request.getDescription())
+                .highlights(request.getHighlights())
+                .careInstructions(request.getCareInstructions())
                 .basePrice(request.getBasePrice())
                 .salePrice(request.getSalePrice())
                 .material(request.getMaterial())
                 .fit(request.getFit())
                 .status(status)
-                .approvalStatus(storeId == null ? Product.ApprovalStatus.APPROVED : Product.ApprovalStatus.PENDING)
+                // Business rule: vendor products are published immediately.
+                // Admin moderation is handled as post-publication governance.
+                .approvalStatus(Product.ApprovalStatus.APPROVED)
                 .build();
 
         if (request.getGender() != null) {
@@ -355,6 +359,8 @@ public class ProductService {
         if (request.getName() != null) product.setName(request.getName());
         if (request.getSlug() != null) product.setSlug(request.getSlug());
         if (request.getDescription() != null) product.setDescription(request.getDescription());
+        if (request.getHighlights() != null) product.setHighlights(request.getHighlights());
+        if (request.getCareInstructions() != null) product.setCareInstructions(request.getCareInstructions());
         if (request.getBasePrice() != null) product.setBasePrice(request.getBasePrice());
         if (request.getSalePrice() != null) product.setSalePrice(request.getSalePrice());
         if (request.getMaterial() != null) product.setMaterial(request.getMaterial());
@@ -590,6 +596,11 @@ public class ProductService {
                 .name(product.getName())
                 .slug(product.getSlug())
                 .description(product.getDescription())
+                .highlights(product.getHighlights())
+                .material(product.getMaterial())
+                .fit(product.getFit())
+                .gender(product.getGender() == null ? null : product.getGender().name())
+                .careInstructions(product.getCareInstructions())
                 .status(product.getStatus() == null ? null : product.getStatus().name())
                 .visible(product.getStatus() == ProductStatus.ACTIVE)
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
