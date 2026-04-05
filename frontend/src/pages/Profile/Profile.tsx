@@ -23,6 +23,7 @@ import {
   Store
 } from 'lucide-react';
 import AddressModal from './AddressModal';
+import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import EmptyState from '../../components/EmptyState/EmptyState';
 import ReviewModal from '../../components/ReviewModal/ReviewModal';
 import { useToast } from '../../contexts/ToastContext';
@@ -135,6 +136,10 @@ const Profile = () => {
 
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [pendingDeleteAddressId, setPendingDeleteAddressId] = useState<string | null>(null);
+  const [pendingCancelOrderId, setPendingCancelOrderId] = useState<string | null>(null);
+  const [isDeletingAddress, setIsDeletingAddress] = useState(false);
+  const [isCancellingOrder, setIsCancellingOrder] = useState(false);
   const [voucherWallet, setVoucherWallet] = useState<Coupon[]>([]);
 
   const handleEditAddress = (address: Address) => {
@@ -521,6 +526,8 @@ const Profile = () => {
   };
 
   const handleRemoveAddress = async (addressId: string) => {
+    if (isDeletingAddress) return;
+    setIsDeletingAddress(true);
     try {
       await addressService.removeOnBackend(addressId);
       await loadAddresses();
@@ -528,6 +535,25 @@ const Profile = () => {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Không thể xóa địa chỉ.';
       addToast(message, 'error');
+    } finally {
+      setIsDeletingAddress(false);
+      setPendingDeleteAddressId(null);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (isCancellingOrder) return;
+    setIsCancellingOrder(true);
+    try {
+      await orderService.cancelOnBackend(orderId, 'Khách hàng hủy đơn');
+      await loadOrders();
+      addToast('Đã hủy đơn hàng thành công', 'success');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Không thể hủy đơn hàng.';
+      addToast(message, 'error');
+    } finally {
+      setIsCancellingOrder(false);
+      setPendingCancelOrderId(null);
     }
   };
 
@@ -693,18 +719,7 @@ const Profile = () => {
                         {order.status === 'pending' && (
                           <button 
                             className="order-action-btn order-btn-danger"
-                            onClick={async () => {
-                              if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
-                                try {
-                                  await orderService.cancelOnBackend(order.id, 'Khách hàng hủy đơn');
-                                  await loadOrders();
-                                  addToast('Đã hủy đơn hàng thành công', 'success');
-                                } catch (error: unknown) {
-                                  const message = error instanceof Error ? error.message : 'Không thể hủy đơn hàng.';
-                                  addToast(message, 'error');
-                                }
-                              }
-                            }}
+                            onClick={() => setPendingCancelOrderId(order.id)}
                           >
                             Hủy đơn hàng
                           </button>
@@ -815,7 +830,7 @@ const Profile = () => {
                         </button>
                         <button 
                           className="address-card-delete" 
-                          onClick={() => void handleRemoveAddress(addr.id)}
+                          onClick={() => setPendingDeleteAddressId(addr.id)}
                           aria-label="Xóa địa chỉ"
                         >
                           <Trash2 size={16} />
@@ -1430,6 +1445,32 @@ const Profile = () => {
           product={reviewProduct}
         />
       )}
+
+      {/* Confirm Delete Address Modal */}
+      <ConfirmModal
+        isOpen={Boolean(pendingDeleteAddressId)}
+        onClose={() => setPendingDeleteAddressId(null)}
+        onConfirm={() => pendingDeleteAddressId && void handleRemoveAddress(pendingDeleteAddressId)}
+        title="Xóa địa chỉ giao hàng"
+        message="Bạn có chắc chắn muốn xóa địa chỉ này? Hành động này không thể hoàn tác."
+        confirmText="Xóa địa chỉ"
+        cancelText="Giữ lại"
+        variant="danger"
+        isLoading={isDeletingAddress}
+      />
+
+      {/* Confirm Cancel Order Modal */}
+      <ConfirmModal
+        isOpen={Boolean(pendingCancelOrderId)}
+        onClose={() => setPendingCancelOrderId(null)}
+        onConfirm={() => pendingCancelOrderId && void handleCancelOrder(pendingCancelOrderId)}
+        title="Xác nhận hủy đơn hàng"
+        message="Bạn có chắc chắn muốn hủy đơn hàng này? Sau khi hủy, đơn hàng sẽ không thể khôi phục."
+        confirmText="Hủy đơn hàng"
+        cancelText="Giữ đơn hàng"
+        variant="danger"
+        isLoading={isCancellingOrder}
+      />
     </div>
   );
 };

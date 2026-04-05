@@ -3,6 +3,7 @@ import { X, Minus, Plus, ShoppingCart, Check, Heart, ExternalLink } from 'lucide
 import { Link } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useCartAnimation } from '../../context/CartAnimationContext';
 import { productService } from '../../services/productService';
 import './QuickViewModal.css';
@@ -17,6 +18,11 @@ interface QuickViewProduct {
   image: string;
   colors?: string[];
   sizes?: string[];
+  variants?: Array<{
+    color: string;
+    size: string;
+    backendId?: string;
+  }>;
   storeId?: string;
   storeName?: string;
   isOfficialStore?: boolean;
@@ -32,9 +38,12 @@ const DEFAULT_SIZES = ['S', 'M', 'L', 'XL', '2XL'];
 
 const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
   const { addToCart } = useCart();
+  const { addToast } = useToast();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { triggerAnimation } = useCartAnimation();
-  const [selectedSize, setSelectedSize] = useState(DEFAULT_SIZES[1]); // Default M
+  const [selectedSize, setSelectedSize] = useState(() => (
+    product.variants?.[0]?.size || product.sizes?.[0] || DEFAULT_SIZES[1]
+  ));
   const [selectedColorIdx, setSelectedColorIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -45,13 +54,32 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
 
-  const availableSizes = product.sizes ?? DEFAULT_SIZES;
-  const selectedColorValue = product.colors?.[selectedColorIdx] ?? 'Mặc định';
+  const variantSizes = Array.from(new Set((product.variants || []).map((variant) => variant.size).filter(Boolean)));
+  const availableSizes = variantSizes.length > 0 ? variantSizes : (product.sizes ?? DEFAULT_SIZES);
+  const selectedColorValue = product.colors?.[selectedColorIdx] ?? '';
 
   const handleAddToCart = async () => {
-    const purchaseReference = product.backendId
-      ? { backendProductId: product.backendId, backendVariantId: undefined }
-      : await productService.resolvePurchaseReference(productRouteKey, selectedColorValue, selectedSize);
+    const localVariantId = product.variants?.find((variant) => (
+      variant.color.toLowerCase() === selectedColorValue.toLowerCase()
+      && variant.size.toLowerCase() === selectedSize.toLowerCase()
+    ))?.backendId;
+    const purchaseReference = localVariantId
+      ? { backendProductId: product.backendId, backendVariantId: localVariantId, activeVariantCount: product.variants?.length || 0 }
+      : await productService.resolvePurchaseReference(
+        String(product.backendId || productRouteKey),
+        selectedColorValue || undefined,
+        selectedSize || undefined,
+        { forceRefresh: true, strictPublic: Boolean(product.backendId) },
+      );
+
+    if (!purchaseReference.backendProductId) {
+      addToast('Sản phẩm chưa đồng bộ backend, vui lòng thử lại.', 'error');
+      return;
+    }
+    if (!purchaseReference.backendVariantId && (purchaseReference.activeVariantCount || 0) > 1) {
+      addToast('Vui lòng chọn đúng màu/size trước khi thêm vào giỏ.', 'error');
+      return;
+    }
 
     addToCart({
       id: productRouteKey,
@@ -61,7 +89,7 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
       price: product.price,
       originalPrice: product.originalPrice,
       image: product.image,
-      color: selectedColorValue,
+      color: selectedColorValue || 'Default',
       size: selectedSize,
       storeId: product.storeId,
       storeName: product.storeName,
@@ -107,13 +135,11 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
         aria-label={`Xem nhanh ${product.name}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button className="qv-close-btn" onClick={onClose} aria-label="Đóng">
+        <button className="qv-close-btn" onClick={onClose} aria-label="Dong">
           <X size={24} />
         </button>
 
         <div className="qv-content">
-          {/* Left: Image */}
           <div className="qv-image-col">
             <div className="qv-image-wrapper">
               <img
@@ -129,11 +155,9 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
             </div>
           </div>
 
-          {/* Right: Info & Actions */}
           <div className="qv-info-col">
             <h2 className="qv-product-name">{product.name}</h2>
 
-            {/* Prices */}
             <div className="qv-prices">
               <span className="qv-current-price">
                 {product.price.toLocaleString('vi-VN')}đ
@@ -145,7 +169,6 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
               )}
             </div>
 
-            {/* Colors */}
             {product.colors && product.colors.length > 0 && (
               <div className="qv-section">
                 <label className="qv-label">Màu sắc</label>
@@ -163,7 +186,6 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
               </div>
             )}
 
-            {/* Sizes */}
             <div className="qv-section">
               <label className="qv-label">Kích thước</label>
               <div className="qv-sizes">
@@ -179,29 +201,27 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
               </div>
             </div>
 
-            {/* Quantity */}
             <div className="qv-section">
               <label className="qv-label">Số lượng</label>
               <div className="qv-quantity">
                 <button
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   disabled={quantity <= 1}
-                  aria-label="Giảm số lượng"
+                  aria-label="Giam so luong"
                 >
                   <Minus size={16} />
                 </button>
                 <span className="qv-qty-value">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                  onClick={() => setQuantity((q) => Math.min(10, q + 1))}
                   disabled={quantity >= 10}
-                  aria-label="Tăng số lượng"
+                  aria-label="Tang so luong"
                 >
                   <Plus size={16} />
                 </button>
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="qv-actions">
               <button
                 className={`qv-add-cart-btn ${added ? 'added' : ''}`}
@@ -209,24 +229,23 @@ const QuickViewModal = ({ product, isOpen, onClose }: QuickViewModalProps) => {
                 disabled={added}
               >
                 {added ? (
-                  <><Check size={20} /> Đã thêm vào giỏ</>
+                  <><Check size={20} /> Da them vao gio</>
                 ) : (
-                  <><ShoppingCart size={20} /> Thêm vào giỏ</>
+                  <><ShoppingCart size={20} /> Them vao gio</>
                 )}
               </button>
               <button
                 className={`qv-wishlist-btn ${isWished ? 'wished' : ''}`}
                 onClick={handleToggleWishlist}
-                title={isWished ? 'Bỏ yêu thích' : 'Yêu thích'}
-                aria-label={isWished ? 'Bỏ yêu thích' : 'Yêu thích'}
+                title={isWished ? 'Bo yeu thich' : 'Yeu thich'}
+                aria-label={isWished ? 'Bo yeu thich' : 'Yeu thich'}
               >
                 <Heart size={22} fill={isWished ? 'currentColor' : 'none'} />
               </button>
             </div>
 
-            {/* View Detail Link */}
             <Link to={`/product/${productRouteKey}`} className="qv-view-detail" onClick={onClose}>
-              <ExternalLink size={16} /> Xem chi tiết sản phẩm
+              <ExternalLink size={16} /> Xem chi tiet san pham
             </Link>
           </div>
         </div>

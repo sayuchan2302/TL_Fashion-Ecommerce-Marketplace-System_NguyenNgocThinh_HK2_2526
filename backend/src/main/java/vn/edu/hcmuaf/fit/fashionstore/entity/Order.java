@@ -108,7 +108,7 @@ public class Order extends BaseEntity {
     }
 
     public enum OrderStatus {
-        PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+        PENDING, WAITING_FOR_VENDOR, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
     }
 
     public enum PaymentMethod {

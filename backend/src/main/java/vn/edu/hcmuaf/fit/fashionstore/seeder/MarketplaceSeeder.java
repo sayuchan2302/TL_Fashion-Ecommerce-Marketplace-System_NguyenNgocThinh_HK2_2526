@@ -410,9 +410,9 @@ public class MarketplaceSeeder implements ApplicationRunner {
         Address addressLan = createAddress(customerLan, "Đỗ Ngọc Lan", "0901000002", "TP. Hồ Chí Minh", "Quận 3", "Phường Võ Thị Sáu", "212 Nam Kỳ Khởi Nghĩa", true, "Công ty");
         Address addressHuy = createAddress(customerHuy, "Vũ Đức Huy", "0901000003", "Đà Nẵng", "Hải Châu", "Phường Thạch Thang", "55 Trần Phú", true, "Nhà riêng");
 
-        createCart(customerMinh, List.of(new CartLine(quanJeanSlim, jeanXanh32, 1), new CartLine(blazerNu, blazerBeM, 1)));
-        createCart(customerLan, List.of(new CartLine(tuiDaMem, tuiDenFree, 1), new CartLine(aoThunPremium, aoThunTrangL, 2)));
-        createCart(customerHuy, List.of(new CartLine(damMidi, damKemS, 1)));
+        createCart(customerMinh, List.of(new SeederCartLine(quanJeanSlim, jeanXanh32, 1), new SeederCartLine(blazerNu, blazerBeM, 1)));
+        createCart(customerLan, List.of(new SeederCartLine(tuiDaMem, tuiDenFree, 1), new SeederCartLine(aoThunPremium, aoThunTrangL, 2)));
+        createCart(customerHuy, List.of(new SeederCartLine(damMidi, damKemS, 1)));
 
         Order orderDaGiao = createOrder(customerMinh, addressMinh, storeAn, Order.OrderStatus.DELIVERED, Order.PaymentMethod.BANK_TRANSFER, Order.PaymentStatus.PAID, "DH-SEED-DELIVERED-001", "GHN100000001", "GHN", new BigDecimal("25000"), new BigDecimal("20000"), LocalDateTime.now().minusDays(6));
         OrderItem itemDaGiao = addOrderItem(orderDaGiao, aoThunPremium, aoThunDenM, 2, new BigDecimal("199000"), storeAn.getId());
@@ -681,11 +681,11 @@ public class MarketplaceSeeder implements ApplicationRunner {
         return addressRepository.save(address);
     }
 
-    private void createCart(User user, List<CartLine> lines) {
+    private void createCart(User user, List<SeederCartLine> lines) {
         Cart cart = new Cart();
         cart.setUser(user);
         cart.setItems(new ArrayList<>());
-        for (CartLine line : lines) {
+        for (SeederCartLine line : lines) {
             CartItem item = new CartItem();
             item.setCart(cart);
             item.setProduct(line.product());
@@ -877,8 +877,5 @@ public class MarketplaceSeeder implements ApplicationRunner {
         page.setDisplayOrder(displayOrder);
         page.setUpdatedBy(SEED_ACTOR);
         contentPageRepository.save(page);
-    }
-
-    private record CartLine(Product product, ProductVariant variant, int quantity) {
     }
 }

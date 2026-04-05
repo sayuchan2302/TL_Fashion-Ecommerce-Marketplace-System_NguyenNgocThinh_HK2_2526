@@ -101,6 +101,33 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             Pageable pageable
     );
 
+    @Query("""
+            SELECT o FROM Order o
+            LEFT JOIN o.user u
+            LEFT JOIN o.shippingAddress a
+            WHERE o.storeId = :storeId
+              AND o.status IN :statuses
+              AND (
+                    COALESCE(:keyword, '') = ''
+                    OR LOWER(STR(o.id)) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+                    OR LOWER(COALESCE(o.orderCode, '')) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+                    OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+                    OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+                    OR LOWER(COALESCE(a.fullName, '')) LIKE LOWER(CONCAT('%', COALESCE(:keyword, ''), '%'))
+                  )
+              AND o.createdAt >= :fromDate
+              AND o.createdAt < :toDate
+            ORDER BY o.createdAt DESC
+            """)
+    Page<Order> searchByStoreStatuses(
+            @Param("storeId") UUID storeId,
+            @Param("statuses") List<Order.OrderStatus> statuses,
+            @Param("keyword") String keyword,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            Pageable pageable
+    );
+
     /**
      * Find order by ID only if it belongs to the specified store (ownership check)
      */

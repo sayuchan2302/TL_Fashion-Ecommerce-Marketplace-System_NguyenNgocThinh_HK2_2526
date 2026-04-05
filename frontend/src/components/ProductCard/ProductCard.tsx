@@ -4,6 +4,7 @@ import { Plus, Heart, Eye, Store, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { useCartAnimation } from '../../context/CartAnimationContext';
 import { useWishlist } from '../../contexts/WishlistContext';
+import { useToast } from '../../contexts/ToastContext';
 import { productService } from '../../services/productService';
 import QuickViewModal from '../QuickViewModal/QuickViewModal';
 import { isCanonicalStoreSlug } from '../../utils/storeIdentity';
@@ -19,6 +20,11 @@ interface ProductCardProps {
   badge?: string;
   colors?: string[];
   sizes?: string[];
+  variants?: Array<{
+    color: string;
+    size: string;
+    backendId?: string;
+  }>;
   backendId?: string;
   // Multi-vendor fields
   storeId?: string;
@@ -51,9 +57,10 @@ const areStringArraysEqual = (left?: string[], right?: string[]) => {
   return true;
 };
 
-const ProductCardInteractive = ({ id, sku, name, price, originalPrice, image, badge, colors, sizes, backendId, storeId, storeName, storeSlug, isOfficialStore }: ProductCardProps) => {
+const ProductCardInteractive = ({ id, sku, name, price, originalPrice, image, badge, colors, sizes, variants, backendId, storeId, storeName, storeSlug, isOfficialStore }: ProductCardProps) => {
   const discount = originalPrice ? Math.round((1 - price / originalPrice) * 100) : 0;
   const { addToCart } = useCart();
+  const { addToast } = useToast();
   const { triggerAnimation } = useCartAnimation();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const [addedSize, setAddedSize] = useState<string | null>(null);
@@ -64,7 +71,8 @@ const ProductCardInteractive = ({ id, sku, name, price, originalPrice, image, ba
   const productRouteKey = String(id);
   const isWished = isInWishlist(productRouteKey);
 
-  const availableSizes = sizes ?? DEFAULT_SIZES;
+  const variantSizes = Array.from(new Set((variants || []).map((variant) => variant.size).filter(Boolean)));
+  const availableSizes = variantSizes.length > 0 ? variantSizes : (sizes ?? DEFAULT_SIZES);
   const selectedColorValue = colors?.[selectedColorIdx] ?? '';
   const hasStoreSlug = isCanonicalStoreSlug(storeSlug);
 
@@ -72,9 +80,27 @@ const ProductCardInteractive = ({ id, sku, name, price, originalPrice, image, ba
     e.preventDefault();
     e.stopPropagation();
 
-    const purchaseReference = backendId
-      ? { backendProductId: backendId, backendVariantId: undefined }
-      : await productService.resolvePurchaseReference(productRouteKey, selectedColorValue || 'Mac dinh', size);
+    const localVariantId = variants?.find((variant) => (
+      variant.color.toLowerCase() === selectedColorValue.toLowerCase()
+      && variant.size.toLowerCase() === size.toLowerCase()
+    ))?.backendId;
+    const purchaseReference = localVariantId
+      ? { backendProductId: backendId, backendVariantId: localVariantId, activeVariantCount: variants?.length || 0 }
+      : await productService.resolvePurchaseReference(
+        String(backendId || productRouteKey),
+        selectedColorValue || undefined,
+        size || undefined,
+        { forceRefresh: true, strictPublic: Boolean(backendId) },
+      );
+
+    if (!purchaseReference.backendProductId) {
+      addToast('Sản phẩm chưa đồng bộ backend, vui lòng thử lại.', 'error');
+      return;
+    }
+    if (!purchaseReference.backendVariantId && (purchaseReference.activeVariantCount || 0) > 1) {
+      addToast('Vui lòng chọn đúng màu/size trước khi thêm vào giỏ.', 'error');
+      return;
+    }
 
     addToCart({
       id: productRouteKey,
@@ -257,6 +283,7 @@ const ProductCardInteractive = ({ id, sku, name, price, originalPrice, image, ba
             image,
             colors,
             sizes,
+            variants,
             storeId,
             storeName,
             isOfficialStore,
@@ -388,6 +415,7 @@ function arePropsEqual(prev: ProductCardProps, next: ProductCardProps) {
     prev.badge === next.badge &&
     areStringArraysEqual(prev.colors, next.colors) &&
     areStringArraysEqual(prev.sizes, next.sizes) &&
+    JSON.stringify(prev.variants) === JSON.stringify(next.variants) &&
     prev.backendId === next.backendId &&
     prev.storeId === next.storeId &&
     prev.storeName === next.storeName &&

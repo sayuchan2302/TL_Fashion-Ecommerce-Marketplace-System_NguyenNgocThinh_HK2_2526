@@ -949,6 +949,7 @@ body {
 .orders-col-actions {
   text-align: left;
   justify-self: start;
+  white-space: nowrap;
 }
 
 .orders-col-gmv {
@@ -1001,9 +1002,15 @@ body {
 }
 
 .orders-actions {
-  display: grid;
-  grid-template-columns: repeat(2, 32px);
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  white-space: nowrap;
   gap: 8px;
+}
+
+.orders-actions .admin-icon-btn {
+  flex: 0 0 auto;
 }
 
 .admin-table-row.wide .admin-actions {

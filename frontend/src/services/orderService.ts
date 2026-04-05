@@ -194,7 +194,7 @@ const mapBackendOrderToShared = (order: BackendOrderResponse): SharedOrder => {
 };
 
 const mapBackendOrderTreeToShared = (order: BackendOrderTreeResponse): SharedOrder => {
-  const customerName = order.shippingAddress?.fullName || order.customer?.name || 'KhÃ¡ch hÃ ng';
+  const customerName = order.shippingAddress?.fullName || order.customer?.name || 'Khách hàng';
   const subOrders = order.subOrders || [];
   const rootItems = order.items || [];
 
@@ -250,7 +250,7 @@ const mapBackendOrderTreeToShared = (order: BackendOrderTreeResponse): SharedOrd
     timeline: [
       {
         time: new Date(order.createdAt || Date.now()).toLocaleString('vi-VN'),
-        text: 'ÄÆ¡n hÃ ng Ä‘Ã£ Ä‘Æ°á»£c táº¡o.',
+        text: 'Đơn hàng đã được tạo.',
         tone: 'success',
       },
       ...subOrders.map((subOrder) => ({

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.OrderRequest;
@@ -65,6 +66,9 @@ class OrderServiceTest {
     @Mock
     private VoucherRepository voucherRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private OrderService orderService;
     private RecordingWalletService walletService;
     private FixedPublicCodeService publicCodeService;
@@ -88,7 +92,8 @@ class OrderServiceTest {
                 storeRepository,
                 couponRepository,
                 voucherRepository,
-                publicCodeService
+                publicCodeService,
+                eventPublisher
         );
     }
 

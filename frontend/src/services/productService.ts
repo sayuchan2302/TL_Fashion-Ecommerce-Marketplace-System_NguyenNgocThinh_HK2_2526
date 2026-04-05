@@ -512,7 +512,7 @@ export const productService = {
             : await this.getByIdentifier(normalizedIdentifier)
         );
     if (!product?.backendId) {
-      return { backendProductId: undefined, backendVariantId: undefined };
+      return { backendProductId: undefined, backendVariantId: undefined, activeVariantCount: 0 };
     }
 
     const matchingVariant = product.variants?.find((variant) => {
@@ -524,6 +524,7 @@ export const productService = {
     return {
       backendProductId: product.backendId,
       backendVariantId: matchingVariant?.backendId,
+      activeVariantCount: product.variants?.length || 0,
     };
   },
 

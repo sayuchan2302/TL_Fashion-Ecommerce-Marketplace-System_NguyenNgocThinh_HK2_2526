@@ -135,9 +135,9 @@ const VendorOrderDetail = () => {
   };
 
   const handleNotifyDelay = async () => {
-    const delayReason = window.prompt('Nháº­p lÃ½ do cháº­m xá»­ lÃ½ / giao hÃ ng');
+    const delayReason = window.prompt('Nhập lý do chậm xử lý / giao hàng');
     if (!delayReason || !delayReason.trim()) {
-      addToast('Cáº§n nháº­p lÃ½ do delay.', 'error');
+      addToast('Cần nhập lý do delay.', 'error');
       return;
     }
 
@@ -148,9 +148,9 @@ const VendorOrderDetail = () => {
         ...current,
         warehouseNote: delayReason.trim(),
       }));
-      addToast('ÄÃ£ gá»­i notify delay cho Ä‘Æ¡n hÃ ng.', 'success');
+      addToast('Đã gửi notify delay cho đơn hàng.', 'success');
     } catch (err: unknown) {
-      addToast(getUiErrorMessage(err, 'KhÃ´ng thá»ƒ gá»­i notify delay'), 'error');
+      addToast(getUiErrorMessage(err, 'Không thể gửi notify delay'), 'error');
     } finally {
       setIsProcessing(false);
     }

@@ -389,19 +389,19 @@ const VendorOrders = () => {
 
   const handleNotifyDelay = async (ids: string[]) => {
     if (ids.length === 0) return;
-    const note = window.prompt('Nháº­p lÃ½ do cháº­m xá»­ lÃ½ / giao hÃ ng');
+    const note = window.prompt('Nhập lý do chậm xử lý / giao hàng');
     if (!note || !note.trim()) {
-      addToast('Cáº§n nháº­p lÃ½ do Ä‘á»ƒ gá»­i cáº£nh bÃ¡o delay.', 'error');
+      addToast('Cần nhập lý do để gửi cảnh báo delay.', 'error');
       return;
     }
 
     setUpdating(true);
     try {
       await Promise.all(ids.map((id) => vendorPortalService.notifyDelay(id, note.trim())));
-      addToast('ÄÃ£ gá»­i ghi chÃº delay cho Ä‘Æ¡n hÃ ng Ä‘Ã£ chá»n.', 'success');
+      addToast('Đã gửi ghi chú delay cho đơn hàng đã chọn.', 'success');
       await loadOrders();
     } catch (err: unknown) {
-      addToast(getUiErrorMessage(err, 'KhÃ´ng thá»ƒ gá»­i ghi chÃº delay'), 'error');
+      addToast(getUiErrorMessage(err, 'Không thể gửi ghi chú delay'), 'error');
     } finally {
       setUpdating(false);
     }

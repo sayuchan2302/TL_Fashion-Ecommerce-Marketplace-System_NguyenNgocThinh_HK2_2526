@@ -141,6 +141,7 @@ public class VendorOrderController {
 
         String normalized = rawStatus.trim().toUpperCase(Locale.ROOT);
         String resolved = switch (normalized) {
+            case "PENDING" -> "WAITING_FOR_VENDOR";
             case "SHIPPING" -> "SHIPPED";
             case "COMPLETED", "DONE" -> "DELIVERED";
             case "CANCELED" -> "CANCELLED";

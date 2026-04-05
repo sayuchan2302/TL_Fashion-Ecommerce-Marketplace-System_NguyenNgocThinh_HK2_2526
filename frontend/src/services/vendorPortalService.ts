@@ -282,6 +282,8 @@ const DEFAULT_SETTINGS: VendorSettingsData = {
 
 const mapBackendStatus = (status?: string): VendorOrderLifecycleStatus => {
   switch ((status || '').toUpperCase()) {
+    case 'WAITING_FOR_VENDOR':
+      return 'pending';
     case 'CONFIRMED':
       return 'confirmed';
     case 'PROCESSING':
@@ -603,7 +605,7 @@ export const vendorPortalService = {
 
   async updateOrderStatus(
     id: string,
-    status: 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
+    status: 'WAITING_FOR_VENDOR' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED',
     payload?: { trackingNumber?: string; carrier?: string; reason?: string },
   ) {
     await apiRequest(`/api/vendor/orders/${id}/status`, {

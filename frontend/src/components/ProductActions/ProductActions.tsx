@@ -3,6 +3,7 @@ import { Minus, Plus, ShoppingCart, Check, Heart } from 'lucide-react';
 import { useCartAnimation } from '../../context/CartAnimationContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
+import { useToast } from '../../contexts/ToastContext';
 import { productService } from '../../services/productService';
 import './ProductActions.css';
 
@@ -19,6 +20,11 @@ interface ProductActionsProps {
     isOfficialStore?: boolean;
     status?: string;
     stock?: number;
+    variants?: Array<{
+      color: string;
+      size: string;
+      backendId?: string;
+    }>;
   };
   selectedColor: string;
   selectedSize: string;
@@ -28,14 +34,33 @@ const ProductActions = ({ product, selectedColor, selectedSize }: ProductActions
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const { addToCart } = useCart();
+  const { addToast } = useToast();
   const { triggerAnimation } = useCartAnimation();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const isWished = isInWishlist(String(product.id));
 
   const handleBuyNow = async (e: React.MouseEvent) => {
-    const purchaseReference = product.backendId
-      ? { backendProductId: product.backendId, backendVariantId: undefined }
-      : await productService.resolvePurchaseReference(String(product.id), selectedColor, selectedSize);
+    const localVariantId = product.variants?.find((variant) => (
+      variant.color.toLowerCase() === selectedColor.toLowerCase()
+      && variant.size.toLowerCase() === selectedSize.toLowerCase()
+    ))?.backendId;
+    const purchaseReference = localVariantId
+      ? { backendProductId: product.backendId, backendVariantId: localVariantId, activeVariantCount: product.variants?.length || 0 }
+      : await productService.resolvePurchaseReference(
+        String(product.backendId || product.id),
+        selectedColor || undefined,
+        selectedSize || undefined,
+        { forceRefresh: true, strictPublic: Boolean(product.backendId) },
+      );
+
+    if (!purchaseReference.backendProductId) {
+      addToast('Sản phẩm chưa đồng bộ backend, vui lòng thử lại.', 'error');
+      return;
+    }
+    if (!purchaseReference.backendVariantId && (purchaseReference.activeVariantCount || 0) > 1) {
+      addToast('Vui lòng chọn đúng màu/size trước khi thêm vào giỏ.', 'error');
+      return;
+    }
 
     addToCart({
       id: product.id,

@@ -1,29 +1,25 @@
 import './Admin.css';
 import { Link } from 'react-router-dom';
-import { Eye, Printer, CheckCircle2 } from 'lucide-react';
+import { Eye, Printer } from 'lucide-react';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import AdminLayout from './AdminLayout';
 import { AdminStateBlock } from './AdminStateBlocks';
 import { useAdminListState } from './useAdminListState';
 import {
-  bulkTransitionToPacking,
   listAdminOrders,
   subscribeAdminOrders,
-  transitionAdminOrder,
   type AdminOrderRecord,
 } from './adminOrderService';
 import { useAdminToast } from './useAdminToast';
 import { ADMIN_DICTIONARY } from './adminDictionary';
 import {
-  canTransitionFulfillment,
   paymentLabel,
   shipLabel,
   type FulfillmentStatus,
   type PaymentStatus,
 } from './orderWorkflow';
 import { PanelStatsGrid, PanelTabs } from '../../components/Panel/PanelPrimitives';
-import Portal from '../../components/Portal/Portal';
 import { getUiErrorMessage } from '../../utils/errorMessage';
 import {
   resolveDetailRouteKey,
@@ -74,13 +70,12 @@ const mapOrderRecordToRow = (order: AdminOrderRecord): AdminOrderRow => {
 
 const displayOrderCode = (code: string) => toDisplayOrderCode(code);
 
-
 const tone = (status: string) => {
   const lower = status.toLowerCase();
-  if (lower.includes('thanh toan') || lower.includes('giao')) return 'success';
-  if (lower.includes('dang') || lower.includes('cho')) return 'pending';
-  if (lower.includes('that bai') || lower.includes('hoan tien') || lower.includes('huy')) return 'error';
-  if (lower.includes('chua')) return 'neutral';
+  if (lower.includes('thanh toán') || lower.includes('đã giao')) return 'success';
+  if (lower.includes('đang') || lower.includes('chờ')) return 'pending';
+  if (lower.includes('thất bại') || lower.includes('hoàn tiền') || lower.includes('hủy')) return 'error';
+  if (lower.includes('chưa')) return 'neutral';
   return 'neutral';
 };
 
@@ -105,7 +100,6 @@ const AdminOrders = () => {
   const [rows, setRows] = useState<AdminOrderRow[]>([]);
   const [isInitializing, setIsInitializing] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
   const { toast, pushToast } = useAdminToast();
 
   const getSearchText = useCallback(
@@ -147,7 +141,6 @@ const AdminOrders = () => {
       const records = await listAdminOrders();
       setRows(records.map(mapOrderRecordToRow));
     } catch (error: unknown) {
-      console.error(error);
       setRows([]);
       setLoadError(getUiErrorMessage(error, 'Không thể tải danh sách đơn hàng từ backend.'));
     } finally {
@@ -156,7 +149,7 @@ const AdminOrders = () => {
   }, []);
 
   useEffect(() => {
-    fetchOrders();
+    void fetchOrders();
     const unsubscribe = subscribeAdminOrders(fetchOrders);
     return unsubscribe;
   }, [fetchOrders]);
@@ -201,59 +194,10 @@ const AdminOrders = () => {
     setSelected(nextSelection);
   };
 
-  const handleBulkConfirm = async () => {
-    const selectedCodes = rows
-      .filter((row) => selected.has(row.id))
-      .map((row) => row.code)
-      .filter((code) => Boolean(code));
-    const { updatedCodes, skippedCodes } = await bulkTransitionToPacking(selectedCodes, 'Admin');
-    if (updatedCodes.length === 0) {
-      pushToast('Không có đơn hàng hợp lệ để chuyển sang đóng gói.');
-      return;
-    }
-
-    setSelected(new Set());
-    setShowBulkConfirmModal(false);
-
-    if (skippedCodes.length > 0) {
-      pushToast(`Đã cập nhật ${updatedCodes.length} đơn, bỏ qua ${skippedCodes.length} đơn.`);
-    } else {
-      pushToast(`Đã chuyển ${updatedCodes.length} đơn sang đóng gói.`);
-    }
-    fetchOrders();
-  };
-
   const handleBulkPrint = () => {
     if (selected.size === 0) return;
     pushToast(`Đang chuẩn bị phiếu in cho ${selected.size} đơn hàng.`);
   };
-
-  const handleApproveOrder = async (code: string) => {
-    if (!code) {
-      pushToast('Đơn hàng này chưa được cấp mã công khai.');
-      return;
-    }
-    const result = await transitionAdminOrder({
-      code,
-      nextFulfillment: 'packing',
-      actor: 'Admin',
-      source: 'orders_list',
-    });
-
-    if (!result.ok) {
-      pushToast(result.error || 'Không thể cập nhật đơn hàng này.');
-      return;
-    }
-
-    pushToast(result.message || 'Đã chuyển đơn hàng sang đóng gói.');
-    fetchOrders();
-  };
-
-  const selectedCount = selected.size;
-  const eligibleForConfirmCount = rows.filter(
-    (row) => selected.has(row.id) && canTransitionFulfillment(row.fulfillment, 'packing', row.paymentStatus),
-  ).length;
-  const skippedCount = Math.max(0, selectedCount - eligibleForConfirmCount);
 
   return (
     <AdminLayout
@@ -272,7 +216,7 @@ const AdminOrders = () => {
             key: 'pending',
             label: 'Chờ vendor tiếp nhận',
             value: tabCounts.pending,
-            sub: 'Cần theo dõi SLA xác nhận ở các gian hàng',
+            sub: 'Theo dõi SLA xác nhận của các gian hàng',
             tone: tabCounts.pending > 0 ? 'warning' : '',
             onClick: () => changeTab('pending'),
           },
@@ -300,13 +244,10 @@ const AdminOrders = () => {
       <section className="admin-panels single">
         <div className="admin-panel">
           <div className="admin-panel-head">
-            <h2>Danh sách đơn hàng</h2>
+            <h2>Danh sách đơn hàng (Giám sát)</h2>
             {selected.size > 0 && (
               <div className="admin-actions">
                 <span className="admin-muted">{c.selected(selected.size, 'đơn hàng')}</span>
-                <button className="admin-ghost-btn" onClick={() => setShowBulkConfirmModal(true)}>
-                  Chuyển sang đóng gói
-                </button>
                 <button className="admin-ghost-btn" onClick={handleBulkPrint}>
                   Xuất / In
                 </button>
@@ -356,7 +297,7 @@ const AdminOrders = () => {
                 <div role="columnheader" className="orders-col-gmv">GMV</div>
                 <div role="columnheader">Thanh toán</div>
                 <div role="columnheader">Ngày tạo</div>
-                  <div role="columnheader" className="orders-col-actions">Hành động</div>
+                <div role="columnheader" className="orders-col-actions">Hành động</div>
               </div>
 
               {pagedOrders.map((order) => (
@@ -408,26 +349,14 @@ const AdminOrders = () => {
                     >
                       <Eye size={16} />
                     </Link>
-                    {order.fulfillment === 'pending' ? (
-                      <button
-                        className="admin-icon-btn subtle"
-                        type="button"
-                        aria-label="Đẩy vào hàng đợi đóng gói"
-                        title="Đẩy vào hàng đợi đóng gói"
-                        onClick={() => handleApproveOrder(order.code)}
-                      >
-                        <CheckCircle2 size={16} />
-                      </button>
-                    ) : (
-                      <button
-                        className="admin-icon-btn subtle"
-                        type="button"
-                        aria-label={actionTitles.printInvoice}
-                        title={actionTitles.printInvoice}
-                      >
-                        <Printer size={16} />
-                      </button>
-                    )}
+                    <button
+                      className="admin-icon-btn subtle"
+                      type="button"
+                      aria-label={actionTitles.printInvoice}
+                      title={actionTitles.printInvoice}
+                    >
+                      <Printer size={16} />
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -461,44 +390,7 @@ const AdminOrders = () => {
         </div>
       </section>
 
-      {selected.size > 0 && showBulkConfirmModal && (
-        <Portal>
-          <div className="drawer-overlay" onClick={() => setShowBulkConfirmModal(false)} />
-          <div
-            className="confirm-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Xác nhận cập nhật đơn hàng hàng loạt"
-          >
-            <h3>Xác nhận can thiệp hàng đợi</h3>
-            <p>Admin đang thao tác trên {selectedCount} đơn hàng đã chọn.</p>
-            <div className="confirm-impact-grid">
-              <div>
-                <span className="admin-muted small">Đơn hợp lệ chuyển sang đóng gói</span>
-                <p className="admin-bold">{eligibleForConfirmCount}</p>
-              </div>
-              <div>
-                <span className="admin-muted small">Đơn bị bỏ qua</span>
-                <p className="admin-bold">{skippedCount}</p>
-              </div>
-            </div>
-            <div className="confirm-modal-actions">
-              <button className="admin-ghost-btn" onClick={() => setShowBulkConfirmModal(false)}>
-                Hủy
-              </button>
-              <button
-                className="admin-primary-btn"
-                onClick={handleBulkConfirm}
-                disabled={eligibleForConfirmCount === 0}
-              >
-                Xác nhận can thiệp
-              </button>
-            </div>
-          </div>
-        </Portal>
-      )}
-
-      {toast ? <div className="toast success">{toast}</div> : null}
+      {toast}
     </AdminLayout>
   );
 };

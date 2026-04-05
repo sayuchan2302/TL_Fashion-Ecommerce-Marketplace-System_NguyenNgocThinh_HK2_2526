@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Check, Wallet, Loader2, Trash2, X, ChevronDown, Tag, AlertCircle, MapPin } from 'lucide-react';
 import './Checkout.css';
@@ -16,6 +16,7 @@ import {
 } from '../../services/checkoutSelectionStore';
 import { orderService } from '../../services/orderService';
 import { ApiError, apiRequest, hasBackendJwt } from '../../services/apiClient';
+import type { ToastType } from '../../contexts/ToastContext';
 import type { Address } from '../../types';
 import AddressBookModal from './AddressBookModal';
 import { useAddressLocation } from '../../hooks/useAddressLocation';
@@ -52,8 +53,14 @@ const DEFAULT_SHIPPING_FEE = 30000;
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeFromCart, clearCart, groupedByStore } = useCart();
-  const { addToast } = useToast();
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'zalopay' | 'momo' | 'vnpay'>('vnpay');
+  const { addToast: showToast } = useToast();
+  const addToast = useCallback((message: string, type: ToastType) => {
+    if (type === 'success' || type === 'info') {
+      return;
+    }
+    showToast(message, type);
+  }, [showToast]);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'zalopay' | 'momo' | 'vnpay'>('cod');
   const [isLoading, setIsLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [formValues, setFormValues] = useState({
@@ -345,30 +352,47 @@ const Checkout = () => {
       const orderItems = await Promise.all(
         checkoutItems.map(async (item) => {
           const backendProductId = (item.backendProductId || '').trim();
+          const backendVariantId = (item.backendVariantId || '').trim();
           const primaryIdentifier = String(item.id || '').trim();
           const candidateIdentifiers = Array.from(
             new Set([primaryIdentifier, backendProductId].filter(Boolean)),
           );
 
-          let resolvedProductId: string | undefined;
-          let resolvedVariantId: string | undefined;
+          let resolvedProductId: string | undefined = (
+            backendProductId && UUID_PATTERN.test(backendProductId)
+          )
+            ? backendProductId
+            : undefined;
+          let resolvedVariantId: string | undefined = (
+            backendVariantId && UUID_PATTERN.test(backendVariantId)
+          )
+            ? backendVariantId
+            : undefined;
+          let activeVariantCount = 0;
 
-          for (const identifier of candidateIdentifiers) {
-            const resolved = await productService.resolvePurchaseReference(
-              identifier,
-              item.color,
-              item.size,
-              { forceRefresh: true, strictPublic: true },
-            );
-            if (resolved.backendProductId && UUID_PATTERN.test(resolved.backendProductId)) {
-              resolvedProductId = resolved.backendProductId;
-              resolvedVariantId = resolved.backendVariantId;
-              break;
+          if (!resolvedVariantId) {
+            for (const identifier of candidateIdentifiers) {
+              const resolved = await productService.resolvePurchaseReference(
+                identifier,
+                item.color || undefined,
+                item.size || undefined,
+                { forceRefresh: true, strictPublic: true },
+              );
+              if (resolved.backendProductId && UUID_PATTERN.test(resolved.backendProductId)) {
+                resolvedProductId = resolved.backendProductId;
+                resolvedVariantId = resolved.backendVariantId;
+                activeVariantCount = resolved.activeVariantCount || 0;
+                break;
+              }
             }
           }
 
           if (!resolvedProductId) {
             throw new Error(`Sản phẩm "${item.name}" chưa đồng bộ backend. Vui lòng xoá và thêm lại sản phẩm này.`);
+          }
+
+          if (!resolvedVariantId && activeVariantCount > 1) {
+            throw new Error(`San pham "${item.name}" chua chon dung mau/size. Vui long quay lai gio hang va chon lai bien the.`);
           }
 
           return {

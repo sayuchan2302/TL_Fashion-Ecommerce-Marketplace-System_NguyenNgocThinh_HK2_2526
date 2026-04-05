@@ -175,6 +175,7 @@ const mapPaymentStatus = (status?: string, paymentMethod?: string): PaymentStatu
 const mapFulfillmentStatus = (status?: string): FulfillmentStatus => {
   const map: Record<string, FulfillmentStatus> = {
     PENDING: 'pending',
+    WAITING_FOR_VENDOR: 'pending',
     CONFIRMED: 'packing',
     PROCESSING: 'packing',
     SHIPPED: 'shipping',
@@ -264,7 +265,7 @@ export const listAdminParentOrders = async (): Promise<AdminParentOrderSummary[]
   return (data || []).map((parent) => ({
     id: parent.id,
     code: parent.code || parent.id,
-    customerName: parent.customer?.name || 'KhÃ¡ch hÃ ng',
+    customerName: parent.customer?.name || 'Khách hàng',
     customerEmail: parent.customer?.email || '',
     customerPhone: parent.customer?.phone || '',
     total: Number(parent.totalAmount || 0),
@@ -281,7 +282,7 @@ export const listAdminParentOrders = async (): Promise<AdminParentOrderSummary[]
       trackingNumber: sub.trackingNumber || '',
       warehouseNote: sub.warehouseNote || '',
       createdAt: sub.createdAt || parent.createdAt || new Date().toISOString(),
-      customerName: sub.customer?.name || parent.customer?.name || 'KhÃ¡ch hÃ ng',
+      customerName: sub.customer?.name || parent.customer?.name || 'Khách hàng',
     })),
   }));
 };

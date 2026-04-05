@@ -4,10 +4,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import vn.edu.hcmuaf.fit.fashionstore.event.SubOrderReadyForVendorEvent;
 import vn.edu.hcmuaf.fit.fashionstore.security.AuthContext.UserContext;
 import vn.edu.hcmuaf.fit.fashionstore.dto.request.OrderRequest;
 import vn.edu.hcmuaf.fit.fashionstore.dto.response.VendorTopProductResponse;
@@ -51,12 +53,14 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final VoucherRepository voucherRepository;
     private final PublicCodeService publicCodeService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public OrderService(OrderRepository orderRepository, UserRepository userRepository,
                         AddressRepository addressRepository, ProductRepository productRepository,
                         ProductVariantRepository productVariantRepository, WalletService walletService,
                         StoreRepository storeRepository, CouponRepository couponRepository,
-                        VoucherRepository voucherRepository, PublicCodeService publicCodeService) {
+                        VoucherRepository voucherRepository, PublicCodeService publicCodeService,
+                        ApplicationEventPublisher applicationEventPublisher) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.addressRepository = addressRepository;
@@ -67,6 +71,7 @@ public class OrderService {
         this.couponRepository = couponRepository;
         this.voucherRepository = voucherRepository;
         this.publicCodeService = publicCodeService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     // Default commission rate (5%)
@@ -207,6 +212,34 @@ public class OrderService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "date_to must be greater than date_from");
         }
 
+        if (status == Order.OrderStatus.PENDING || status == Order.OrderStatus.WAITING_FOR_VENDOR) {
+            return orderRepository.searchByStoreStatuses(
+                    storeId,
+                    List.of(Order.OrderStatus.WAITING_FOR_VENDOR),
+                    normalizedKeyword,
+                    effectiveFrom,
+                    effectiveTo,
+                    pageable
+            );
+        }
+        if (status == null) {
+            return orderRepository.searchByStoreStatuses(
+                    storeId,
+                    List.of(
+                            Order.OrderStatus.WAITING_FOR_VENDOR,
+                            Order.OrderStatus.CONFIRMED,
+                            Order.OrderStatus.PROCESSING,
+                            Order.OrderStatus.SHIPPED,
+                            Order.OrderStatus.DELIVERED,
+                            Order.OrderStatus.CANCELLED
+                    ),
+                    normalizedKeyword,
+                    effectiveFrom,
+                    effectiveTo,
+                    pageable
+            );
+        }
+
         return orderRepository.searchByStore(storeId, status, normalizedKeyword, effectiveFrom, effectiveTo, pageable);
     }
 
@@ -303,6 +336,24 @@ public class OrderService {
         return toVendorOrderDetailResponse(saved);
     }
 
+    @Transactional
+    public AdminOrderResponse markOrderPaid(UUID orderId) {
+        Order order = findById(orderId);
+        order.setPaymentStatus(Order.PaymentStatus.PAID);
+        if (order.getPaidAt() == null) {
+            order.setPaidAt(LocalDateTime.now());
+        }
+        Order savedOrder = orderRepository.save(order);
+        savedOrder = processOrderAfterCheckout(savedOrder);
+        if (savedOrder.isSubOrder()) {
+            savedOrder = syncParentOrderStatus(savedOrder.getParentOrder().getId());
+        }
+        if (savedOrder.isParentOrder()) {
+            savedOrder = syncParentOrderStatus(savedOrder.getId());
+        }
+        return toAdminOrderResponse(savedOrder);
+    }
+
     /**
      * Get order count for a store
      */
@@ -320,7 +371,7 @@ public class OrderService {
     private VendorSubOrderPageResponse.StatusCounts buildVendorSubOrderStatusCounts(UUID storeId) {
         return VendorSubOrderPageResponse.StatusCounts.builder()
                 .all(countByStoreId(storeId))
-                .pending(countByStoreIdAndStatus(storeId, Order.OrderStatus.PENDING))
+                .pending(countByStoreIdAndStatus(storeId, Order.OrderStatus.WAITING_FOR_VENDOR))
                 .confirmed(countByStoreIdAndStatus(storeId, Order.OrderStatus.CONFIRMED))
                 .processing(countByStoreIdAndStatus(storeId, Order.OrderStatus.PROCESSING))
                 .shipped(countByStoreIdAndStatus(storeId, Order.OrderStatus.SHIPPED))
@@ -332,7 +383,7 @@ public class OrderService {
     private VendorOrderPageResponse.StatusCounts buildVendorStatusCounts(UUID storeId) {
         return VendorOrderPageResponse.StatusCounts.builder()
                 .all(countByStoreId(storeId))
-                .pending(countByStoreIdAndStatus(storeId, Order.OrderStatus.PENDING))
+                .pending(countByStoreIdAndStatus(storeId, Order.OrderStatus.WAITING_FOR_VENDOR))
                 .confirmed(countByStoreIdAndStatus(storeId, Order.OrderStatus.CONFIRMED))
                 .processing(countByStoreIdAndStatus(storeId, Order.OrderStatus.PROCESSING))
                 .shipped(countByStoreIdAndStatus(storeId, Order.OrderStatus.SHIPPED))
@@ -733,6 +784,7 @@ public class OrderService {
                     discountApplication,
                     discountApplication.discountForStore(onlyGroup.storeId())
             );
+            created = processOrderAfterCheckout(created);
             incrementDiscountUsage(discountApplication);
             return toAdminOrderResponse(created);
         }
@@ -746,6 +798,7 @@ public class OrderService {
                 groupedByStore,
                 discountApplication
         );
+        parent = processOrderAfterCheckout(parent);
         incrementDiscountUsage(discountApplication);
         return toAdminOrderResponse(parent);
     }
@@ -756,8 +809,8 @@ public class OrderService {
     public AdminOrderResponse cancel(UUID orderId, UUID userId, String reason) {
         Order order = findByIdForUser(orderId, userId);
 
-        if (order.getStatus() != Order.OrderStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only cancel pending orders");
+        if (order.getStatus() != Order.OrderStatus.PENDING && order.getStatus() != Order.OrderStatus.WAITING_FOR_VENDOR) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only cancel orders waiting for vendor confirmation");
         }
 
         order.setStatus(Order.OrderStatus.CANCELLED);
@@ -926,7 +979,8 @@ public class OrderService {
         }
 
         boolean allowed = switch (current) {
-            case PENDING -> next == Order.OrderStatus.CONFIRMED || next == Order.OrderStatus.CANCELLED;
+            case PENDING -> next == Order.OrderStatus.WAITING_FOR_VENDOR || next == Order.OrderStatus.CANCELLED;
+            case WAITING_FOR_VENDOR -> next == Order.OrderStatus.CONFIRMED || next == Order.OrderStatus.CANCELLED;
             case CONFIRMED -> next == Order.OrderStatus.PROCESSING || next == Order.OrderStatus.CANCELLED;
             case PROCESSING -> next == Order.OrderStatus.SHIPPED || next == Order.OrderStatus.CANCELLED;
             case SHIPPED -> next == Order.OrderStatus.DELIVERED;
@@ -1521,6 +1575,63 @@ public class OrderService {
         return rawRate;
     }
 
+    private Order processOrderAfterCheckout(Order createdOrder) {
+        boolean onlinePayment = isOnlinePaymentMethod(createdOrder.getPaymentMethod());
+        boolean paid = createdOrder.getPaymentStatus() == Order.PaymentStatus.PAID;
+
+        if (!onlinePayment || paid) {
+            return moveOrderToWaitingForVendor(createdOrder);
+        }
+
+        return createdOrder;
+    }
+
+    private boolean isOnlinePaymentMethod(Order.PaymentMethod paymentMethod) {
+        return paymentMethod != null && paymentMethod != Order.PaymentMethod.COD;
+    }
+
+    private Order moveOrderToWaitingForVendor(Order order) {
+        if (order.isParentOrder()) {
+            List<Order> subOrders = orderRepository.findByParentOrderOrderByCreatedAtDesc(order);
+            for (Order subOrder : subOrders) {
+                if (subOrder.getStatus() == Order.OrderStatus.PENDING) {
+                    subOrder.setStatus(Order.OrderStatus.WAITING_FOR_VENDOR);
+                    orderRepository.save(subOrder);
+                    publishVendorReadyNotification(subOrder);
+                }
+            }
+            return syncParentOrderStatus(order.getId());
+        }
+
+        if (order.getStatus() == Order.OrderStatus.PENDING) {
+            order.setStatus(Order.OrderStatus.WAITING_FOR_VENDOR);
+            Order saved = orderRepository.save(order);
+            publishVendorReadyNotification(saved);
+            if (saved.isSubOrder()) {
+                return syncParentOrderStatus(saved.getParentOrder().getId());
+            }
+            return saved;
+        }
+        return order;
+    }
+
+    private void publishVendorReadyNotification(Order subOrder) {
+        if (subOrder.getStoreId() == null) {
+            return;
+        }
+        String paymentMethod = subOrder.getPaymentMethod() == null ? "UNKNOWN" : subOrder.getPaymentMethod().name();
+        String message = subOrder.getPaymentMethod() == Order.PaymentMethod.COD
+                ? "New COD Order received. Please confirm."
+                : "Order Paid. Please start packing.";
+        applicationEventPublisher.publishEvent(new SubOrderReadyForVendorEvent(
+                subOrder.getId(),
+                subOrder.getStoreId(),
+                subOrder.getOrderCode(),
+                paymentMethod,
+                message
+        ));
+    }
+
     private BigDecimal resolveUnitPrice(Product product, ProductVariant variant) {
         BigDecimal resolvedPrice = variant != null ? variant.getPrice() : product.getEffectivePrice();
         if (resolvedPrice == null || resolvedPrice.compareTo(BigDecimal.ZERO) <= 0) {
@@ -1566,7 +1677,7 @@ public class OrderService {
     private void cascadeCancelToSubOrders(Order parentOrder, String reason) {
         List<Order> subOrders = orderRepository.findByParentOrderOrderByCreatedAtDesc(parentOrder);
         for (Order subOrder : subOrders) {
-            if (subOrder.getStatus() == Order.OrderStatus.PENDING) {
+            if (subOrder.getStatus() == Order.OrderStatus.PENDING || subOrder.getStatus() == Order.OrderStatus.WAITING_FOR_VENDOR) {
                 subOrder.setStatus(Order.OrderStatus.CANCELLED);
                 subOrder.setNote((subOrder.getNote() != null ? subOrder.getNote() : "") + "\nCancellation reason: " + reason);
                 orderRepository.save(subOrder);
@@ -1612,8 +1723,11 @@ public class OrderService {
             return Order.OrderStatus.DELIVERED;
         }
 
-        if (subOrders.stream().anyMatch(subOrder -> subOrder.getStatus() == Order.OrderStatus.SHIPPED
-                || subOrder.getStatus() == Order.OrderStatus.DELIVERED)) {
+        boolean allInShippingGroup = subOrders.stream()
+                .filter(subOrder -> subOrder.getStatus() != Order.OrderStatus.CANCELLED)
+                .allMatch(subOrder -> subOrder.getStatus() == Order.OrderStatus.SHIPPED
+                        || subOrder.getStatus() == Order.OrderStatus.DELIVERED);
+        if (allInShippingGroup) {
             return Order.OrderStatus.SHIPPED;
         }
 
@@ -1623,6 +1737,10 @@ public class OrderService {
 
         if (subOrders.stream().anyMatch(subOrder -> subOrder.getStatus() == Order.OrderStatus.CONFIRMED)) {
             return Order.OrderStatus.CONFIRMED;
+        }
+
+        if (subOrders.stream().anyMatch(subOrder -> subOrder.getStatus() == Order.OrderStatus.WAITING_FOR_VENDOR)) {
+            return Order.OrderStatus.WAITING_FOR_VENDOR;
         }
 
         return Order.OrderStatus.PENDING;
