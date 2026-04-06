@@ -980,24 +980,64 @@
     minmax(172px, 1.1fr);
 }
 
+.admin-table-row.vendor-orders > [role='columnheader']:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .admin-table-row.vendor-returns {
   grid-template-columns:
+    minmax(36px, 0.25fr)
+    minmax(140px, 1.1fr)
     minmax(150px, 1.1fr)
-    minmax(130px, 1fr)
-    minmax(160px, 1.2fr)
-    minmax(150px, 1.1fr)
-    minmax(130px, 1fr)
-    minmax(120px, 0.9fr)
-    minmax(140px, 1fr);
+    minmax(200px, 1.5fr)
+    minmax(120px, 0.85fr)
+    minmax(110px, 0.8fr)
+    minmax(130px, 0.95fr);
+  align-items: center;
+}
+
+.admin-table-row.vendor-returns > [role='cell'],
+.admin-table-row.vendor-returns > [role='columnheader'] {
+  min-width: 0;
+}
+
+.admin-table-row.vendor-returns > [role='columnheader']:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.vendor-return-checkbox-head,
+.vendor-return-checkbox-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vendor-return-checkbox-head input,
+.vendor-return-checkbox-cell input {
+  margin: 0;
+}
+
+.returns-order-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
 .admin-table-row.vendor-returns .vendor-return-actions {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
-  justify-self: end;
+  justify-content: center;
+  justify-self: center;
   gap: 8px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .admin-table-row.vendor-orders .admin-actions.vendor-order-actions {
@@ -1005,8 +1045,8 @@
   flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
-  justify-content: flex-start;
-  justify-self: start;
+  justify-content: center;
+  justify-self: center;
   white-space: nowrap;
 }
 
@@ -1762,13 +1802,13 @@
 
   .admin-table-row.vendor-returns {
     grid-template-columns:
+      minmax(30px, 0.2fr)
+      minmax(120px, 1fr)
       minmax(130px, 1.1fr)
-      minmax(110px, 0.9fr)
-      minmax(140px, 1.2fr)
-      minmax(130px, 1.1fr)
-      minmax(110px, 0.9fr)
-      minmax(100px, 0.8fr)
-      minmax(120px, 1fr);
+      minmax(160px, 1.3fr)
+      minmax(100px, 0.75fr)
+      minmax(90px, 0.7fr)
+      minmax(110px, 0.85fr);
   }
 
   .admin-table-row.vendor-promotions {

@@ -223,17 +223,6 @@ const StoreApprovals = () => {
       <PanelTabs items={TABS.map((tab) => ({ key: tab.key, label: tab.label, count: counts[tab.key] }))} activeKey={activeTab} onChange={(key) => { setActiveTab(key as StoreFilter); setSelected(new Set()); setPage(1); }} />
       <section className="admin-panels single"><div className="admin-panel"><div className="admin-panel-head">
         <h2>Danh sách gian hàng</h2>
-        {selected.size > 0 && (() => {
-          const ss = stores.filter((s) => selected.has(s.id));
-          const hp = ss.some((s) => s.approvalStatus === 'PENDING');
-          const ha = ss.some((s) => s.approvalStatus === 'APPROVED' && s.operatingStatus === 'ACTIVE');
-          const hs = ss.some((s) => s.approvalStatus === 'APPROVED' && s.operatingStatus === 'SUSPENDED');
-          return (<div className="admin-actions"><span className="admin-muted">Đã chọn {selected.size} gian hàng</span>
-            {hp && <button className="admin-ghost-btn" onClick={() => openConfirm('approve', Array.from(selected))}>Duyệt đã chọn</button>}
-            {ha && <button className="admin-ghost-btn danger" onClick={() => openConfirm('suspend', Array.from(selected))}>Tạm khóa đã chọn</button>}
-            {hs && <button className="admin-ghost-btn" onClick={() => openConfirm('reactivate', Array.from(selected))}>Mở lại đã chọn</button>}
-            <button className="admin-ghost-btn" onClick={() => setSelected(new Set())}>Bỏ chọn</button></div>);
-        })()}
       </div>
       {!loading && loadError ? (<AdminStateBlock type="error" title="Không tải được danh sách gian hàng" description={loadError} actionLabel="Thử lại" onAction={() => setReloadKey((value) => value + 1)} />) : null}
       {!loading && !loadError && filteredStores.length === 0 ? (<AdminStateBlock type={search.trim() ? 'search-empty' : 'empty'} title={search.trim() ? 'Không tìm thấy gian hàng phù hợp' : 'Chưa có hồ sơ gian hàng'} description={search.trim() ? 'Thử đổi từ khóa hoặc đặt lại bộ lọc để xem lại danh sách gian hàng.' : 'Danh sách gian hàng sẽ hiển thị tại đây để quản trị viên theo dõi và xử lý.'} actionLabel="Đặt lại bộ lọc" onAction={resetCurrentView} />) : null}

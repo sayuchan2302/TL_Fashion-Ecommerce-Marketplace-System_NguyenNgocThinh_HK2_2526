@@ -115,6 +115,7 @@ const AdminReturns = () => {
   const [drawerItem, setDrawerItem] = useState<ReturnRequest | null>(null);
   const [drawerNote, setDrawerNote] = useState('');
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const drawerItemCount = useMemo(
     () => (drawerItem ? drawerItem.items.reduce((sum, item) => sum + Math.max(0, item.quantity), 0) : 0),
@@ -159,6 +160,11 @@ const AdminReturns = () => {
       setRows(response.content || []);
       setTotalElements(Number(response.totalElements || 0));
       setTotalPages(Math.max(Number(response.totalPages || 1), 1));
+      setSelected((prev) => {
+        if (prev.size === 0) return prev;
+        const visibleIds = new Set((response.content || []).map((item) => item.id));
+        return new Set(Array.from(prev).filter((id) => visibleIds.has(id)));
+      });
     } catch (error: unknown) {
       setRows([]);
       setTotalElements(0);
@@ -179,6 +185,7 @@ const AdminReturns = () => {
 
   useEffect(() => {
     setPage(1);
+    setSelected(new Set());
   }, [activeTab, searchQuery]);
 
   useEffect(() => {
@@ -217,6 +224,7 @@ const AdminReturns = () => {
     setActiveTab('all');
     setSearchQuery('');
     setPage(1);
+    setSelected(new Set());
   };
 
   return (
@@ -320,12 +328,22 @@ const AdminReturns = () => {
             <>
               <div className="admin-table" role="table" aria-label="Bảng yêu cầu hoàn trả">
                 <div className="admin-table-row admin-table-head returns-row" role="row">
-                  <div role="columnheader">Mã yêu cầu</div>
+                  <div role="columnheader" className="returns-checkbox-cell">
+                    <input
+                      type="checkbox"
+                      aria-label="Chọn tất cả"
+                      checked={selected.size === rows.length && rows.length > 0}
+                      onChange={(event) => {
+                        setSelected(event.target.checked ? new Set(rows.map((item) => item.id)) : new Set());
+                      }}
+                    />
+                  </div>
+                  <div role="columnheader">Mã hoàn trả</div>
                   <div role="columnheader">Khách hàng</div>
+                  <div role="columnheader">Gian hàng</div>
                   <div role="columnheader">Sản phẩm</div>
-                  <div role="columnheader">Giá trị</div>
                   <div role="columnheader">Trạng thái</div>
-                  <div role="columnheader">Tạo lúc</div>
+                  <div role="columnheader">Giá trị</div>
                   <div role="columnheader">Hành động</div>
                 </div>
 
@@ -338,32 +356,40 @@ const AdminReturns = () => {
                     onClick={() => setDrawerItem(item)}
                     style={{ cursor: 'pointer' }}
                   >
+                    <div role="cell" className="returns-checkbox-cell">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(item.id)}
+                        onChange={(event) => {
+                          const next = new Set(selected);
+                          if (event.target.checked) next.add(item.id);
+                          else next.delete(item.id);
+                          setSelected(next);
+                        }}
+                        aria-label={`Chọn ${toDisplayReturnCode(item.code)}`}
+                      />
+                    </div>
                     <div role="cell" className="returns-code-cell" title={toDisplayReturnCode(item.code)}>
                       <strong className="returns-ellipsis">{toDisplayReturnCode(item.code)}</strong>
-                      <small className="admin-muted returns-ellipsis">
-                        Đơn #{toDisplayOrderCode(item.orderCode)}
-                      </small>
+                      <small className="admin-muted returns-ellipsis">{formatDateTime(item.createdAt)}</small>
                     </div>
                     <div role="cell" className="returns-customer-cell" title={item.customerName}>
                       <strong className="returns-ellipsis">{item.customerName}</strong>
                       <small className="admin-muted returns-ellipsis">{item.customerEmail || 'Chưa có email'}</small>
                     </div>
+                    <div role="cell" className="returns-store-cell" title={item.storeName || 'Chưa xác định gian hàng'}>
+                      <strong className="returns-ellipsis">{item.storeName || 'Chưa xác định'}</strong>
+                    </div>
                     <div role="cell" className="returns-product-cell" title={item.items.map((i) => i.productName).join(', ')}>
                       <span className="returns-ellipsis">
                         {item.items.map((product) => `${product.productName} (x${product.quantity})`).join(', ')}
                       </span>
-                      <small className="admin-muted returns-ellipsis">
-                        {item.storeName || 'Chưa xác định gian hàng'} • {reasonLabel[item.reason] || item.reason}
-                      </small>
-                    </div>
-                    <div role="cell" className="returns-amount">
-                      {formatVnd(getReturnAmount(item))}
                     </div>
                     <div role="cell">
                       <span className={statusConfig[item.status].pillClass}>{statusConfig[item.status].label}</span>
                     </div>
-                    <div role="cell" className="admin-muted order-date">
-                      {formatDateTime(item.createdAt)}
+                    <div role="cell" className="returns-amount">
+                      {formatVnd(getReturnAmount(item))}
                     </div>
                     <div role="cell" className="admin-actions returns-actions" onClick={(event) => event.stopPropagation()}>
                       <button className="admin-icon-btn subtle" title="Xem chi tiết" onClick={() => setDrawerItem(item)}>

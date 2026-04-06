@@ -384,24 +384,6 @@ const AdminUsers = () => {
         <div className="admin-panel">
           <div className="admin-panel-head">
             <h2>Danh sách người dùng</h2>
-            {selected.size > 0 && (
-              <div className="admin-actions">
-                <span className="admin-muted">Đã chọn {selected.size} tài khoản</span>
-                {lockableSelectedIds.length > 0 && (
-                  <button className="admin-ghost-btn danger" onClick={() => openConfirm('lock', lockableSelectedIds)}>
-                    Khóa đã chọn
-                  </button>
-                )}
-                {unlockableSelectedIds.length > 0 && (
-                  <button className="admin-ghost-btn" onClick={() => openConfirm('unlock', unlockableSelectedIds)}>
-                    Mở khóa đã chọn
-                  </button>
-                )}
-                <button className="admin-ghost-btn" onClick={() => setSelected(new Set())}>
-                  Bỏ chọn
-                </button>
-              </div>
-            )}
           </div>
 
           {loading ? (

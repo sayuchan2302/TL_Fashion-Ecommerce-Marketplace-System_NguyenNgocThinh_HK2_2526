@@ -245,14 +245,6 @@ const AdminOrders = () => {
         <div className="admin-panel">
           <div className="admin-panel-head">
             <h2>Danh sách đơn hàng (Giám sát)</h2>
-            {selected.size > 0 && (
-              <div className="admin-actions">
-                <span className="admin-muted">{c.selected(selected.size, 'đơn hàng')}</span>
-                <button className="admin-ghost-btn" onClick={handleBulkPrint}>
-                  Xuất / In
-                </button>
-              </div>
-            )}
           </div>
 
           {isInitializing ? (

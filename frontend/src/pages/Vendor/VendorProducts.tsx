@@ -11,7 +11,6 @@ import {
   PanelStatsGrid,
   PanelTableFooter,
   PanelTabs,
-  PanelViewSummary,
 } from '../../components/Panel/PanelPrimitives';
 import {
   vendorProductService,
@@ -362,7 +361,6 @@ const VendorProducts = () => {
     void loadProducts();
   }, [loadProducts]);
 
-  const hasViewContext = activeTab !== 'all' || Boolean(keyword);
   const startIndex = products.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const endIndex = Math.min(page * PAGE_SIZE, totalElements);
 
@@ -716,31 +714,12 @@ const VendorProducts = () => {
 
       <PanelTabs items={tabItems} activeKey={activeTab} onChange={handleTabChange} accentClassName="vendor-active-tab" />
 
-      {hasViewContext && (
-        <PanelViewSummary
-          chips={[
-            ...(activeTab !== 'all' ? [{ key: 'status', label: `Trạng thái: ${TABS.find((tab) => tab.key === activeTab)?.label || 'Tất cả'}` }] : []),
-            ...(keyword ? [{ key: 'query', label: `Từ khóa: ${keyword}` }] : []),
-          ]}
-          clearLabel="Xóa bộ lọc"
-          onClear={resetCurrentView}
-        />
-      )}
-
       <section className="admin-panels single">
         <div className="admin-panel">
         <div className="admin-panel-head">
             <div>
               <h2>Danh sách sản phẩm</h2>
             </div>
-            {selected.size > 0 && (
-              <div className="admin-actions">
-                <span className="admin-muted">{selected.size} đã chọn</span>
-                <button className="admin-ghost-btn" onClick={() => void applyVisibility(Array.from(selected), false)} disabled={working}>Ẩn</button>
-                <button className="admin-ghost-btn" onClick={() => void applyVisibility(Array.from(selected), true)} disabled={working}>Hiện</button>
-                <button className="admin-ghost-btn danger" onClick={() => requestDelete(Array.from(selected))} disabled={working}>Xóa</button>
-              </div>
-            )}
           </div>
           {loading ? (
             <AdminTableSkeleton columns={8} rows={6} />

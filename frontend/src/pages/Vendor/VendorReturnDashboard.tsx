@@ -111,6 +111,7 @@ const VendorReturnDashboard = () => {
   const [page, setPage] = useState(1);
   const [detailItem, setDetailItem] = useState<ReturnRequest | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const fetchTabCounts = useCallback(async () => {
     try {
@@ -148,6 +149,11 @@ const VendorReturnDashboard = () => {
       setRows(response.content || []);
       setTotalElements(Number(response.totalElements || 0));
       setTotalPages(Math.max(Number(response.totalPages || 1), 1));
+      setSelected((prev) => {
+        if (prev.size === 0) return prev;
+        const visibleIds = new Set((response.content || []).map((item) => item.id));
+        return new Set(Array.from(prev).filter((id) => visibleIds.has(id)));
+      });
     } catch (error: unknown) {
       setRows([]);
       setTotalElements(0);
@@ -334,88 +340,108 @@ const VendorReturnDashboard = () => {
             <>
               <div className="admin-table vendor-table" role="table" aria-label="Bảng hoàn trả vendor">
                 <div className="admin-table-row admin-table-head vendor-returns" role="row">
+                  <div role="columnheader" className="vendor-return-checkbox-head">
+                    <input
+                      type="checkbox"
+                      aria-label="Chọn tất cả"
+                      checked={selected.size === rows.length && rows.length > 0}
+                      onChange={(event) => {
+                        setSelected(event.target.checked ? new Set(rows.map((item) => item.id)) : new Set());
+                      }}
+                    />
+                  </div>
                   <div role="columnheader">Mã hoàn trả</div>
-                  <div role="columnheader">Mã đơn</div>
                   <div role="columnheader">Khách hàng</div>
-                  <div role="columnheader">Lý do</div>
+                  <div role="columnheader">Sản phẩm</div>
                   <div role="columnheader">Trạng thái</div>
                   <div role="columnheader">Giá trị</div>
                   <div role="columnheader">Hành động</div>
                 </div>
 
                 {rows.map((item) => (
-                  <motion.div key={item.id} className="admin-table-row vendor-returns" role="row" whileHover={{ y: -1 }}>
-                    <div role="cell" className="returns-code-cell">
-                      <strong className="returns-ellipsis">{toDisplayReturnCode(item.code)}</strong>
-                      <small className="admin-muted returns-ellipsis">{formatDate(item.createdAt)}</small>
-                    </div>
-                    <div role="cell" className="returns-customer-cell">
-                      <strong className="returns-ellipsis">#{toDisplayOrderCode(item.orderCode)}</strong>
-                      <small className="admin-muted returns-ellipsis">{item.items.length} sản phẩm</small>
-                    </div>
-                    <div role="cell" className="returns-customer-cell">
-                      <strong className="returns-ellipsis">{item.customerName || 'Khách hàng'}</strong>
-                      <small className="admin-muted returns-ellipsis">{item.customerEmail || 'Chưa có email'}</small>
-                    </div>
-                    <div role="cell" className="returns-product-cell">
-                      <span className="returns-ellipsis">{reasonLabel[item.reason] || item.reason}</span>
-                      <small className="admin-muted returns-ellipsis">
-                        {resolutionLabel[item.resolution] || item.resolution}
-                      </small>
-                    </div>
-                    <div role="cell">
-                      <span className={statusConfig[item.status].className}>{statusConfig[item.status].label}</span>
-                    </div>
-                    <div role="cell" className="returns-amount">
-                      {formatVnd(getRefundAmount(item))}
-                    </div>
-                    <div role="cell" className="admin-actions vendor-return-actions">
-                      {item.status === 'PENDING_VENDOR' && (
-                        <>
+                    <motion.div key={item.id} className="admin-table-row vendor-returns" role="row" whileHover={{ y: -1 }}>
+                      <div role="cell" className="vendor-return-checkbox-cell">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(item.id)}
+                          onChange={(event) => {
+                            const next = new Set(selected);
+                            if (event.target.checked) next.add(item.id);
+                            else next.delete(item.id);
+                            setSelected(next);
+                          }}
+                          aria-label={`Chọn ${toDisplayReturnCode(item.code)}`}
+                        />
+                      </div>
+                      <div role="cell" className="returns-code-cell">
+                        <strong className="returns-ellipsis">{toDisplayReturnCode(item.code)}</strong>
+                        <small className="admin-muted returns-ellipsis">{formatDate(item.createdAt)}</small>
+                      </div>
+                      <div role="cell" className="returns-customer-cell">
+                        <strong className="returns-ellipsis">{item.customerName || 'Khách hàng'}</strong>
+                        <small className="admin-muted returns-ellipsis">{item.customerEmail || 'Chưa có email'}</small>
+                      </div>
+                      <div role="cell" className="returns-product-cell">
+                        <span className="returns-ellipsis">
+                          {item.items.map((i) => i.productName).join(', ')}
+                        </span>
+                        <small className="admin-muted returns-ellipsis">
+                          {item.items.reduce((sum, i) => sum + i.quantity, 0)} x {reasonLabel[item.reason] || item.reason}
+                        </small>
+                      </div>
+                      <div role="cell">
+                        <span className={statusConfig[item.status].className}>{statusConfig[item.status].label}</span>
+                      </div>
+                      <div role="cell" className="returns-amount">
+                        {formatVnd(getRefundAmount(item))}
+                      </div>
+                      <div role="cell" className="admin-actions vendor-return-actions">
+                        {item.status === 'PENDING_VENDOR' && (
+                          <>
+                            <button
+                              className="admin-icon-btn subtle"
+                              title="Chấp nhận"
+                              onClick={() => void handleAccept(item)}
+                              disabled={actionLoading}
+                            >
+                              <ShieldCheck size={16} />
+                            </button>
+                            <button
+                              className="admin-icon-btn subtle danger-icon"
+                              title="Từ chối"
+                              onClick={() => setDetailItem(item)}
+                              disabled={actionLoading}
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </>
+                        )}
+                        {item.status === 'SHIPPING' && (
                           <button
                             className="admin-icon-btn subtle"
-                            title="Chấp nhận"
-                            onClick={() => void handleAccept(item)}
+                            title="Xác nhận đã nhận hàng hoàn"
+                            onClick={() => void handleMarkReceived(item)}
                             disabled={actionLoading}
                           >
-                            <ShieldCheck size={16} />
+                            <PackageCheck size={16} />
                           </button>
+                        )}
+                        {item.status === 'RECEIVED' && (
                           <button
-                            className="admin-icon-btn subtle danger-icon"
-                            title="Từ chối"
-                            onClick={() => setDetailItem(item)}
+                            className="admin-icon-btn subtle"
+                            title="Xác nhận hoàn tiền"
+                            onClick={() => void handleConfirmRefund(item)}
                             disabled={actionLoading}
                           >
-                            <XCircle size={16} />
+                            <CheckCircle2 size={16} />
                           </button>
-                        </>
-                      )}
-                      {item.status === 'SHIPPING' && (
-                        <button
-                          className="admin-icon-btn subtle"
-                          title="Xác nhận đã nhận hàng hoàn"
-                          onClick={() => void handleMarkReceived(item)}
-                          disabled={actionLoading}
-                        >
-                          <PackageCheck size={16} />
+                        )}
+                        <button className="admin-icon-btn subtle" title="Xem chi tiết" onClick={() => setDetailItem(item)}>
+                          <Eye size={16} />
                         </button>
-                      )}
-                      {item.status === 'RECEIVED' && (
-                        <button
-                          className="admin-icon-btn subtle"
-                          title="Xác nhận hoàn tiền"
-                          onClick={() => void handleConfirmRefund(item)}
-                          disabled={actionLoading}
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      )}
-                      <button className="admin-icon-btn subtle" title="Xem chi tiết" onClick={() => setDetailItem(item)}>
-                        <Eye size={16} />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                      </div>
+                    </motion.div>
+                  ))}
               </div>
 
               <PanelTableFooter

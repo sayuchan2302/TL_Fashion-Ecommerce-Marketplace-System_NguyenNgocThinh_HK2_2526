@@ -380,13 +380,6 @@ const AdminPromotions = () => {
         <div className="admin-panel">
           <div className="admin-panel-head">
             <h2>Kho voucher</h2>
-            {selected.size > 0 && (
-              <div className="admin-actions">
-                <span className="admin-muted">{selected.size} đã chọn</span>
-                <button className="admin-ghost-btn" onClick={() => void pauseSelected()}>Tạm dừng</button>
-                <button className="admin-ghost-btn danger" onClick={() => setDeleteIds(Array.from(selected))}>Xóa</button>
-              </div>
-            )}
           </div>
 
           {isInitializing ? (

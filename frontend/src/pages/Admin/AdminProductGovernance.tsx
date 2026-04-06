@@ -228,11 +228,6 @@ const AdminProductGovernance = () => {
         <div className="admin-panel">
           <div className="admin-panel-head">
             <h2>Danh sách sản phẩm vendor</h2>
-            <div className="admin-actions">
-              <span className="admin-muted moderation-total-text">
-                {selected.size > 0 ? `Đã chọn ${selected.size}` : `Tổng ${totalElements} sản phẩm`}
-              </span>
-            </div>
           </div>
 
           {isLoading ? (
@@ -277,7 +272,7 @@ const AdminProductGovernance = () => {
                   <div role="columnheader">Giá</div>
                   <div role="columnheader">Sales / Stock</div>
                   <div role="columnheader">Trạng thái</div>
-                  <div role="columnheader" className="moderation-col-actions">Thao tác</div>
+                  <div role="columnheader" className="moderation-col-actions">Hành động</div>
                 </div>
 
                 {rows.map((product) => (

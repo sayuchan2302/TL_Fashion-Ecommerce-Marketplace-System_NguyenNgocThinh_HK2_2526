@@ -241,37 +241,6 @@ const AdminReviews = () => {
         <div className="admin-panel">
           <div className="admin-panel-head">
             <h2>Hàng đợi kiểm duyệt</h2>
-            {selected.size > 0 && (
-              <div className="admin-actions">
-                <span className="admin-muted">{selected.size} đã chọn</span>
-                <button className="admin-ghost-btn" onClick={async () => {
-                  const selectedIds = filteredItems.filter((review) => selected.has(review.id)).map((review) => review.id);
-                  await Promise.all(selectedIds.map((id) => applyStatusUpdate(id, 'approved')));
-                  setSelected(new Set());
-                  pushToast('Đã duyệt đánh giá đã chọn.');
-                }}>
-                  <CheckCircle size={15} />
-                  Duyệt
-                </button>
-                <button className="admin-ghost-btn" onClick={async () => {
-                  const selectedIds = filteredItems.filter((review) => selected.has(review.id)).map((review) => review.id);
-                  await Promise.all(selectedIds.map((id) => applyStatusUpdate(id, 'hidden')));
-                  setSelected(new Set());
-                  pushToast('Đã ẩn đánh giá đã chọn.');
-                }}>
-                  <EyeOff size={15} />
-                  Ẩn
-                </button>
-                <button className="admin-ghost-btn danger" onClick={() => {
-                  const targets = filteredItems.filter((r) => selected.has(r.id));
-                  setDeleteTarget({ ids: targets.map((r) => r.id), names: targets.map((r) => r.productName) });
-                }}>
-                  <Trash2 size={15} />
-                  Xóa
-                </button>
-              </div>
-            )}
-           
           </div>
 
           {isLoading ? (

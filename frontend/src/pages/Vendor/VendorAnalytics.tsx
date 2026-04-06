@@ -1,13 +1,12 @@
 import './Vendor.css';
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar, Download, Link2, Package, Percent, ShoppingCart, TrendingUp } from 'lucide-react';
+import { Calendar, Download, Package, Percent, ShoppingCart, TrendingUp } from 'lucide-react';
 import VendorLayout from './VendorLayout';
 import { formatCurrency } from '../../services/commissionService';
 import { vendorPortalService } from '../../services/vendorPortalService';
 import { useToast } from '../../contexts/ToastContext';
 import { getUiErrorMessage } from '../../utils/errorMessage';
 import { AdminStateBlock } from '../Admin/AdminStateBlocks';
-import { copyTextToClipboard } from './vendorHelpers';
 
 type Period = 'today' | 'week' | 'month';
 
@@ -125,14 +124,6 @@ const VendorAnalytics = () => {
 
   const topRevenue = Math.max(...analytics.topProducts.map((item) => item.revenue), 1);
 
-  const shareCurrentView = async () => {
-    const copied = await copyTextToClipboard(window.location.href);
-    addToast(
-      copied ? 'Đã sao chép bộ lọc hiện tại của thống kê người bán' : 'Không thể sao chép bộ lọc',
-      copied ? 'success' : 'error',
-    );
-  };
-
   const trendRows = useMemo(
     () =>
       analytics.dailyData.map((item) => ({
@@ -156,10 +147,6 @@ const VendorAnalytics = () => {
               </button>
             ))}
           </div>
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
-            <Link2 size={16} />
-            Chia sẻ
-          </button>
           <button className="admin-ghost-btn">
             <Download size={16} />
             Xuất báo cáo

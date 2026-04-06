@@ -469,46 +469,6 @@ const VendorOrders = () => {
          
           <div className="admin-panel-head">
             <h2>Danh sách đơn hàng</h2>
-            {selected.size > 0 && (
-              <div className="admin-actions">
-                <span className="admin-muted">Đã chọn {selected.size} đơn</span>
-                <button
-                  className="admin-primary-btn"
-                  disabled={actionablePendingIds.length === 0 || updating}
-                  onClick={() => askStatusUpdate(actionablePendingIds, 'CONFIRMED')}
-                >
-                  <ShieldCheck size={16} /> Xác nhận
-                </button>
-                <button
-                  className="admin-ghost-btn"
-                  disabled={actionableConfirmedIds.length === 0 || updating}
-                  onClick={() => askStatusUpdate(actionableConfirmedIds, 'PROCESSING')}
-                >
-                  <PackageCheck size={16} /> Xử lý
-                </button>
-                <button
-                  className="admin-ghost-btn"
-                  disabled={actionableProcessingIds.length === 0 || updating}
-                  onClick={() => askStatusUpdate(actionableProcessingIds, 'SHIPPED')}
-                >
-                  <Truck size={16} /> Bàn giao VC
-                </button>
-                <button
-                  className="admin-ghost-btn danger"
-                  disabled={actionableCancelableIds.length === 0 || updating}
-                  onClick={() => askStatusUpdate(actionableCancelableIds, 'CANCELLED')}
-                >
-                  <XCircle size={16} /> Hủy đơn
-                </button>
-                <button
-                  className="admin-ghost-btn"
-                  disabled={actionableDelayIds.length === 0 || updating}
-                  onClick={() => void handleNotifyDelay(actionableDelayIds)}
-                >
-                  <AlertTriangle size={16} /> Notify Delay
-                </button>
-              </div>
-            )}
           </div>
           {loading ? (
             <AdminTableSkeleton columns={8} rows={6} />

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, MessageSquare, Star } from 'lucide-react';
 import VendorLayout from './VendorLayout';
-import { PanelFloatingBar, PanelStatsGrid, PanelTabs } from '../../components/Panel/PanelPrimitives';
+import { PanelStatsGrid, PanelTabs } from '../../components/Panel/PanelPrimitives';
 import {
   PanelDrawerFooter,
   PanelDrawerHeader,
@@ -383,24 +383,6 @@ const VendorReviews = () => {
           )}
         </div>
       </section>
-
-      <PanelFloatingBar show={selected.size > 0} className="vendor-floating-bar">
-        <div className="admin-floating-content">
-          <span>Đã chọn {selected.size} đánh giá</span>
-          <div className="admin-actions">
-            <button className="admin-ghost-btn" onClick={() => setSelected(new Set())}>Bỏ chọn</button>
-            {selectedNeedReply.length > 0 ? (
-              <button
-                className="admin-ghost-btn"
-                onClick={() => setConfirmReplyIds(selectedNeedReply)}
-                disabled={selectedNeedReply.some((id) => replyingIds.has(id))}
-              >
-                Gửi phản hồi đã chọn
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </PanelFloatingBar>
 
       <AdminConfirmDialog
         open={Boolean(confirmReplyIds?.length)}

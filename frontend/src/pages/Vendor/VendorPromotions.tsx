@@ -8,7 +8,6 @@ import {
   PanelDrawerFooter,
   PanelDrawerHeader,
   PanelDrawerSection,
-  PanelFloatingBar,
   PanelStatsGrid,
   PanelTableFooter,
   PanelTabs,
@@ -613,35 +612,6 @@ const VendorPromotions = () => {
           )}
         </div>
       </section>
-
-      <PanelFloatingBar show={selected.size > 0} className="vendor-floating-bar">
-        <div className="admin-floating-content">
-          <span>Đã chọn {selected.size} voucher</span>
-          <div className="admin-actions">
-            <button
-              className="admin-ghost-btn"
-              onClick={() => void updateVoucherStatus(Array.from(selected), 'paused')}
-              disabled={working}
-            >
-              Tạm dừng
-            </button>
-            <button
-              className="admin-ghost-btn"
-              onClick={() => void updateVoucherStatus(Array.from(selected), 'running')}
-              disabled={working}
-            >
-              Kích hoạt
-            </button>
-            <button
-              className="admin-ghost-btn danger"
-              onClick={() => requestDelete(Array.from(selected))}
-              disabled={working}
-            >
-              Xóa đã chọn
-            </button>
-          </div>
-        </div>
-      </PanelFloatingBar>
 
       <AdminConfirmDialog
         open={Boolean(deleteState)}

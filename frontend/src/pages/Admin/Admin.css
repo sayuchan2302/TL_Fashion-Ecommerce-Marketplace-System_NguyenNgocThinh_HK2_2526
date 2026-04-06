@@ -1039,8 +1039,15 @@ body {
 }
 
 .admin-table-row.reviews .admin-actions {
-  justify-content: flex-end;
-  justify-self: end;
+  justify-content: center;
+  justify-self: center;
+}
+
+.admin-table-row.reviews > [role='columnheader']:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .admin-table-row.promotions {
@@ -4035,28 +4042,49 @@ input:disabled,
 
 .admin-table-row.returns-row {
   grid-template-columns:
-    minmax(136px, 1.02fr)
-    minmax(158px, 1.2fr)
-    minmax(198px, 1.55fr)
-    minmax(102px, 0.82fr)
-    minmax(114px, 0.86fr)
-    minmax(126px, 0.9fr)
-    minmax(100px, 0.72fr);
+    minmax(36px, 0.25fr)
+    minmax(140px, 1.1fr)
+    minmax(150px, 1.1fr)
+    minmax(140px, 1fr)
+    minmax(200px, 1.5fr)
+    minmax(120px, 0.85fr)
+    minmax(110px, 0.8fr)
+    minmax(130px, 0.95fr);
   align-items: center;
-  min-width: 920px;
+  min-width: 980px;
 }
 
 .admin-table-row.returns-row > div {
   min-width: 0;
 }
 
+.admin-table-row.returns-row > [role='columnheader']:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .returns-code-cell,
+.returns-order-cell,
 .returns-customer-cell,
+.returns-store-cell,
 .returns-product-cell {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+}
+
+.returns-checkbox-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.returns-store-cell strong {
+  font-weight: 700;
+  color: var(--co-admin-text);
 }
 
 .returns-ellipsis {
@@ -4087,8 +4115,13 @@ input:disabled,
 }
 
 .admin-table-row.returns-row .returns-actions {
+  display: flex;
+  align-items: center;
   justify-content: center;
   justify-self: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 @media (max-width: 1200px) {
@@ -4103,15 +4136,16 @@ input:disabled,
 
   .admin-table-row.returns-row {
     grid-template-columns:
-      minmax(126px, 0.95fr)
-      minmax(146px, 1.1fr)
-      minmax(182px, 1.35fr)
-      minmax(98px, 0.8fr)
-      minmax(104px, 0.82fr)
-      minmax(116px, 0.84fr)
-      minmax(88px, 0.62fr);
+      minmax(30px, 0.2fr)
+      minmax(110px, 0.9fr)
+      minmax(120px, 1fr)
+      minmax(120px, 0.95fr)
+      minmax(150px, 1.2fr)
+      minmax(100px, 0.75fr)
+      minmax(85px, 0.65fr)
+      minmax(110px, 0.85fr);
     font-size: 13px;
-    min-width: 860px;
+    min-width: 900px;
   }
 }
 
