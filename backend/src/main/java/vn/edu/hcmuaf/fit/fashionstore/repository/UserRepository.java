@@ -19,4 +19,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByIdWithCart(UUID id);
 
     long countByIsActiveFalse();
+
+    long countByRole(User.Role role);
 }

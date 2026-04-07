@@ -12,6 +12,8 @@ interface AdminConfirmDialogProps {
   maxVisibleItems?: number;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmDisabled?: boolean;
+  cancelDisabled?: boolean;
   danger?: boolean;
   children?: ReactNode;
   onConfirm: () => void;
@@ -27,6 +29,8 @@ const AdminConfirmDialog = ({
   maxVisibleItems = 6,
   confirmLabel = 'Xác nhận',
   cancelLabel = 'Hủy',
+  confirmDisabled = false,
+  cancelDisabled = false,
   danger = false,
   children,
   onConfirm,
@@ -129,8 +133,21 @@ const AdminConfirmDialog = ({
             )}
 
             <div className="confirm-modal-actions">
-              <button ref={cancelBtnRef} className="admin-ghost-btn" onClick={onCancel}>{cancelLabel}</button>
-              <button className={`admin-primary-btn ${danger ? 'danger' : ''}`.trim()} onClick={onConfirm}>{confirmLabel}</button>
+              <button
+                ref={cancelBtnRef}
+                className="admin-ghost-btn"
+                onClick={onCancel}
+                disabled={cancelDisabled}
+              >
+                {cancelLabel}
+              </button>
+              <button
+                className={`admin-primary-btn ${danger ? 'danger' : ''}`.trim()}
+                onClick={onConfirm}
+                disabled={confirmDisabled}
+              >
+                {confirmLabel}
+              </button>
             </div>
           </motion.div>
         </>

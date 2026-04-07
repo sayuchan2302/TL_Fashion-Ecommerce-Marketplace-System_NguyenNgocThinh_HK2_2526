@@ -6,6 +6,7 @@ export interface AdminDashboardMetrics {
   totalOrders: number;
   pendingStoreApprovals: number;
   lockedUsers: number;
+  totalCustomers: number;
   runningCampaigns: number;
 }
 
@@ -35,6 +36,7 @@ export interface AdminDashboardParentOrder {
 export interface AdminDashboardTopCategory {
   categoryId: string;
   name: string;
+  image?: string | null;
   productCount: number;
   signal: string;
 }

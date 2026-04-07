@@ -8,6 +8,7 @@ import vn.edu.hcmuaf.fit.fashionstore.entity.Category;
 import vn.edu.hcmuaf.fit.fashionstore.entity.Order;
 import vn.edu.hcmuaf.fit.fashionstore.entity.ReturnRequest;
 import vn.edu.hcmuaf.fit.fashionstore.entity.Store;
+import vn.edu.hcmuaf.fit.fashionstore.entity.User;
 import vn.edu.hcmuaf.fit.fashionstore.entity.Voucher;
 import vn.edu.hcmuaf.fit.fashionstore.repository.CategoryRepository;
 import vn.edu.hcmuaf.fit.fashionstore.repository.OrderRepository;
@@ -65,6 +66,7 @@ public class AdminDashboardService {
     public AdminDashboardResponse getDashboard() {
         long pendingStores = storeRepository.countByApprovalStatus(Store.ApprovalStatus.PENDING);
         long lockedUsers = userRepository.countByIsActiveFalse();
+        long totalCustomers = userRepository.countByRole(User.Role.CUSTOMER);
         long runningCampaigns = voucherRepository.countByStatus(Voucher.VoucherStatus.RUNNING);
         long pendingReturns = returnRequestRepository.countByStatus(ReturnRequest.ReturnStatus.DISPUTED);
         long categoriesNeedReview = categoryRepository.countByIsVisibleFalse();
@@ -77,6 +79,7 @@ public class AdminDashboardService {
                         .totalOrders(orderRepository.countByParentOrderIsNull())
                         .pendingStoreApprovals(pendingStores)
                         .lockedUsers(lockedUsers)
+                        .totalCustomers(totalCustomers)
                         .runningCampaigns(runningCampaigns)
                         .build())
                 .quickViews(AdminDashboardResponse.QuickViews.builder()
@@ -174,18 +177,20 @@ public class AdminDashboardService {
                 .map(row -> (UUID) row[0])
                 .toList();
 
-        Map<UUID, String> categoryNameById = categoryRepository.findAllById(categoryIds)
+        Map<UUID, Category> categoryById = categoryRepository.findAllById(categoryIds)
                 .stream()
-                .collect(Collectors.toMap(Category::getId, Category::getName));
+                .collect(Collectors.toMap(Category::getId, category -> category));
 
         List<AdminDashboardResponse.TopCategorySignal> result = new ArrayList<>();
         for (int index = 0; index < rows.size(); index++) {
             UUID categoryId = (UUID) rows.get(index)[0];
             long productCount = ((Number) rows.get(index)[1]).longValue();
+            Category category = categoryById.get(categoryId);
 
             result.add(AdminDashboardResponse.TopCategorySignal.builder()
                     .categoryId(categoryId)
-                    .name(categoryNameById.getOrDefault(categoryId, "Danh mục"))
+                    .name(category != null ? category.getName() : "Danh mục")
+                    .image(category != null ? category.getImage() : null)
                     .productCount(productCount)
                     .signal(resolveCategorySignal(index))
                     .build());

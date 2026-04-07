@@ -31,6 +31,7 @@ public class AdminDashboardResponse {
         private long totalOrders;
         private long pendingStoreApprovals;
         private long lockedUsers;
+        private long totalCustomers;
         private long runningCampaigns;
     }
 
@@ -76,6 +77,7 @@ public class AdminDashboardResponse {
     public static class TopCategorySignal {
         private UUID categoryId;
         private String name;
+        private String image;
         private long productCount;
         private String signal;
     }

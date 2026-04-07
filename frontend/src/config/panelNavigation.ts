@@ -1,27 +1,27 @@
-import type { PanelNavItem } from '../pages/Admin/AdminLayout';
+﻿import type { PanelNavItem } from '../pages/Admin/AdminLayout';
 
 export const adminPanelNav: PanelNavItem[] = [
   { label: 'Dashboard', to: '/admin/dashboard', exact: true },
   { label: 'Danh mục', to: '/admin/categories' },
-  { label: 'Gian hàng', to: '/admin/stores' },
   { label: 'Quản lý sản phẩm', to: '/admin/product-governance' },
+  { label: 'Gian hàng', to: '/admin/stores' },
   { label: 'Khách hàng', to: '/admin/users' },
   { label: 'Đơn hàng', to: '/admin/orders' },
   { label: 'Hoàn đơn', to: '/admin/returns' },
+  { label: 'Đánh giá', to: '/admin/reviews' },
   { label: 'Tài chính', to: '/admin/financials' },
   { label: 'Khuyến mãi', to: '/admin/promotions' },
-  { label: 'Đánh giá', to: '/admin/reviews' },
   { label: 'Bot và AI (thử nghiệm)', to: '/admin/bot-ai' },
 ];
 
 export const vendorPanelNav: PanelNavItem[] = [
   { label: 'Dashboard', to: '/vendor/dashboard', exact: true },
+  { label: 'Doanh thu thực nhận', to: '/vendor/analytics' },
+  { label: 'Gian hàng', to: '/vendor/storefront' },
   { label: 'Kho', to: '/vendor/products' },
   { label: 'Đơn hàng', to: '/vendor/orders' },
   { label: 'Hoàn trả', to: '/vendor/returns' },
-  { label: 'Gian hàng', to: '/vendor/storefront' },
   { label: 'Ưu đãi cửa hàng', to: '/vendor/promotions' },
   { label: 'Đánh giá và phản hồi', to: '/vendor/reviews' },
-  { label: 'Doanh thu thực nhận', to: '/vendor/analytics' },
   { label: 'Cài đặt vận hành', to: '/vendor/settings' },
 ];

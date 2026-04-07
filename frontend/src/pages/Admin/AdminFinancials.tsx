@@ -56,6 +56,7 @@ const AdminFinancials = () => {
   const [payoutTotalPages, setPayoutTotalPages] = useState(1);
   const [selectedPayout, setSelectedPayout] = useState<PayoutRequest | null>(null);
   const [rejectNote, setRejectNote] = useState('');
+  const [isApplyingPayout, setIsApplyingPayout] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -94,6 +95,21 @@ const AdminFinancials = () => {
       setPendingPayouts([]);
     }
   }, [payoutPage]);
+
+  const fetchAllPendingPayouts = useCallback(async () => {
+    const allPending: PayoutRequest[] = [];
+    let currentPage = 1;
+    let total = 1;
+
+    do {
+      const result = await walletService.getPendingPayouts(currentPage, PAGE_SIZE);
+      allPending.push(...(result.content || []));
+      total = Math.max(Number(result.totalPages || 1), 1);
+      currentPage += 1;
+    } while (currentPage <= total);
+
+    return allPending;
+  }, []);
 
   useEffect(() => {
     void fetchData();
@@ -137,25 +153,49 @@ const AdminFinancials = () => {
   };
 
   const applyPayout = async () => {
-    if (!confirmState) return;
+    if (!confirmState || isApplyingPayout) return;
+
+    const storeIds = new Set(confirmState.storeIds);
 
     try {
-      for (const storeId of confirmState.storeIds) {
-        await walletService.getAdminWallets('', 1, 1);
-        void storeId;
+      setIsApplyingPayout(true);
+      const allPending = await fetchAllPendingPayouts();
+      const targetRequests = allPending.filter((request) => request.status === 'PENDING' && storeIds.has(request.storeId));
+
+      if (targetRequests.length === 0) {
+        addToast('Không tìm thấy yêu cầu rút tiền PENDING cho các store đã chọn.', 'info');
+        setSelected(new Set());
+        setConfirmState(null);
+        return;
       }
+
+      const approvalResults = await Promise.allSettled(
+        targetRequests.map((request) => walletService.approvePayoutRequest(request.id)),
+      );
+
+      const approvedCount = approvalResults.filter((result) => result.status === 'fulfilled').length;
+      const failedCount = approvalResults.length - approvedCount;
+
+      if (approvedCount > 0) {
+        addToast(`Đã duyệt ${approvedCount} yêu cầu rút tiền.`, 'success');
+      }
+      if (failedCount > 0) {
+        addToast(`Có ${failedCount} yêu cầu duyệt thất bại. Vui lòng thử lại.`, 'error');
+      }
+
       setSelected(new Set());
       setConfirmState(null);
-      addToast('Đã xác nhận giải ngân thành công.', 'success');
-      await fetchData();
+      await Promise.all([fetchData(), fetchPendingPayouts()]);
     } catch {
       addToast('Lỗi trong quá trình giải ngân.', 'error');
+    } finally {
+      setIsApplyingPayout(false);
     }
   };
 
   const handleApprovePayout = async (payout: PayoutRequest) => {
     try {
-      await walletService.approvePayout(payout.id);
+      await walletService.approvePayoutRequest(payout.id);
       addToast(`Đã duyệt yêu cầu rút tiền cho ${payout.storeName}.`, 'success');
       await fetchPendingPayouts();
       await fetchData();
@@ -215,10 +255,10 @@ const AdminFinancials = () => {
             {activeTab === 'wallets' && selected.size > 0 && (
               <div className="admin-actions">
                 <span className="admin-muted">Đã chọn {selected.size} bản ghi</span>
-                <button className="admin-ghost-btn" onClick={() => openReleaseConfirm(Array.from(selected))}>
+                <button className="admin-ghost-btn" disabled={isApplyingPayout} onClick={() => openReleaseConfirm(Array.from(selected))}>
                   Xác nhận giải ngân
                 </button>
-                <button className="admin-ghost-btn" onClick={() => setSelected(new Set())}>Bỏ chọn</button>
+                <button className="admin-ghost-btn" disabled={isApplyingPayout} onClick={() => setSelected(new Set())}>Bỏ chọn</button>
               </div>
             )}
           </div>
@@ -384,8 +424,13 @@ const AdminFinancials = () => {
         description="Số dư khả dụng trên ví của các store sẽ bị trừ để ghi nhận đã giải ngân cho nhà bán hàng."
         selectedItems={confirmState?.storeNames}
         selectedNoun="bản ghi tài chính"
-        confirmLabel="Xác nhận giải ngân"
-        onCancel={() => setConfirmState(null)}
+        confirmLabel={isApplyingPayout ? 'Đang duyệt...' : 'Xác nhận giải ngân'}
+        confirmDisabled={isApplyingPayout}
+        cancelDisabled={isApplyingPayout}
+        onCancel={() => {
+          if (isApplyingPayout) return;
+          setConfirmState(null);
+        }}
         onConfirm={() => void applyPayout()}
       />
 

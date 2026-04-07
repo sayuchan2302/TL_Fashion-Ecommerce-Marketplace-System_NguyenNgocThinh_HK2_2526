@@ -1,7 +1,7 @@
 import './Vendor.css';
 import '../../styles/orderDetailTheme.css';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Check, Copy, Link2, MapPin, Package, Percent, Printer, Store, Truck, User, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, Copy, MapPin, Package, Percent, Printer, Store, Truck, User, XCircle } from 'lucide-react';
 import { startTransition, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import VendorLayout from './VendorLayout';
@@ -108,11 +108,6 @@ const VendorOrderDetail = () => {
     addToast(copied ? 'Đã sao chép mã vận đơn' : 'Không thể sao chép mã vận đơn', copied ? 'success' : 'error');
   };
 
-  const shareCurrentView = async () => {
-    const copied = await copyTextToClipboard(window.location.href);
-    addToast(copied ? 'Đã sao chép liên kết đơn hàng' : 'Không thể sao chép liên kết', copied ? 'success' : 'error');
-  };
-
   const shipOrder = async () => {
     const tracking = window.prompt('Nhập mã vận đơn');
     if (!tracking || !tracking.trim()) {
@@ -174,9 +169,8 @@ const VendorOrderDetail = () => {
     <VendorLayout
       title={
         <span className="vendor-order-detail-title">
-          <button className="admin-ghost-btn vendor-order-detail-back-btn" onClick={() => navigate('/vendor/orders')}>
-            <ArrowLeft size={16} />
-            Quay lại
+          <button className="admin-ghost-btn vendor-order-detail-back-btn" aria-label="Quay lại" onClick={() => navigate('/vendor/orders')}>
+            ←
           </button>
           <span>{`Đơn hàng #${toDisplayOrderCode(order.code)}`}</span>
         </span>
@@ -184,10 +178,6 @@ const VendorOrderDetail = () => {
       breadcrumbs={['Kênh Người Bán', 'Đơn hàng', 'Chi tiết']}
       actions={(
         <div className="admin-actions">
-          <button className="admin-ghost-btn" onClick={() => void shareCurrentView()}>
-            <Link2 size={16} />
-            Chia sẻ
-          </button>
           <button className="admin-ghost-btn">
             <Printer size={16} />
             In phiếu giao

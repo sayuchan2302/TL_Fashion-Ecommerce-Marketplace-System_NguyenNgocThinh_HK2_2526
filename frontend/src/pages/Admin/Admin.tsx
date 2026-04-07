@@ -10,23 +10,21 @@ import {
   Sparkles,
   Store,
   TicketPercent,
+  TrendingUp,
   Users,
   WalletCards,
   Zap,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { AdminStateBlock } from './AdminStateBlocks';
 import {
   adminDashboardService,
-  type AdminDashboardParentOrder,
   type AdminDashboardTopCategory,
 } from '../../services/adminDashboardService';
-import {
-  resolveDetailRouteKey,
-  toDisplayOrderCode,
-} from '../../utils/displayCode';
+import { getOptimizedImageUrl } from '../../utils/getOptimizedImageUrl';
 
 const formatCurrency = (value: number) => `${(value || 0).toLocaleString('vi-VN')} ₫`;
 
@@ -36,28 +34,10 @@ const formatShortDate = (isoDate: string) => {
   return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 };
 
-const formatWaitTime = (minutes: number) => {
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60);
-    const remainder = minutes % 60;
-    if (remainder === 0) {
-      return `${hours} giờ`;
-    }
-    return `${hours} giờ ${remainder} phút`;
-  }
-  return `${minutes} phút`;
-};
-
-const priorityTone = (priority: string) => {
-  if (priority === 'high') return 'error';
-  if (priority === 'medium') return 'warning';
-  return 'neutral';
-};
-
-const priorityLabel = (priority: string) => {
-  if (priority === 'high') return 'Quan trọng';
-  if (priority === 'medium') return 'Chú ý';
-  return 'Theo dõi';
+const formatLongDate = (isoDate: string) => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 const buildSparkFromTrend = (series: number[]) => {
@@ -65,6 +45,17 @@ const buildSparkFromTrend = (series: number[]) => {
     return [1, 1, 1, 1, 1, 1, 1];
   }
   return series.map((value) => Math.max(1, value));
+};
+
+const buildCategoryFallbackImage = (name: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E2E8F0&color=334155&size=160&font-size=0.45`;
+
+const resolveCategoryImage = (name: string, image?: string | null) => {
+  const normalized = (image || '').trim();
+  if (!normalized) {
+    return buildCategoryFallbackImage(name);
+  }
+  return getOptimizedImageUrl(normalized, { width: 160, format: 'webp' }) || normalized;
 };
 
 const Admin = () => {
@@ -100,6 +91,17 @@ const Admin = () => {
       labels: trend.map((point) => formatShortDate(point.date)),
     };
   }, [dashboard?.trend]);
+
+  const chartData = useMemo(
+    () =>
+      (dashboard?.trend || []).map((point) => ({
+        dateLabel: formatShortDate(point.date),
+        fullDate: formatLongDate(point.date),
+        gmv: Number(point.gmv || 0),
+        commission: Number(point.commission || 0),
+      })),
+    [dashboard?.trend]
+  );
 
   const stats = useMemo(() => {
     const metrics = dashboard?.metrics;
@@ -139,8 +141,8 @@ const Admin = () => {
         spark: gmvSpark,
       },
       {
-        label: 'Tài khoản bị khóa',
-        value: String(metrics?.lockedUsers || 0),
+        label: 'Tổng khách hàng',
+        value: String(metrics?.totalCustomers || 0),
         change: 'Live',
         icon: <Users size={18} />,
         to: '/admin/users',
@@ -197,10 +199,33 @@ const Admin = () => {
     ];
   }, [dashboard?.quickViews]);
 
-  const parentOrders: AdminDashboardParentOrder[] = dashboard?.parentOrders || [];
   const topCategories: AdminDashboardTopCategory[] = dashboard?.topCategories || [];
   const topSignalBase = Math.max(...topCategories.map((item) => item.productCount), 1);
-  const trendMax = Math.max(...trendSeries.gmv, 1);
+
+  type DashboardTooltipEntry = {
+    name: string;
+    value: number;
+    color: string;
+    payload: {
+      fullDate: string;
+    };
+  };
+
+  const DashboardTrendTooltip = ({ active, payload }: { active?: boolean; payload?: DashboardTooltipEntry[] }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="admin-chart-tooltip">
+        <div className="admin-chart-tooltip-date">{payload[0].payload.fullDate}</div>
+        {payload.map((entry) => (
+          <div key={entry.name} className="admin-chart-tooltip-row">
+            <span className="admin-chart-tooltip-dot" style={{ backgroundColor: entry.color }} />
+            <span className="admin-chart-tooltip-label">{entry.name}</span>
+            <span className="admin-chart-tooltip-value">{formatCurrency(entry.value)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   if (isLoading && !dashboard) {
     return (
@@ -274,44 +299,71 @@ const Admin = () => {
 
       <motion.section className="admin-panel">
         <div className="admin-panel-head">
-          <h2>GMV 7 ngày gần nhất</h2>
-          <span className="admin-muted">Dữ liệu đồng bộ theo backend</span>
+          <h2>Biểu đồ doanh thu</h2>
+          <span className="admin-muted">GMV và hoa hồng trong 7 ngày gần nhất</span>
         </div>
         <div className="area-chart-wrap">
-          <svg className="area-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="marketGmvGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="rgba(15,23,42,0.30)" />
-                <stop offset="100%" stopColor="rgba(15,23,42,0.00)" />
-              </linearGradient>
-            </defs>
-            <path
-              d={`M 0 50 L ${trendSeries.gmv
-                .map((v, i) => `${(i / Math.max(trendSeries.gmv.length - 1, 1)) * 100} ${50 - (v / trendMax) * 44}`)
-                .join(' L ')} L 100 50 Z`}
-              fill="url(#marketGmvGradient)"
-            />
-            <path
-              d={`M ${trendSeries.gmv
-                .map((v, i) => `${(i / Math.max(trendSeries.gmv.length - 1, 1)) * 100} ${50 - (v / trendMax) * 44}`)
-                .join(' L ')}`}
-              fill="none"
-              stroke="#0f172a"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <line x1="0" y1="50" x2="100" y2="50" stroke="#e5e7eb" strokeWidth="1" />
-            <line x1="0" y1="0" x2="0" y2="50" stroke="#e5e7eb" strokeWidth="1" />
-          </svg>
-          <div className="chart-axes">
-            <span>Ngày</span>
-            <span>GMV</span>
-          </div>
-          <div className="chart-x-labels">
-            {trendSeries.labels.map((label) => (
-              <span key={label}>{label}</span>
-            ))}
+          {chartData.length === 0 ? (
+            <div className="admin-chart-empty">
+              <TrendingUp size={36} className="admin-chart-empty-icon" />
+              <p>Chưa có dữ liệu doanh thu</p>
+              <span className="admin-muted">Dữ liệu sẽ hiển thị khi hệ thống ghi nhận đơn hàng.</span>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="adminGmvGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="adminCommissionGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="dateLabel"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#94a3b8' }}
+                  tickFormatter={(value: number) => `${(value / 1000000).toFixed(1)}M`}
+                />
+                <Tooltip content={<DashboardTrendTooltip />} />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  iconType="circle"
+                  formatter={(value: string) => <span className="admin-chart-legend-label">{value}</span>}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="gmv"
+                  name="GMV"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  fill="url(#adminGmvGradient)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="commission"
+                  name="Hoa hồng"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  fill="url(#adminCommissionGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+          <div className="chart-axes chart-axes-bottom">
+            <span>Dữ liệu 7 ngày</span>
+            <span>{trendSeries.labels.length} mốc thời gian</span>
           </div>
         </div>
       </motion.section>
@@ -350,58 +402,6 @@ const Admin = () => {
 
       <motion.section className="admin-panel">
         <div className="admin-panel-head">
-          <h2>Đơn hàng cha cần xử lý</h2>
-          <Link to="/admin/orders">Mở tất cả</Link>
-        </div>
-        {parentOrders.length === 0 ? (
-          <AdminStateBlock
-            type="empty"
-            title="Không có đơn hàng cha đang chờ"
-            description="Các đơn hàng cha cần theo dõi SLA sẽ xuất hiện tại đây."
-          />
-        ) : (
-          <div className="admin-table" role="table" aria-label="Đơn hàng cha cần xử lý">
-            <div className="admin-table-row admin-table-head recent-v2" role="row">
-              <div role="columnheader">Đơn hàng cha</div>
-              <div role="columnheader">Mức độ</div>
-              <div role="columnheader">Chờ xử lý</div>
-              <div role="columnheader">Tổng giá trị</div>
-              <div role="columnheader">Hành động</div>
-            </div>
-            {parentOrders.map((order) => (
-              <motion.div
-                className="admin-table-row recent-v2 recent-order-row"
-                role="row"
-                key={order.id}
-                whileHover={{ y: -1 }}
-              >
-                <div role="cell" className="admin-customer">
-                  <img
-                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(order.customerName)}&background=0EA5E9&color=fff`}
-                    alt={order.customerName}
-                  />
-                  <div>
-                    <p className="admin-bold">{toDisplayOrderCode(order.code)}</p>
-                    <span>{order.customerName}</span>
-                  </div>
-                </div>
-                <div role="cell"><span className={`admin-pill ${priorityTone(order.priority)}`}>{priorityLabel(order.priority)}</span></div>
-                <div role="cell" className="wait-time-cell">{formatWaitTime(order.waitMinutes)}</div>
-                <div role="cell">{formatCurrency(order.total)}</div>
-                <div role="cell" className="admin-actions compact">
-                  <button className={`admin-ghost-btn small ${order.priority === 'high' ? 'primary-cta' : ''}`}>{order.issue}</button>
-                  <Link to={`/admin/orders/${resolveDetailRouteKey(order.code, order.id)}`} className="admin-icon-btn" aria-label="Xem chi tiết">
-                    <ChevronRight size={15} />
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </motion.section>
-
-      <motion.section className="admin-panel">
-        <div className="admin-panel-head">
           <h2>Danh mục dẫn đầu hệ thống</h2>
           <Link to="/admin/categories">Mở danh mục</Link>
         </div>
@@ -416,6 +416,16 @@ const Admin = () => {
             {topCategories.map((item, idx) => (
               <motion.div key={item.categoryId} className="top-product" whileHover={{ y: -2 }}>
                 <div className="top-rank">Top {idx + 1}</div>
+                <img
+                  className="top-category-image"
+                  src={resolveCategoryImage(item.name, item.image)}
+                  alt={item.name}
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = buildCategoryFallbackImage(item.name);
+                  }}
+                />
                 <div className="top-product-meta">
                   <p className="admin-bold">{item.name}</p>
                   <p className="admin-muted">{item.signal}</p>

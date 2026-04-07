@@ -98,6 +98,14 @@ export const walletService = {
     );
   },
 
+  async approvePayoutRequest(id: string): Promise<PayoutRequest> {
+    return apiRequest<PayoutRequest>(
+      `/api/wallets/payouts/${id}/approve`,
+      { method: 'POST' },
+      { auth: true },
+    );
+  },
+
   async approvePayout(id: string): Promise<PayoutRequest> {
     return apiRequest<PayoutRequest>(
       `/api/wallets/payouts/${id}/approve`,
