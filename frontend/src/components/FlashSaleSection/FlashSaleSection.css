@@ -125,8 +125,8 @@
 }
 
 .flash-card {
-  flex: 0 0 240px;
-  min-width: 240px;
+  flex: 0 0 220px;
+  min-width: 220px;
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
@@ -138,8 +138,8 @@
 }
 
 .flash-card .product-image-container {
-  height: 220px;
-  padding-top: 0;
+  height: auto;
+  padding-top: 133%;
 }
 
 .flash-card .product-info {
@@ -199,18 +199,14 @@
   display: flex;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .flash-sale-title {
     font-size: 18px;
   }
 
   .flash-card {
-    flex-basis: 190px;
-    min-width: 190px;
-  }
-
-  .flash-card .product-image-container {
-    height: 190px;
+    flex-basis: 160px;
+    min-width: 160px;
   }
 
   .flash-slider-nav {

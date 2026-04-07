@@ -26,6 +26,8 @@ interface ProductSectionProps {
   products: ProductSectionItem[];
   viewAllLink?: string;
   staticCards?: boolean;
+  useSlider?: boolean;
+  maxItems?: number;
   onQuickAdd?: (item: {
     id: number | string;
     backendId?: string;
@@ -45,10 +47,13 @@ const ProductSection = ({
   products,
   viewAllLink = '/search?scope=products',
   staticCards = false,
+  useSlider = true,
+  maxItems,
   onQuickAdd,
   className = '',
 }: ProductSectionProps) => {
   const sliderRef = useRef<HTMLDivElement>(null);
+  const visibleProducts = typeof maxItems === 'number' ? products.slice(0, Math.max(0, maxItems)) : products;
 
   const scrollLeft = () => {
     if (sliderRef.current) {
@@ -69,23 +74,33 @@ const ProductSection = ({
         <Link to={viewAllLink} className="view-all-link">{'Xem t\u1ea5t c\u1ea3'}</Link>
       </div>
 
-      <div className="slider-container">
-        <button className="slider-nav prev-btn" onClick={scrollLeft} aria-label={'Tr\u01b0\u1edbc'}>
-          <ChevronLeft size={24} />
-        </button>
+      {useSlider ? (
+        <div className="slider-container">
+          <button className="slider-nav prev-btn" onClick={scrollLeft} aria-label={'Tr\u01b0\u1edbc'}>
+            <ChevronLeft size={24} />
+          </button>
 
-        <div className="product-grid slider-view" ref={sliderRef}>
-          {products.map((product) => (
-            <div key={product.id} className="slider-item">
+          <div className="product-grid slider-view" ref={sliderRef}>
+            {visibleProducts.map((product) => (
+              <div key={product.id} className="slider-item">
+                <ProductCard {...product} staticMode={staticCards} onQuickAdd={onQuickAdd} />
+              </div>
+            ))}
+          </div>
+
+          <button className="slider-nav next-btn" onClick={scrollRight} aria-label="Sau">
+            <ChevronRight size={24} />
+          </button>
+        </div>
+      ) : (
+        <div className="product-grid product-grid-static">
+          {visibleProducts.map((product) => (
+            <div key={product.id} className="grid-item">
               <ProductCard {...product} staticMode={staticCards} onQuickAdd={onQuickAdd} />
             </div>
           ))}
         </div>
-
-        <button className="slider-nav next-btn" onClick={scrollRight} aria-label="Sau">
-          <ChevronRight size={24} />
-        </button>
-      </div>
+      )}
     </section>
   );
 };

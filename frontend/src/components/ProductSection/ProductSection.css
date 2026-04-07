@@ -43,6 +43,10 @@
   gap: var(--space-4);
 }
 
+.product-grid.product-grid-static .grid-item {
+  min-width: 0;
+}
+
 /* Slider View specific */
 .product-grid.slider-view {
   display: flex;

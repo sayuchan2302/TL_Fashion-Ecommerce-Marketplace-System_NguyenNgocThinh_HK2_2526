@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Store } from 'lucide-react';
 import './Home.css';
@@ -42,74 +42,66 @@ interface HomeSectionProduct {
 const fallbackFeaturedProducts: HomeSectionProduct[] = mensFashion.map((product) => ({ ...product }));
 const fallbackTrendingProducts: HomeSectionProduct[] = womensFashion.map((product) => ({ ...product }));
 
-const fallbackTopVendors: MarketplaceStoreCard[] = [
-  {
-    id: 'store-coolmate-mall',
-    name: 'Coolmate Mall',
-    storeCode: 'coolmate-mall',
-    slug: 'coolmate-mall',
-    logo: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=200&auto=format&fit=crop',
-    rating: 4.9,
-    totalOrders: 12450,
-    liveProductCount: 380,
-  },
-  {
-    id: 'store-thinh-fashion',
-    name: 'Th\u1ecbnh Fashion Shop',
-    storeCode: 'thinh-fashion',
-    slug: 'thinh-fashion',
-    logo: 'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?q=80&w=200&auto=format&fit=crop',
-    rating: 4.8,
-    totalOrders: 8520,
-    liveProductCount: 211,
-  },
-  {
-    id: 'store-mina-boutique',
-    name: 'Mina Boutique',
-    storeCode: 'mina-boutique',
-    slug: 'mina-boutique',
-    logo: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=200&auto=format&fit=crop',
-    rating: 4.7,
-    totalOrders: 6150,
-    liveProductCount: 174,
-  },
-  {
-    id: 'store-athleisure-pro',
-    name: 'Athleisure Pro',
-    storeCode: 'athleisure-pro',
-    slug: 'athleisure-pro',
-    logo: 'https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=200&auto=format&fit=crop',
-    rating: 4.8,
-    totalOrders: 7040,
-    liveProductCount: 145,
-  },
-];
-
 const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [featuredStores, setFeaturedStores] = useState<MarketplaceStoreCard[]>([]);
+  const [allStores, setAllStores] = useState<MarketplaceStoreCard[]>([]);
   const [categoryTabs, setCategoryTabs] = useState<MarketplaceHomeCategoryTab[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeSectionProduct[]>(fallbackFeaturedProducts);
   const [trendingProducts, setTrendingProducts] = useState<HomeSectionProduct[]>(fallbackTrendingProducts);
+  const [topSellingProducts, setTopSellingProducts] = useState<HomeSectionProduct[]>([]);
 
   useEffect(() => {
     let mounted = true;
 
     const loadHomeData = async () => {
       try {
-        const data = await marketplaceService.getHomeData();
+        const [data, storesResponse, topSellingResponse] = await Promise.all([
+          marketplaceService.getHomeData(),
+          marketplaceService.searchStores('', 0, 100).catch(() => null),
+          marketplaceService.searchProducts('', 0, 10).catch(() => null),
+        ]);
+        if (!mounted) return;
+
+        let storesFromApi = storesResponse?.items || [];
+        if (storesResponse && storesResponse.totalPages > 1) {
+          const pageRequests: Array<Promise<Awaited<ReturnType<typeof marketplaceService.searchStores>> | null>> = [];
+          for (let page = 1; page < storesResponse.totalPages; page += 1) {
+            pageRequests.push(
+              marketplaceService.searchStores('', page, storesResponse.size || 100).catch(() => null),
+            );
+          }
+
+          const extraPages = await Promise.all(pageRequests);
+          storesFromApi = storesFromApi.concat(
+            extraPages.flatMap((pageResult) => pageResult?.items || []),
+          );
+        }
+
+        const dedupedStores = Array.from(
+          new Map(storesFromApi.map((store) => [store.id, store])).values(),
+        );
         if (!mounted) return;
 
         setFeaturedStores(data.featuredStores);
+        setAllStores(dedupedStores.length > 0 ? dedupedStores : data.featuredStores || []);
         setCategoryTabs(data.categoryTabs || []);
         setFeaturedProducts(data.featuredProducts.length > 0 ? data.featuredProducts : fallbackFeaturedProducts);
         setTrendingProducts(data.trendingProducts.length > 0 ? data.trendingProducts : fallbackTrendingProducts);
+        setTopSellingProducts(
+          (topSellingResponse?.items && topSellingResponse.items.length > 0
+            ? topSellingResponse.items
+            : [...data.featuredProducts, ...data.trendingProducts]
+          ).slice(0, 10),
+        );
       } catch {
         if (!mounted) return;
         setFeaturedStores([]);
+        setAllStores([]);
         setCategoryTabs([]);
         setFeaturedProducts(fallbackFeaturedProducts);
         setTrendingProducts(fallbackTrendingProducts);
+        setTopSellingProducts([]);
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -172,26 +164,7 @@ const Home = () => {
     [flashSaleProducts],
   );
 
-  const topVendors = useMemo(() => {
-    const source = featuredStores.length > 0 ? featuredStores : fallbackTopVendors;
-    if (source.length >= 4) {
-      return source.slice(0, 4);
-    }
-
-    const seen = new Set(source.map((store) => store.id));
-    const padded = [...source];
-    for (const fallback of fallbackTopVendors) {
-      if (padded.length >= 4) {
-        break;
-      }
-      if (!seen.has(fallback.id)) {
-        padded.push(fallback);
-        seen.add(fallback.id);
-      }
-    }
-
-    return padded.slice(0, 4);
-  }, [featuredStores]);
+  const topVendors = useMemo(() => (allStores.length > 0 ? allStores : featuredStores), [allStores, featuredStores]);
 
   return (
     <div className="home-page">
@@ -285,9 +258,12 @@ const Home = () => {
 
             <section className="home-section-gap">
               <ProductSection
-                title={'GỢI Ý HÔM NAY'}
-                products={trendingProducts}
+                title={'Sản phẩm mua nhiều'}
+                products={topSellingProducts}
                 viewAllLink="/search?scope=products"
+                useSlider={false}
+                maxItems={10}
+                className="top-selling-section"
               />
             </section>
           </>
@@ -298,4 +274,5 @@ const Home = () => {
 };
 
 export default Home;
+
 
