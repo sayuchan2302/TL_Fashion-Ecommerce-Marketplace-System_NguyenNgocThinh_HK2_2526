@@ -1294,13 +1294,6 @@ body.modal-open {
   margin-bottom: 32px;
 }
 
-.review-section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--co-black);
-  margin: 0 0 16px 0;
-}
-
 .review-pending-list,
 .review-completed-list {
   display: flex;

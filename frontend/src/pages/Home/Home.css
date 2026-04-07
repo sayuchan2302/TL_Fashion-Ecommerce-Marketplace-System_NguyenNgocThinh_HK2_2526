@@ -38,7 +38,25 @@
   line-height: 1;
 }
 
+.home-page .categories-section {
+  margin-top: var(--space-12);
+  margin-bottom: 0;
+  padding: var(--space-8) var(--space-4);
+  background: linear-gradient(135deg, #f8f9ff 0%, #eef2ff 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid #e6ebff;
+}
+
 /* ─── Loading Skeleton ────────────────────────────────────── */
+.home-hero-wrap {
+  margin-top: var(--space-4);
+}
+
+.home-page .hero-slider {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
 .home-loading {
   max-width: 1280px;
   margin: 0 auto;
@@ -272,6 +290,15 @@
     border-radius: var(--radius-md);
     padding: var(--space-6) var(--space-3);
   }
+  .home-page .hero-slider {
+    border-radius: var(--radius-md);
+  }
+
+
+  .home-page .categories-section {
+    border-radius: var(--radius-md);
+    padding: var(--space-6) var(--space-3);
+  }
 
 
   .top-vendor-head {
@@ -294,3 +321,4 @@
     grid-template-columns: 1fr;
   }
 }
+

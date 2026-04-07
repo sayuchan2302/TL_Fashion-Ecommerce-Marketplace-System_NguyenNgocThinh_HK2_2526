@@ -222,7 +222,9 @@ const Home = () => {
           </div>
         ) : (
           <>
-            <HeroSlider />
+            <div className="home-hero-wrap container">
+              <HeroSlider />
+            </div>
             <Categories
               categoryTabs={categoryTabs}
               featuredStores={featuredStores}

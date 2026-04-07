@@ -884,7 +884,6 @@ const Profile = () => {
 
             {reviewFilter === 'pending' && (
               <div className="review-section">
-                <h3 className="review-section-title">Sản phẩm chờ đánh giá</h3>
                 {!reviewsLoading && !reviewsError && pendingReviews.length > 0 ? (
                   <div className="review-pending-list">
                     {pendingReviews.map((product) => (
@@ -919,7 +918,6 @@ const Profile = () => {
 
             {reviewFilter === 'completed' && (
               <div className="review-section">
-                <h3 className="review-section-title">Đánh giá của bạn</h3>
                 {!reviewsLoading && !reviewsError && completedReviews.length > 0 ? (
                   <div className="review-completed-list">
                     {completedReviews.map((review) => (
@@ -1476,3 +1474,4 @@ const Profile = () => {
 };
 
 export default Profile;
+
