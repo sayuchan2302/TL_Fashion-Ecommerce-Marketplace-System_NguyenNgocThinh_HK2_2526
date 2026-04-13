@@ -88,7 +88,7 @@ class PromotionNotificationDispatcherServiceTest {
         NotificationResponse response = NotificationResponse.builder()
                 .id(UUID.randomUUID())
                 .type(Notification.NotificationType.PROMOTION.name().toLowerCase())
-                .title("San vua co voucher moi")
+                .title("Sàn vừa có voucher mới")
                 .build();
         notificationDomainService.nextResponse = response;
 

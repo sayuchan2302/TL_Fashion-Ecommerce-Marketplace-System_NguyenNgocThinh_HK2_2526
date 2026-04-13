@@ -384,19 +384,21 @@ const Header = () => {
             {totalItems > 0 && <span className="icon-badge">{totalItems > 99 ? '99+' : totalItems}</span>}
           </button>
           {isAuthenticated && (
-            <button
-              className="icon-btn notification-btn"
-              aria-label="Thông báo"
-              onClick={() => setIsNotificationOpen(true)}
-            >
-              <Bell size={22} />
-              {unreadCount > 0 && <span className="icon-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
-            </button>
+            <div className="notification-menu">
+              <button
+                className="icon-btn notification-btn"
+                aria-label="Thông báo"
+                onClick={() => setIsNotificationOpen(true)}
+              >
+                <Bell size={22} />
+                {unreadCount > 0 && <span className="icon-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+              </button>
+              <NotificationDropdown
+                isOpen={isNotificationOpen}
+                onClose={() => setIsNotificationOpen(false)}
+              />
+            </div>
           )}
-          <NotificationDropdown
-            isOpen={isNotificationOpen}
-            onClose={() => setIsNotificationOpen(false)}
-          />
 
         </div>
         <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Menu">
@@ -515,3 +517,4 @@ const Header = () => {
 };
 
 export default Header;
+

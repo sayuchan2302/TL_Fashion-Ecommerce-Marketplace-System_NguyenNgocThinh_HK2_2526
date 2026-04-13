@@ -1,7 +1,7 @@
 .notif-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  right: -8px;
   width: 400px;
   max-height: 520px;
   background: white;

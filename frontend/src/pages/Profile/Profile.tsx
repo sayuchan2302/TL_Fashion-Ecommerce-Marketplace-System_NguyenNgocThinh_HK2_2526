@@ -779,8 +779,11 @@ const Profile = () => {
                   actionLink="/"
                 />
               ) : (
-                vouchers.map((voucher) => (
-                  <div key={voucher.code} className="voucher-card">
+                vouchers.map((voucher, index) => (
+                  <div
+                    key={voucher.id ?? `${voucher.code}-${voucher.storeId ?? 'global'}-${voucher.expiresAt ?? 'na'}-${index}`}
+                    className="voucher-card"
+                  >
                     <div className="voucher-stripe"></div>
                     <div className="voucher-body">
                       <div className="voucher-top">

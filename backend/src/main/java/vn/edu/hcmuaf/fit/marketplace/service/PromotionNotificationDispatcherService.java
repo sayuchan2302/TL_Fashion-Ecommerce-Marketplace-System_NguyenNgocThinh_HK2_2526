@@ -136,24 +136,24 @@ public class PromotionNotificationDispatcherService {
                         .map(name -> normalize(name, "Shop"))
                         .orElse("Shop");
                 yield new NotificationContent(
-                        "Shop " + storeName + " vua co voucher moi: " + safeCode,
-                        "Nhan vao de xem va su dung uu dai moi.",
+                        "Shop " + storeName + " vừa có voucher mới: " + safeCode,
+                        "Nhấn vào để xem và sử dụng ưu đãi mới.",
                         link
                 );
             }
             case MARKETPLACE_NEW -> new NotificationContent(
-                    "San vua co voucher moi: " + safeCode,
-                    "Uu dai moi da cap nhat trong vi voucher cua ban.",
+                    "Sàn vừa có voucher mới: " + safeCode,
+                    "Ưu đãi mới đã cập nhật trong ví voucher của bạn.",
                     link
             );
             case REMINDER_24H -> new NotificationContent(
-                    "Voucher " + safeCode + " se het han trong 24 gio.",
-                    "Nhan vao de su dung voucher truoc khi het han.",
+                    "Voucher " + safeCode + " sẽ hết hạn trong 24 giờ.",
+                    "Nhấn vào để sử dụng voucher trước khi hết hạn.",
                     link
             );
             case REMINDER_3H -> new NotificationContent(
-                    "Voucher " + safeCode + " sap het han trong 3 gio.",
-                    "Nhan vao de su dung voucher truoc khi het han.",
+                    "Voucher " + safeCode + " sắp hết hạn trong 3 giờ.",
+                    "Nhấn vào để sử dụng voucher trước khi hết hạn.",
                     link
             );
         };

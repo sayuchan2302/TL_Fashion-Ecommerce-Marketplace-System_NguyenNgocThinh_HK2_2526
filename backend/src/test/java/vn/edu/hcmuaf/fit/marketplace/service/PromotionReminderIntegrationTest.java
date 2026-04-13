@@ -110,10 +110,10 @@ class PromotionReminderIntegrationTest {
         boolean found3h = false;
         for (JsonNode item : content) {
             String title = item.path("title").asText();
-            if (title.contains(code) && title.contains("24 gio")) {
+            if (title.contains(code) && title.contains("24 giờ")) {
                 found24h = true;
             }
-            if (title.contains(code) && title.contains("3 gio")) {
+            if (title.contains(code) && title.contains("3 giờ")) {
                 found3h = true;
             }
         }

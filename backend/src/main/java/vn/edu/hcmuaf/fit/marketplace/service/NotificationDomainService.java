@@ -121,8 +121,8 @@ public class NotificationDomainService {
             Notification notification = Notification.builder()
                     .user(user)
                     .type(type == null ? Notification.NotificationType.SYSTEM : type)
-                    .title(trimOrFallback(title, "Thông báo hệ thống"))
-                    .message(trimOrNull(message))
+                    .title(trimOrFallback(normalizeLegacyNotificationText(title), "Thông báo hệ thống"))
+                    .message(trimOrNull(normalizeLegacyNotificationText(message)))
                     .link(trimOrNull(link))
                     .isRead(false)
                     .build();
@@ -152,8 +152,8 @@ public class NotificationDomainService {
         return NotificationResponse.builder()
                 .id(notification.getId())
                 .type(rawType.toLowerCase(Locale.ROOT))
-                .title(notification.getTitle())
-                .message(notification.getMessage())
+                .title(normalizeLegacyNotificationText(notification.getTitle()))
+                .message(normalizeLegacyNotificationText(notification.getMessage()))
                 .image(notification.getImage())
                 .link(notification.getLink())
                 .read(Boolean.TRUE.equals(notification.getIsRead()))
@@ -187,4 +187,23 @@ public class NotificationDomainService {
         String normalized = trimOrNull(value);
         return normalized == null ? fallback : normalized;
     }
+
+    /**
+     * Normalize legacy notification text that was stored without Vietnamese accents.
+     * This keeps historical notifications readable without requiring manual DB migration.
+     */
+    private String normalizeLegacyNotificationText(String value) {
+        if (value == null || value.isBlank()) {
+            return value;
+        }
+        return value
+                .replace("San vua co voucher moi", "Sàn vừa có voucher mới")
+                .replace("vua co voucher moi", "vừa có voucher mới")
+                .replace("se het han trong 24 gio", "sẽ hết hạn trong 24 giờ")
+                .replace("sap het han trong 3 gio", "sắp hết hạn trong 3 giờ")
+                .replace("Nhan vao de xem va su dung uu dai moi.", "Nhấn vào để xem và sử dụng ưu đãi mới.")
+                .replace("Uu dai moi da cap nhat trong vi voucher cua ban.", "Ưu đãi mới đã cập nhật trong ví voucher của bạn.")
+                .replace("Nhan vao de su dung voucher truoc khi het han.", "Nhấn vào để sử dụng voucher trước khi hết hạn.");
+    }
 }
+
