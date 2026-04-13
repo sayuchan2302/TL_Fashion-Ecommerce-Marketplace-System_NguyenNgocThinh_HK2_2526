@@ -405,6 +405,7 @@ const VendorReviews = () => {
                       onChange={(event) => setSelected(event.target.checked ? new Set(reviews.map((item) => item.id)) : new Set())}
                     />
                   </div>
+                  <div role="columnheader">STT</div>
                   <div role="columnheader">Sản phẩm</div>
                   <div role="columnheader">Đánh giá</div>
                   <div role="columnheader">Nội dung</div>
@@ -438,6 +439,7 @@ const VendorReviews = () => {
                         }}
                       />
                     </div>
+                    <div role="cell" className="admin-mono">{startIndex + index}</div>
                     <div role="cell" className="vendor-admin-product-cell">
                       <img src={review.productImage} alt={review.productName} className="vendor-admin-thumb" />
                       <div className="vendor-admin-product-copy">

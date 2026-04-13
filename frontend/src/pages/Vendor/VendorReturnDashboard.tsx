@@ -320,7 +320,7 @@ const VendorReturnDashboard = () => {
                       }}
                     />
                   </div>
-                  <div role="columnheader">Mã hoàn trả</div>
+                  <div role="columnheader">STT</div>
                   <div role="columnheader">Khách hàng</div>
                   <div role="columnheader">Sản phẩm</div>
                   <div role="columnheader">Trạng thái</div>
@@ -328,7 +328,7 @@ const VendorReturnDashboard = () => {
                   <div role="columnheader">Hành động</div>
                 </div>
 
-                {rows.map((item) => (
+                {rows.map((item, index) => (
                     <motion.div key={item.id} className="admin-table-row vendor-returns" role="row" whileHover={{ y: -1 }}>
                       <div role="cell" className="vendor-return-checkbox-cell">
                         <input
@@ -343,10 +343,7 @@ const VendorReturnDashboard = () => {
                           aria-label={`Chọn ${toDisplayReturnCode(item.code)}`}
                         />
                       </div>
-                      <div role="cell" className="returns-code-cell">
-                        <strong className="returns-ellipsis">{toDisplayReturnCode(item.code)}</strong>
-                        <small className="admin-muted returns-ellipsis">{formatDate(item.createdAt)}</small>
-                      </div>
+                      <div role="cell" className="admin-mono">{startIndex + index}</div>
                       <div role="cell" className="returns-customer-cell">
                         <strong className="returns-ellipsis">{item.customerName || 'Khách hàng'}</strong>
                         <small className="admin-muted returns-ellipsis">{item.customerEmail || 'Chưa có email'}</small>

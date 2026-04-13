@@ -477,14 +477,14 @@ const VendorOrders = () => {
             <>
               <div className="admin-table vendor-table">
                 <div className="admin-table-head admin-table-row vendor-orders">
-                  <div>
+<div>
                     <input
                       type="checkbox"
                       checked={allSelected}
                       onChange={(event) => toggleSelectAll(event.target.checked)}
                     />
                   </div>
-                  <div>Mã đơn</div>
+                  <div>STT</div>
                   <div>Khách hàng</div>
                   <div>Sản phẩm</div>
                   <div>Giá trị</div>
@@ -493,7 +493,7 @@ const VendorOrders = () => {
                   <div>Hành động</div>
                 </div>
 
-                {paginatedOrders.map((order) => {
+                {paginatedOrders.map((order, index) => {
                   const statusTone = getVendorOrderStatusTone(order.status);
                   const statusLabel = getVendorOrderStatusLabel(order.status);
                   const isSelected = selected.has(order.id);
@@ -514,7 +514,7 @@ const VendorOrders = () => {
                           onChange={(event) => toggleOne(order.id, event.target.checked)}
                         />
                       </div>
-                      <div className="admin-bold">{toDisplayOrderCode(order.code)}</div>
+                      <div className="admin-bold">{startIndex + index}</div>
                       <div>
                         <div className="admin-bold">{order.customer}</div>
                         <div className="admin-muted small">{order.email}</div>

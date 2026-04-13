@@ -971,14 +971,14 @@
 
 .admin-table-row.vendor-orders {
   grid-template-columns:
+    38px
     44px
-    minmax(148px, 1.15fr)
-    minmax(230px, 2fr)
-    minmax(172px, 1.35fr)
-    minmax(126px, 0.95fr)
-    minmax(94px, 0.72fr)
-    minmax(124px, 0.9fr)
-    minmax(172px, 1.1fr);
+    minmax(200px, 1.8fr)
+    minmax(160px, 1.2fr)
+    minmax(110px, 0.85fr)
+    minmax(85px, 0.65fr)
+    minmax(110px, 0.8fr)
+    minmax(150px, 1fr);
 }
 
 .admin-table-row.vendor-orders > [role='columnheader']:last-child {
@@ -990,13 +990,13 @@
 
 .admin-table-row.vendor-returns {
   grid-template-columns:
-    minmax(36px, 0.25fr)
-    minmax(140px, 1.1fr)
-    minmax(150px, 1.1fr)
-    minmax(200px, 1.5fr)
-    minmax(120px, 0.85fr)
+    38px
+    44px
+    minmax(130px, 1fr)
+    minmax(180px, 1.4fr)
     minmax(110px, 0.8fr)
-    minmax(130px, 0.95fr);
+    minmax(100px, 0.75fr)
+    minmax(120px, 0.9fr);
   align-items: center;
 }
 
@@ -1064,27 +1064,29 @@
 
 .admin-table-row.vendor-promotions {
   grid-template-columns:
+    38px
     44px
-    minmax(210px, 1.8fr)
-    minmax(110px, 0.95fr)
-    minmax(110px, 0.95fr)
-    minmax(120px, 1fr)
-    minmax(140px, 1fr)
+    minmax(180px, 1.6fr)
+    minmax(100px, 0.85fr)
+    minmax(100px, 0.85fr)
     minmax(110px, 0.9fr)
-    minmax(112px, 0.9fr)
-    minmax(136px, 0.9fr);
+    minmax(120px, 0.9fr)
+    minmax(100px, 0.8fr)
+    minmax(100px, 0.8fr)
+    minmax(120px, 0.85fr);
 }
 
 .admin-table-row.vendor-reviews {
   grid-template-columns:
+    38px
     44px
-    minmax(210px, 1.6fr)
-    minmax(108px, 0.82fr)
-    minmax(230px, 1.8fr)
-    minmax(150px, 1.1fr)
-    minmax(116px, 0.88fr)
-    minmax(120px, 0.9fr)
-    minmax(118px, 0.86fr);
+    minmax(180px, 1.4fr)
+    minmax(100px, 0.75fr)
+    minmax(200px, 1.6fr)
+    minmax(130px, 1fr)
+    minmax(100px, 0.8fr)
+    minmax(100px, 0.8fr)
+    minmax(100px, 0.8fr);
 }
 
 .admin-table-row.vendor-analytics-trend {

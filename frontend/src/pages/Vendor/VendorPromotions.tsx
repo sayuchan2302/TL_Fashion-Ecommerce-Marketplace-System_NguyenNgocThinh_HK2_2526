@@ -487,7 +487,7 @@ const VendorPromotions = () => {
             />
           ) : (
             <>
-              <div className="admin-table" role="table" aria-label="Bang voucher shop">
+<div className="admin-table" role="table" aria-label="Bang voucher shop">
                 <div className="admin-table-row vendor-promotions admin-table-head" role="row">
                   <div role="columnheader">
                     <input
@@ -502,6 +502,7 @@ const VendorPromotions = () => {
                       }
                     />
                   </div>
+                  <div role="columnheader">STT</div>
                   <div role="columnheader">Voucher</div>
                   <div role="columnheader">Loại giảm</div>
                   <div role="columnheader">Giá trị</div>
@@ -527,6 +528,7 @@ const VendorPromotions = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.16) }}
                       whileHover={{ y: -1 }}
+
                       onClick={() => openEdit(voucher)}
                       style={{ cursor: 'pointer' }}
                     >
@@ -543,8 +545,9 @@ const VendorPromotions = () => {
                             }
                             setSelected(next);
                           }}
-                        />
+/>
                       </div>
+                      <div role="cell" className="admin-mono">{startRow + index}</div>
                       <div role="cell">
                         <p className="admin-bold promo-name">{voucher.name}</p>
                         <p className="admin-muted promo-code">{voucher.code}</p>
