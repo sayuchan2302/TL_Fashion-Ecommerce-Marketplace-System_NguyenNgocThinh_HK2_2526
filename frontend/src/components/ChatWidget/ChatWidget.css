@@ -29,8 +29,8 @@
 }
 
 .chat-widget__panel {
-  width: min(390px, calc(100vw - 24px));
-  height: min(620px, calc(100vh - 120px));
+  width: min(360px, calc(100vw - 24px));
+  height: min(560px, calc(100vh - 132px));
   border-radius: 16px;
   border: 1px solid #dbe3f5;
   overflow: hidden;
@@ -41,12 +41,12 @@
 }
 
 .chat-widget__header {
-  padding: 14px 16px;
-  border-bottom: 1px solid #edf1f7;
+  padding: 10px 14px;
+  border-bottom: 1px solid #2a57c9;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  background: linear-gradient(135deg, #1f4fcc 0%, #2f5acf 55%, #3b82f6 100%);
 }
 
 .chat-widget__title-wrap {
@@ -57,25 +57,31 @@
   margin: 0;
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .chat-widget__status {
-  margin-top: 2px;
+  margin-top: 1px;
   display: inline-block;
   font-size: 12px;
-  color: #2f5acf;
+  color: #86efac;
+  font-weight: 500;
 }
 
 .chat-widget__icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 9999px;
-  border: 1px solid #dbe3f5;
-  color: #475569;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.chat-widget__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .chat-widget__body {
@@ -85,6 +91,64 @@
 
 .chat-widget__body > * {
   height: 100%;
+}
+
+/* Client messages - align right, bubble style */
+.chat-widget__body .webchat__message--user {
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+.chat-widget__body .webchat__message--user .webchat__bubble {
+  background: #2f5acf !important;
+  color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important;
+  max-width: 80% !important;
+}
+
+.chat-widget__body .webchat__message--user .webchat__bubble > .webchat__text-content {
+  color: #ffffff !important;
+}
+
+/* Bot messages - align left */
+.chat-widget__body .webchat__message--bot {
+  display: flex !important;
+  justify-content: flex-start !important;
+}
+
+.chat-widget__body .webchat__message--bot .webchat__bubble {
+  background: #f6f8ff !important;
+  color: #111827 !important;
+  border-radius: 18px 18px 18px 4px !important;
+}
+
+.chat-widget__body .webchat__suggested-action {
+  font-size: 14px !important;
+}
+
+.chat-widget__body .webchat__suggested-action * {
+  font-size: inherit !important;
+}
+
+.chat-widget__body .webchat__send-box {
+  padding: 10px 12px !important;
+}
+
+.chat-widget__body .webchat__send-box__main {
+  border-radius: 9999px !important;
+  border: 1px solid #cdd9ee !important;
+  background: #ffffff !important;
+  padding-inline: 10px !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+}
+
+.chat-widget__body .webchat__send-box__main:focus-within {
+  border-color: #9fb8ec !important;
+  box-shadow: 0 0 0 2px rgba(47, 90, 207, 0.12) !important;
+}
+
+.chat-widget__body .webchat__send-box-text-box__input {
+  padding-block: 8px !important;
 }
 
 .chat-widget__state {
@@ -121,7 +185,7 @@
 
   .chat-widget__panel {
     width: calc(100vw - 24px);
-    height: calc(100vh - 90px);
+    height: calc(100vh - 108px);
     border-radius: 14px;
   }
 }

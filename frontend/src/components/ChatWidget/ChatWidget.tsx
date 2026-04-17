@@ -1,11 +1,30 @@
-import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MessageCircle, RotateCcw, X } from 'lucide-react';
 import './ChatWidget.css';
 import { chatbotService } from '../../services/chatbotService';
 import { ApiError } from '../../services/apiClient';
+import { useAuth } from '../../contexts/AuthContext';
 
 const VISITOR_ID_KEY = 'fashmarket-chat-visitor-id-v2';
 const DIRECT_LINE_USER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+const ABSOLUTE_IMAGE_URL_PATTERN = /^https?:\/\//i;
+const DATA_IMAGE_PATTERN = /^data:image\//i;
+const WEBCHAT_JOIN_EVENT = 'webchat/join';
+
+type WebChatAction = {
+  type: string;
+  payload?: unknown;
+};
+
+type WebChatDispatch = (action: WebChatAction) => unknown;
+
+const getInitials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('') || 'U';
 
 const buildVisitorId = () => {
   if (typeof window === 'undefined') {
@@ -37,36 +56,53 @@ const resolveErrorMessage = (error: unknown) => {
 };
 
 const ChatWidget = () => {
-  const [ReactWebChatComponent, setReactWebChatComponent] = useState<ComponentType<{
-    directLine: unknown;
-    locale: string;
-    styleOptions: Record<string, string | number | boolean>;
-  }> | null>(null);
+  const { user } = useAuth();
+  const [ReactWebChatComponent, setReactWebChatComponent] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [directLine, setDirectLine] = useState<{ end?: () => void } | null>(null);
+  const [webChatStore, setWebChatStore] = useState<unknown>(null);
 
   const visitorId = useMemo(buildVisitorId, []);
+  const userAvatar = useMemo(() => {
+    const rawAvatar = user?.avatar?.trim() || '';
+    const hasImageAvatar = ABSOLUTE_IMAGE_URL_PATTERN.test(rawAvatar) || DATA_IMAGE_PATTERN.test(rawAvatar);
 
-  const styleOptions = useMemo(() => ({
-    botAvatarInitials: 'FM',
-    userAvatarInitials: 'Bạn',
-    bubbleBackground: '#f6f8ff',
-    bubbleBorderRadius: 14,
-    bubbleFromUserBackground: '#2f5acf',
-    bubbleFromUserTextColor: '#ffffff',
-    bubbleFromUserBorderRadius: 14,
-    hideUploadButton: true,
-    sendBoxButtonColor: '#2f5acf',
-    sendBoxTextColor: '#111827',
-    sendBoxBorderTop: '1px solid #e5e7eb',
-    suggestedActionBackgroundColor: '#ffffff',
-    suggestedActionBorderColor: '#bfdbfe',
-    suggestedActionTextColor: '#1e3a8a',
-    suggestedActionBorderRadius: 9999,
-    accent: '#2f5acf',
-  }), []);
+    return {
+      image: hasImageAvatar ? rawAvatar : undefined,
+      initials: hasImageAvatar
+        ? getInitials(user?.name || 'User')
+        : (rawAvatar || getInitials(user?.name || 'User')),
+    };
+  }, [user?.avatar, user?.name]);
+
+  const styleOptions = useMemo(() => {
+    const options: Record<string, string | number | boolean> = {
+      botAvatarInitials: 'FM',
+      userAvatarInitials: userAvatar.initials,
+      bubbleBackground: '#f6f8ff',
+      bubbleBorderRadius: 14,
+      bubbleFromUserBackground: '#2f5acf',
+      bubbleFromUserTextColor: '#ffffff',
+      bubbleFromUserBorderRadius: 14,
+      hideUploadButton: true,
+      sendBoxButtonColor: '#2f5acf',
+      sendBoxTextColor: '#111827',
+      sendBoxBorderTop: '1px solid #e5e7eb',
+      suggestedActionBackgroundColor: '#ffffff',
+      suggestedActionBorderColor: '#bfdbfe',
+      suggestedActionTextColor: '#1e3a8a',
+      suggestedActionBorderRadius: 9999,
+      accent: '#2f5acf',
+    };
+
+    if (userAvatar.image) {
+      options.userAvatarImage = userAvatar.image;
+    }
+
+    return options;
+  }, [userAvatar.image, userAvatar.initials]);
 
   const initDirectLine = useCallback(async () => {
     if (directLine || isLoading) {
@@ -90,6 +126,21 @@ const ChatWidget = () => {
         streamUrl: tokenData.streamUrl,
       }) as { end?: () => void; setUserId?: (id: string) => void };
 
+      let didSendJoinEvent = false;
+      const createdStore = webChatModule.createStore({}, ({ dispatch }: { dispatch: WebChatDispatch }) =>
+        (next: WebChatDispatch) =>
+          (action: WebChatAction) => {
+            if (!didSendJoinEvent && action.type === 'DIRECT_LINE/CONNECT_FULFILLED') {
+              didSendJoinEvent = true;
+              dispatch({
+                type: 'WEB_CHAT/SEND_EVENT',
+                payload: { name: WEBCHAT_JOIN_EVENT },
+              });
+            }
+
+            return next(action);
+          });
+
       // Web Chat may try to call setUserId after Direct Line is already online.
       // Ignore this specific non-fatal SDK exception to prevent javascripterror activity.
       if (typeof createdDirectLine.setUserId === 'function') {
@@ -107,6 +158,7 @@ const ChatWidget = () => {
       }
 
       setDirectLine(createdDirectLine);
+      setWebChatStore(createdStore);
     } catch (error) {
       setErrorMessage(resolveErrorMessage(error));
     } finally {
@@ -162,27 +214,31 @@ const ChatWidget = () => {
               </div>
             )}
 
-            {!isLoading && !errorMessage && directLine && ReactWebChatComponent && (
+            {!isLoading && !errorMessage && directLine && webChatStore !== null && ReactWebChatComponent && (
               <ReactWebChatComponent
                 directLine={directLine}
                 locale="vi-VN"
                 styleOptions={styleOptions}
+                store={webChatStore}
+                userID={visitorId}
               />
             )}
           </div>
         </div>
       )}
 
-      <button
-        type="button"
-        className="chat-widget__launcher"
-        onClick={() => setIsOpen(open => !open)}
-        aria-expanded={isOpen}
-        aria-controls="chat-widget-panel"
-        aria-label={isOpen ? 'Thu nhỏ chat' : 'Mở chat hỗ trợ'}
-      >
-        {isOpen ? <X size={20} /> : <MessageCircle size={20} />}
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          className="chat-widget__launcher"
+          onClick={() => setIsOpen(true)}
+          aria-expanded={false}
+          aria-controls="chat-widget-panel"
+          aria-label="Mở chat hỗ trợ"
+        >
+          <MessageCircle size={20} />
+        </button>
+      )}
     </div>
   );
 };

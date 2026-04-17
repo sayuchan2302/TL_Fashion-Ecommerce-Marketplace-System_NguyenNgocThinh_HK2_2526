@@ -32,6 +32,8 @@ public class MarketplaceBot extends ActivityHandler {
     private static final String MENU_ORDER = "tra cuu don hang";
     private static final String MENU_SIZE = "tu van size";
     private static final String MENU_PRODUCT = "hoi dap san pham";
+    private static final String WEBCHAT_JOIN_EVENT = "webchat/join";
+    private static final String WELCOME_PROMPT = "Xin chào! Mình là trợ lý CSKH của FashMarket. Bạn cần hỗ trợ gì?";
 
     private final ConversationState conversationState;
     private final StatePropertyAccessor<Object> sessionAccessor;
@@ -68,7 +70,16 @@ public class MarketplaceBot extends ActivityHandler {
         if (!hasRealUser) {
             return CompletableFuture.completedFuture(null);
         }
-        return sendMainMenu(turnContext, "Xin chào! Mình là trợ lý CSKH của FashMarket. Bạn cần hỗ trợ gì?");
+        return sendWelcomeIfNeeded(turnContext);
+    }
+
+    @Override
+    protected CompletableFuture<Void> onEventActivity(TurnContext turnContext) {
+        String eventName = turnContext.getActivity().getName();
+        if (WEBCHAT_JOIN_EVENT.equalsIgnoreCase(eventName == null ? "" : eventName.trim())) {
+            return sendWelcomeIfNeeded(turnContext);
+        }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
@@ -93,7 +104,8 @@ public class MarketplaceBot extends ActivityHandler {
             return convertStateValues(
                     map.get("step"),
                     map.get("pendingOrderCode"),
-                    map.get("heightCm")
+                    map.get("heightCm"),
+                    map.get("welcomed")
             );
         }
 
@@ -110,7 +122,8 @@ public class MarketplaceBot extends ActivityHandler {
         boolean hasStateShape =
                 hasProperty(rawState, "step")
                         || hasProperty(rawState, "pendingOrderCode")
-                        || hasProperty(rawState, "heightCm");
+                        || hasProperty(rawState, "heightCm")
+                        || hasProperty(rawState, "welcomed");
 
         if (!hasStateShape) {
             return null;
@@ -119,11 +132,17 @@ public class MarketplaceBot extends ActivityHandler {
         return convertStateValues(
                 readProperty(rawState, "step"),
                 readProperty(rawState, "pendingOrderCode"),
-                readProperty(rawState, "heightCm")
+                readProperty(rawState, "heightCm"),
+                readProperty(rawState, "welcomed")
         );
     }
 
-    private ChatSessionState convertStateValues(Object rawStep, Object rawPendingOrderCode, Object rawHeightCm) {
+    private ChatSessionState convertStateValues(
+            Object rawStep,
+            Object rawPendingOrderCode,
+            Object rawHeightCm,
+            Object rawWelcomed
+    ) {
         ChatSessionState state = new ChatSessionState();
 
         if (rawStep != null) {
@@ -139,6 +158,7 @@ public class MarketplaceBot extends ActivityHandler {
         }
 
         state.heightCm = parseNullableInt(rawHeightCm);
+        state.welcomed = parseBoolean(rawWelcomed);
         return state;
     }
 
@@ -154,6 +174,16 @@ public class MarketplaceBot extends ActivityHandler {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    private boolean parseBoolean(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Boolean boolValue) {
+            return boolValue;
+        }
+        return Boolean.parseBoolean(value.toString());
     }
 
     private boolean hasProperty(Object target, String propertyName) {
@@ -267,6 +297,20 @@ public class MarketplaceBot extends ActivityHandler {
         return sendMainMenu(turnContext, "Mình chưa hiểu yêu cầu. Bạn chọn một chức năng bên dưới nhé.");
     }
 
+    private CompletableFuture<Void> sendWelcomeIfNeeded(TurnContext turnContext) {
+        return sessionAccessor.get(turnContext, ChatSessionState::new)
+                .thenCompose(rawState -> {
+                    ChatSessionState state = toChatSessionState(rawState);
+                    if (state.welcomed) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+
+                    state.welcomed = true;
+                    return sessionAccessor.set(turnContext, state)
+                            .thenCompose(ignore -> sendMainMenu(turnContext, WELCOME_PROMPT));
+                });
+    }
+
     private CompletableFuture<Void> sendMainMenu(TurnContext turnContext, String prompt) {
         Activity reply = MessageFactory.suggestedActions(
                 List.of("Tra cứu đơn hàng", "Tư vấn size", "Hỏi đáp sản phẩm"),
@@ -318,6 +362,7 @@ public class MarketplaceBot extends ActivityHandler {
         private ConversationStep step = ConversationStep.ROOT;
         private String pendingOrderCode;
         private Integer heightCm;
+        private boolean welcomed;
 
         void reset() {
             this.step = ConversationStep.ROOT;
